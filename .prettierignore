@@ -1,0 +1,15 @@
+.next
+node_modules
+package-lock.json
+next-env.d.ts
+
+# Client-maintained instruction files. Reformatting them creates noisy diffs in
+# documents we do not own.
+CLAUDE.md
+AGENTS.md
+public
+*.jpeg
+*.jpg
+*.png
+*.ico
+src/types/database.types.ts

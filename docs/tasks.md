@@ -69,16 +69,20 @@ Commit `feat: add products, orders and order_items schema with RLS and atomic in
 Branch `feature/product-catalog`
 Commit `feat: add product catalog with repository and service layers`
 
-- [ ] `src/lib/supabase/client.server.ts` — anon (read) and service-role (write) clients, `server-only`
-- [ ] `src/features/products/types/product.ts`
-- [ ] `src/features/products/mappers/product.mappers.ts` — the single row-to-domain boundary
-- [ ] `src/features/products/services/product.repository.ts` — explicit column lists, no `SELECT *`
-- [ ] `src/features/products/services/product.service.ts`
-- [ ] `src/services/container.ts` — the one composition root
-- [ ] `GET /api/products`, `GET /api/health`
-- [ ] `/products` — Server Component, `revalidate`, `loading.tsx`, `error.tsx`
-- [ ] `/products/[slug]` — `generateStaticParams`, `generateMetadata`, `loading`, `error`, `not-found`
-- [ ] Verify: 12 items listed; bad slug 404s; `/api/health` reports the DB reachable
+- [x] `src/lib/supabase/client.server.ts` — read (publishable key, RLS enforced) and write (service-role) clients, `server-only`
+- [x] `src/features/products/types/product.ts`
+- [x] `src/features/products/mappers/product.mappers.ts` — the single row-to-domain boundary, incl. the PostgREST numeric-as-string coercion
+- [x] `src/features/products/services/product.repository.ts` — explicit column lists, no `SELECT *`, `ilike` wildcards escaped
+- [x] `src/features/products/services/product.service.ts` — search sanitised and capped, `sort` narrowed, featured falls back to default order
+- [x] `src/services/container.ts` — the one composition root
+- [x] `GET /api/products`, `GET /api/health`
+- [x] Root layout: Inter + IBM Plex Mono, `metadataBase`, title template, `#site-root` (the element the Phase 3 gate marks `inert`)
+- [x] `/products` — Server Component, `revalidate = 3600`, `loading.tsx`, `error.tsx` (uses `retry`, not `reset`)
+- [x] `/products/[slug]` — `generateStaticParams`, `generateMetadata`, `dynamicParams = false`, `loading`, `error`, `not-found`
+- [x] `.claude/launch.json` for the preview server
+- [x] Verify: 12 products in the raw HTML with prices and cost-per-mg matching the poster; K-L-O-W's cost-per-mg suppressed as a blend; detail page specs + canonical + title correct; unknown slug returns a real **404**; all five sorts and search correct in SQL; `search=%` matches nothing (wildcard escaped); `sort=<junk>` falls back safely; `/api/health` reports the DB reachable; production HTML has exactly one `<main>` and one `<h1>`
+- [x] Env hardening found in passing: blank `.env` values normalised to `undefined`; service-role key and rate-limit salt required only in production (ADR-016)
+- [!] Client: real keys were pasted into `.env.example`, which **is tracked by git**. Reverted before any commit, so nothing leaked. Real values belong only in `.env.local`.
 
 ---
 

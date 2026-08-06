@@ -57,6 +57,61 @@ SQL, table names and internal paths never appear in a response.
 Detail — request shape, validation rules, every error response — is documented per endpoint as it is
 implemented.
 
+---
+
+## `GET /api/health`
+
+Liveness plus a real dependency check. Runs an actual one-row catalog query rather than a ping,
+because that exercises the key, RLS, and the connection — which is what breaks in production.
+
+```json
+{
+  "success": true,
+  "message": "Service is healthy.",
+  "data": {
+    "status": "ok",
+    "database": "reachable",
+    "latencyMs": 41,
+    "channels": {
+      "email": "not_configured",
+      "whatsapp": "not_configured",
+      "inquiryWrites": "available"
+    }
+  }
+}
+```
+
+`channels` reports configuration surface, not secrets — useful for confirming a deployment picked up
+its environment variables. Returns `503` with code `DEGRADED` if the database is unreachable, and
+`UNAVAILABLE` on an unexpected failure. No versions, connection strings, or error messages are
+exposed.
+
+## `GET /api/products`
+
+The active catalog. Not used by the site itself — pages read through the service layer in Server
+Components, which avoids an HTTP hop to ourselves. This exists for monitoring and any future external
+consumer.
+
+| Query param | Values                                                            | Default       |
+| ----------- | ----------------------------------------------------------------- | ------------- |
+| `sort`      | `recommended`, `name-asc`, `price-asc`, `price-desc`, `value-asc` | `recommended` |
+| `search`    | free text, matched against name in SQL, capped at 60 chars        | none          |
+
+An unrecognised `sort` falls back to `recommended` rather than erroring — the value comes from a URL
+and is untrusted. `search` is sanitised for invisible characters and its `ilike` wildcards (`%`, `_`,
+`\`) are escaped, so searching for `%` matches nothing rather than everything.
+
+Money is returned as `priceCents` (integer). `costPerMg` is a number, coerced once from the string
+PostgREST sends for `numeric` columns, and is display-only. `isBlend` products should not show a
+cost-per-mg figure — it divides price by total milligrams across several peptides and is not
+comparable to a single-peptide product.
+
+## Product pages and HTTP status
+
+`/products/[slug]` returns a real `404` for an unknown slug, because the segment sets
+`dynamicParams = false`. With `true`, Next renders and caches the not-found page and returns `200` — a
+soft 404. See ADR-014.
+
 ## `POST /api/inquiries` — notes that apply now
 
 - **`Idempotency-Key` header, required.** A client-generated UUID, stable for the lifetime of one form

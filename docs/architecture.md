@@ -63,19 +63,27 @@ stops `relation "orders" does not exist` from ever reaching a browser.
 `cacheComponents` is **off** (see ADR-008). Standard Next 16 defaults apply: `fetch` is uncached,
 Route Handlers are uncached, `revalidate` defaults to `false`.
 
-| Route                                             | Strategy                  | Config                                                                         |
-| ------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------ |
-| `/`                                               | Static + ISR              | `revalidate = 3600`                                                            |
-| `/products`                                       | Static + ISR              | `revalidate = 3600`                                                            |
-| `/products/[slug]`                                | Static + ISR              | `generateStaticParams` (all 12) + `revalidate = 3600` + `dynamicParams = true` |
-| `/cart`, `/inquiry`, `/inquiry/success`           | Static shell, client body | `robots: { index: false }`                                                     |
-| `/about`, `/contact`, `/lab-testing`, legal pages | Fully static              | —                                                                              |
-| `/api/*`                                          | Dynamic                   | Uncached by default in v16                                                     |
-| `sitemap.ts`                                      | Static + ISR              | `revalidate = 3600`                                                            |
+| Route                                             | Strategy                  | Config                                                                          |
+| ------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------- |
+| `/`                                               | Static + ISR              | `revalidate = 3600`                                                             |
+| `/products`                                       | Static + ISR              | `revalidate = 3600`                                                             |
+| `/products/[slug]`                                | Static + ISR              | `generateStaticParams` (all 12) + `revalidate = 3600` + `dynamicParams = false` |
+| `/cart`, `/inquiry`, `/inquiry/success`           | Static shell, client body | `robots: { index: false }`                                                      |
+| `/about`, `/contact`, `/lab-testing`, legal pages | Fully static              | —                                                                               |
+| `/api/*`                                          | Dynamic                   | Uncached by default in v16                                                      |
+| `sitemap.ts`                                      | Static + ISR              | `revalidate = 3600`                                                             |
 
 A price change in Supabase propagates within an hour automatically, or immediately via
 `POST /api/revalidate` with the bearer secret. `revalidatePath` is unchanged under Cache Components,
 so that endpoint survives a future Phase 10 migration untouched.
+
+Two constraints worth knowing before editing these routes:
+
+- **`revalidate` must be an inlined literal.** Next requires segment config exports to be statically
+  analyzable, so it cannot reference a shared constant (ADR-015).
+- **`dynamicParams = false` is load-bearing.** With `true`, an unknown slug renders on demand, gets
+  cached, and returns HTTP 200 for a page that says "not found" — a soft 404. The trade is that a
+  product added after a deploy 404s until the next build (ADR-014).
 
 ### Client boundaries
 

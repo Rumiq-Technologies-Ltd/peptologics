@@ -39,8 +39,15 @@ export const WHATSAPP_TIMEOUT_MS = 6_000 as const;
 /** Retry budget for transient notification failures. */
 export const NOTIFICATION_RETRY_ATTEMPTS = 3 as const;
 
-/** Seconds between ISR revalidations of catalog pages. */
-export const CATALOG_REVALIDATE_SECONDS = 3_600 as const;
+/**
+ * Catalog pages revalidate every 3600 seconds (one hour).
+ *
+ * Deliberately not a constant. Next requires segment config exports to be
+ * statically analyzable, so `export const revalidate` cannot reference an
+ * imported value or an expression — a non-literal fails the build with "Invalid
+ * segment configuration export detected". The literal is inlined at each route
+ * with a comment; this note records why it is duplicated rather than shared.
+ */
 
 /** Products shown in the featured strip on the home page. */
 export const FEATURED_PRODUCT_LIMIT = 6 as const;

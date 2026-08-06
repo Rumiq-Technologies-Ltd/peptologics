@@ -60,6 +60,20 @@ Until this is done, inquiries still save and the email channel records `skipped`
    summary must be flattened to a single line.
 6. Set `WHATSAPP_ENABLED=true` plus the four credentials.
 
+## Adding a product to the catalog
+
+Inserting a row into `products` is **not** enough to make its page reachable. `/products/[slug]` uses
+`dynamicParams = false`, so any slug not present at build time returns a real 404 (ADR-014). After
+inserting a product:
+
+1. Insert the row (via a seed edit and re-run, or Supabase Studio).
+2. **Trigger a redeploy** so `generateStaticParams` picks up the new slug. A Vercel Deploy Hook called
+   from a Supabase Database Webhook on `products` INSERT would automate this.
+3. `POST /api/revalidate` refreshes the catalog listing, but does **not** create the new detail page.
+
+Editing an existing product — including its price — needs no redeploy. It propagates within the hour,
+or immediately via `POST /api/revalidate`.
+
 ## Database migrations
 
 Applied through migrations only. Never edit production schema by hand.

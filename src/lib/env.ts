@@ -28,8 +28,14 @@ const serverEnvSchema = z.object({
    * every query runs server-side, so there is no reason to ship this key.
    */
   SUPABASE_ANON_KEY: z.string().min(1),
-  /** Bypasses RLS. Write path only. Never reaches a repository that reads. */
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  /**
+   * Bypasses RLS. Write path only. Never reaches a repository that reads.
+   *
+   * Optional in development so the read-only catalog can be run without holding
+   * the most dangerous secret in the project; a cross-field check below makes it
+   * mandatory in production, so a deploy cannot succeed without it.
+   */
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
 
   // --- Email (Resend) -------------------------------------------------------
   RESEND_API_KEY: z.string().min(1).optional(),
@@ -54,16 +60,61 @@ const serverEnvSchema = z.object({
   RATE_LIMIT_SALT: z.string().min(16).default("peptologics-dev-salt-change-me"),
 });
 
+/**
+ * Cross-field rules that only apply to a real deployment.
+ *
+ * Keeping these separate from the field definitions is what lets development run
+ * the read-only catalog with nothing but a Supabase URL and publishable key,
+ * while still making a production deploy fail fast on a missing secret.
+ */
+const serverEnvSchemaWithProductionRules = serverEnvSchema
+  .refine((value) => value.NODE_ENV !== "production" || Boolean(value.SUPABASE_SERVICE_ROLE_KEY), {
+    error: "Required in production — the inquiry write path cannot run without it.",
+    path: ["SUPABASE_SERVICE_ROLE_KEY"],
+  })
+  .refine(
+    (value) =>
+      value.NODE_ENV !== "production" || value.RATE_LIMIT_SALT !== "peptologics-dev-salt-change-me",
+    {
+      error: "Must be set to a real secret in production — the default salt is public.",
+      path: ["RATE_LIMIT_SALT"],
+    },
+  );
+
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
+/**
+ * Drops empty-string values so `.optional()` and `.default()` behave as written.
+ *
+ * A variable declared but left blank in a `.env` file — `RESEND_API_KEY=` — is
+ * read as `""`, not `undefined`. Zod treats that as a value present and failing
+ * `.min(1)`, so a perfectly ordinary "not configured yet" env file would refuse
+ * to boot. Normalising here is what makes a blank line in `.env.local` mean
+ * "unset", which is what everyone writing one intends.
+ */
+function withoutBlankValues(source: NodeJS.ProcessEnv): Record<string, string | undefined> {
+  const normalised: Record<string, string | undefined> = {};
+
+  for (const [key, value] of Object.entries(source)) {
+    normalised[key] = typeof value === "string" && value.trim() === "" ? undefined : value;
+  }
+
+  return normalised;
+}
+
 function loadServerEnv(): ServerEnv {
-  const parsed = serverEnvSchema.safeParse(process.env);
+  const parsed = serverEnvSchemaWithProductionRules.safeParse(withoutBlankValues(process.env));
 
   if (!parsed.success) {
-    // Names only. Printing values here would put secrets in build logs.
-    const missing = parsed.error.issues.map((issue) => issue.path.join(".")).join(", ");
+    // Variable names and messages only. Printing the offending values here would
+    // put secrets into build logs, which are far more widely readable than the
+    // environment itself.
+    const problems = parsed.error.issues
+      .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+      .join("; ");
+
     throw new Error(
-      `Invalid or missing environment variables: ${missing}. See .env.example for the full contract.`,
+      `Invalid or missing environment variables — ${problems}. See .env.example for the full contract.`,
     );
   }
 

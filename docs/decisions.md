@@ -12,8 +12,9 @@ Newest last. Each entry states the decision, why, and what it costs.
 a price change. The catalog is read server-side and statically rendered with a one-hour ISR window,
 so there is no per-request query cost on the hot path.
 
-**Cost** The build depends on Supabase being reachable. Mitigated by `dynamicParams = true`, so an
-unknown slug renders on first request rather than failing the build.
+**Cost** The build depends on Supabase being reachable, because `generateStaticParams` reads the slug
+list at build time. It also means a product added after a deploy is not reachable until the next
+build — see ADR-014, which supersedes the original mitigation here.
 
 ---
 
@@ -231,6 +232,70 @@ representative confirms it. It would also risk surfacing a research compound in 
 `CLAUDE.md` prescribes `#111827`. We use `#1E2124`, taken from the logo wordmark, so body copy
 matches the mark directly above it. Contrast is 15.6 : 1 versus 16.7 : 1 — both AAA. This is the
 only palette deviation and it is recorded here rather than applied silently.
+
+---
+
+## ADR-014 — `dynamicParams = false` on the product route, to get a real 404
+
+**Status** Accepted · Phase 2
+
+With `dynamicParams = true`, an unknown product slug is rendered on demand. Because that segment also
+sets `revalidate`, Next treats the render as prerenderable and caches it — so `notFound()` renders
+`not-found.tsx` but the response carries **HTTP 200**.
+
+Measured, not assumed: against a production build, a never-before-requested slug returned
+`200 OK` with `x-nextjs-cache: MISS`. Removing `loading.tsx` from the segment made no difference. A
+nonexistent _route_ correctly returned 404, which isolated the cause to the dynamic segment.
+
+That is a soft 404. `robots: { index: false }` from `generateMetadata` stops it being indexed, but the
+status is still wrong, and Google reports soft 404s as errors.
+
+Setting `dynamicParams = false` yields a real 404 for any slug outside `generateStaticParams`, while
+the twelve known slugs still serve 200.
+
+**Cost** `generateStaticParams` runs at build time only — ISR revalidates existing paths, it does not
+discover new ones. So a product added to the database after a deploy 404s until the next build.
+Acceptable for a curated twelve-product catalog, and noted in `deployment.md`.
+
+**Not affected** Price changes. `revalidate = 3600` still refreshes data on existing pages, and
+`POST /api/revalidate` forces it immediately.
+
+---
+
+## ADR-015 — Segment config values are inlined literals, not shared constants
+
+**Status** Accepted · Phase 2
+
+`export const revalidate` must be **statically analyzable**. Next cannot read an imported constant or
+an expression — `revalidate = 60 * 10` is invalid, and importing `CATALOG_REVALIDATE_SECONDS` failed
+the build with _"Invalid segment configuration export detected"_, with no indication of which export
+was at fault.
+
+So `revalidate = 3600` is written literally in each catalog route, with a comment, and
+`constants/business.ts` carries a note explaining why the value is duplicated rather than shared. The
+alternative — a constant that silently cannot be used where it is most needed — is worse.
+
+---
+
+## ADR-016 — The service-role key is optional in development, mandatory in production
+
+**Status** Accepted · Phase 2
+
+Requiring `SUPABASE_SERVICE_ROLE_KEY` unconditionally meant nobody could run the read-only catalog
+without holding the most dangerous secret in the project. Making it optional unconditionally meant a
+production deploy could silently ship with no write path.
+
+So it is `.optional()` at field level, with a cross-field check that requires it when
+`NODE_ENV === "production"`. `RATE_LIMIT_SALT` gets the same treatment against its development
+default, since a public salt in production defeats the point of hashing.
+
+`next build` sets `NODE_ENV=production`, so these checks fire at build time. That is intended: a
+deploy missing either value should fail loudly rather than run degraded. The consequence is that a
+local production build needs both set in `.env.local`.
+
+Related: empty values are normalised to `undefined` before parsing. A variable declared but left
+blank — `RESEND_API_KEY=` — is read as `""`, which Zod treats as present and failing `.min(1)`. Without
+that step an ordinary "not configured yet" env file refuses to boot.
 
 ---
 

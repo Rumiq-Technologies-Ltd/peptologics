@@ -168,6 +168,30 @@ Local state first, then Context, then Zustand — per `CLAUDE.md`. In practice:
 
 There is no global provider tree beyond the toast portal and the cart hydrator.
 
+### How the inquiry list resolves
+
+The store holds `{ productId, quantity }` and nothing else (ADR-010). Names and prices come from the
+catalog the _page_ already read, passed down as props — never a client fetch and never a denormalised
+copy in storage (ADR-020).
+
+```
+Server Component reads catalog
+        │
+        ▼
+props ──► cart component ──► resolveCartLines(items, catalog) ──► lines + totals
+              ▲
+              └── useCartStore (IDs + quantities, rehydrated after mount)
+```
+
+Consequences worth remembering before adding a surface:
+
+- A page that displays money must pass its catalog in. The mobile order bar therefore lives on
+  `/products` and `/cart`, not on the detail page, which holds one product.
+- `reconcile` deletes lines missing from the catalog it is given, so it runs **only** on `/cart`, where
+  the catalog is the complete active set.
+- Controls stay disabled until `hasHydrated`; a click landing mid-rehydration would be overwritten by
+  the merge.
+
 ---
 
 ## 7. Directory map

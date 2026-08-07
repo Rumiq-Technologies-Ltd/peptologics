@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ShieldCheckIcon } from "lucide-react";
 
 import { Section } from "@/components/layout/Section";
-import { Button } from "@/components/ui/button";
+import { ProductRowControls } from "@/features/cart/components/ProductRowControls";
 import { COMPLIANCE_NOTICE_LONG, SITE_NAME } from "@/constants/site";
 import { ROUTES } from "@/constants/routes";
 import { getContainer } from "@/services/container";
@@ -172,7 +172,7 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
           </p>
         </div>
 
-        {/* Sticky inquiry panel. Phase 4 replaces the CTA with quantity controls. */}
+        {/* Sticky inquiry panel. The add control is the page's only client leaf. */}
         <aside className="lg:sticky lg:top-8 lg:self-start">
           <div className="border-ink-200 shadow-panel rounded-xl border bg-white p-6">
             <p className="text-eyebrow text-ink-500 uppercase">List price</p>
@@ -185,9 +185,12 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
                 : formatCostPerMg(product.costPerMg)}
             </p>
 
-            <Button asChild size="lg" className="mt-6 w-full">
-              <Link href={ROUTES.contact}>Request a quotation</Link>
-            </Button>
+            <ProductRowControls
+              productId={product.id}
+              productName={product.name}
+              layout="block"
+              className="mt-6"
+            />
 
             <p className="text-ink-600 mt-4 text-xs">
               No payment is taken on this website. A representative confirms availability, lot

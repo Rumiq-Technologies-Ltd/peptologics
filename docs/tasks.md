@@ -123,16 +123,22 @@ Commit `feat: add design system, site shell and research-use-only gate`
 Branch `feature/cart`
 Commit `feat: add persisted inquiry list with server-authoritative pricing groundwork`
 
-- [ ] `src/store/cart.store.ts` — `persist` + `skipHydration` + `partialize` (IDs and quantities only) + `migrate`
-- [ ] `CartHydrator` — explicit `rehydrate()`, sets `hasHydrated` even on failure
-- [ ] `src/hooks/useCart.ts` — atomic per-row selectors so one click does not re-render 40 rows
-- [ ] `src/features/cart/utils/cart.calculations.ts`
-- [ ] `ProductRowControls` — quantity stepper + add, with non-intrusive confirm feedback
-- [ ] `OrderSummaryPanel` — sticky desktop sidebar
-- [ ] `StickyOrderBar` + `MobileOrderDrawer`
-- [ ] `CartBadge` in the header (absolutely positioned, so it costs no layout)
-- [ ] `/cart` page + `loading.tsx`
-- [ ] Verify: persists across reload with no hydration warning; an archived product drops out; quantity clamps
+- [x] `src/features/cart/types/cart.ts` — `CartItem` (persisted) vs `CartLine` (render-time), kept apart deliberately
+- [x] `src/store/cart.store.ts` — `persist` + `skipHydration` + `partialize` (IDs and quantities only) + `migrate` + a `merge` that re-parses the untrusted payload
+- [x] `CartHydrator` — explicit `rehydrate()`, sets `hasHydrated` even on failure
+- [x] `src/hooks/useCart.ts` — atomic per-row selectors so one click does not re-render 40 rows; array work in `useMemo`, never in a selector
+- [x] `src/features/cart/utils/cart.calculations.ts` — clamping, untrusted-payload parsing, the catalog join, totals
+- [x] `QuantityStepper` — shared by every surface; the decrement becomes a remove at quantity 1
+- [x] `ProductRowControls` — quantity stepper + add, with non-intrusive confirm feedback (the control morphs; a toast only on refusal)
+- [x] `CartLineList` — one line renderer for the panel, the drawer and `/cart`
+- [x] `OrderSummaryPanel` — sticky desktop sidebar
+- [x] `StickyOrderBar` + `MobileOrderDrawer`
+- [x] `CartBadge` in the header (absolutely positioned, so it costs no layout)
+- [x] `/cart` page + `CartView`; `robots: noindex`; `reconcile` runs here only, where the catalog is complete
+- [x] `ProductRow` restructured: the link wraps the product name, not the row — a row-wide anchor cannot legally contain the stepper button (ADR-020)
+- [x] **No `/cart/loading.tsx`** — same route class as the two removed in Phase 3, so the fallback would never be replaced (ADR-017). The real wait is client-side and `CartView` covers it with its own skeleton
+- [x] Verify: adds from catalog and detail page; persists across reload with **no hydration warning**; storage holds IDs and quantities only (`{"state":{"items":[{"productId":…,"quantity":1}]},"version":1}`); a hand-edited record is sanitised — 250 clamps to 99, 2.7 truncates to 2, a duplicate ID, a bare string and an object with no ID are all dropped; an unknown product ID renders no line and `reconcile` removes it from storage on `/cart`; a `version: 0` record is discarded and rewritten empty; plus is disabled at 99; 375px has no horizontal overflow, 44px touch targets, sticky bar and drawer totals agree; no nested interactive elements on any catalog surface; one `<h1>` and one `<main>` throughout
+- [!] The clearance rule for the fixed mobile bar (`body[data-order-bar]` padding in `globals.css`) was verified by cascade inspection, not by measurement: the preview pane could not composite frames, which froze style recalculation for anything set after load
 
 ---
 

@@ -29,3 +29,15 @@ export const RUO_STORAGE_VERSION = 1 as const;
 
 /** Minimum age affirmed in the disclaimer gate. */
 export const MINIMUM_AGE = 21 as const;
+
+/**
+ * localStorage key for the persisted inquiry list, and its schema version.
+ *
+ * Versioned separately from the gate so either can change without invalidating
+ * the other. The version is what `persist`'s `migrate` compares against: a record
+ * written by an older schema is discarded rather than guessed at, because the
+ * only thing stored is product IDs and quantities — cheap to rebuild, dangerous
+ * to misread.
+ */
+export const CART_STORAGE_KEY = "pl_inquiry_list" as const;
+export const CART_STORAGE_VERSION = 1 as const;

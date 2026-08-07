@@ -330,6 +330,12 @@ dynamic, at which point a loading state becomes genuinely useful. Reintroduce it
 `<Suspense>` boundary around the product list only**, not as a route-level `loading.tsx` — and verify
 in a production build that content actually replaces the fallback before considering it done.
 
+**Applied in Phase 4.** `/cart` was checklisted with a `loading.tsx` and shipped without one. It is the
+same route class: a server read of the prerendered catalog, with nothing for the visitor to wait on.
+Its one genuine wait is client-side — `localStorage` cannot be read until after hydration — so the
+skeleton lives inside `CartView` and `OrderSummaryPanel`, gated on `hasHydrated`, where it is replaced
+by definition.
+
 **Also note:** an SEO consequence that pointed the same way. With the skeleton as the rendered state,
 a JavaScript-rendering crawler would have seen "Loading the product catalog." instead of the products.
 The content was in the HTML source, so an HTML-only crawler was fine, but the rendered view was empty.
@@ -376,6 +382,40 @@ approved. It sits above `brand-800` in luminance, so the scale stays monotonic.
 would render as a white box on the dark footer. `public/brand/peptologics-badge.svg` is the same file
 with that one path removed, giving genuine transparency; the original in `public/assets` is untouched.
 The supplied PNG is `colorType 2` (RGB, no alpha) so it cannot serve that purpose.
+
+---
+
+## ADR-020 — The inquiry list joins against a server-passed catalog, never a client fetch
+
+**Status** Accepted · Phase 4
+
+The store persists product IDs and quantities only (ADR-010), so something has to supply the names and
+prices the list displays. Three options were available: fetch `/api/products` from the browser, keep a
+denormalised copy in `localStorage`, or pass the catalog the page already read down as props.
+
+Props win on every axis that matters here. The catalog is twelve rows fetched once per prerender, so a
+client fetch would add a round trip and a loading state to data the page is already holding. A
+denormalised copy would reintroduce exactly the stale-price problem ADR-010 exists to prevent. And the
+join is a pure function over data both surfaces already have, so `/products`, `/products/[slug]` and
+`/cart` all stay statically prerenderable with no client-side database access — which the presentation
+boundary in `eslint.config.mjs` forbids anyway.
+
+**Consequences.**
+
+- Any page that shows money must pass its catalog to the cart components. That is a real constraint,
+  and it is why the mobile bar renders on `/products` (full catalog available) and not on the product
+  detail page (one product).
+- `reconcile`, which deletes lines whose product is missing, is only safe against a **complete** active
+  catalog. It runs on `/cart` and nowhere else; a filtered or searched catalog would make it destroy
+  lines the visitor still wants. The store method documents this.
+- A withdrawn product needs no special handling: it produces no line, because there is nothing to
+  render it from.
+
+**Also decided here: `ProductRow` no longer wraps the whole row in a link.** Adding the quantity
+stepper to a row-wide anchor would nest a `<button>` inside an `<a>` — invalid HTML, ambiguous to
+assistive technology, and wrong in the keyboard order. The link now wraps the product name, with the
+chevron as a second link on surfaces that have no controls. The featured strip loses edge-to-edge
+clickability; that is the smaller loss.
 
 ---
 

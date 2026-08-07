@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SkipLink } from "@/components/shared/SkipLink";
 import { Toaster } from "@/components/ui/sonner";
 import { COMPLIANCE_NOTICE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/constants/site";
+import { CartHydrator } from "@/features/cart/components/CartHydrator";
 import { DisclaimerGate } from "@/features/disclaimer/components/DisclaimerGate";
 import { DisclaimerPrePaintScript } from "@/features/disclaimer/prePaintScript";
 import { siteUrl } from "@/lib/env.client";
@@ -126,6 +127,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             supplied for laboratory research use only and are not for human or animal consumption.
           </div>
         </noscript>
+
+        {/*
+          Renders nothing. It reads the persisted inquiry list once, in an effect,
+          after hydration — see CartHydrator for why that cannot happen earlier.
+        */}
+        <CartHydrator />
 
         <Toaster position="bottom-right" />
       </body>

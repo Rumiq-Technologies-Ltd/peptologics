@@ -299,6 +299,86 @@ that step an ordinary "not configured yet" env file refuses to boot.
 
 ---
 
+## ADR-017 — No route-level `loading.tsx` on statically prerendered routes
+
+**Status** Accepted · Phase 3
+
+`src/app/products/loading.tsx` and `src/app/products/[slug]/loading.tsx` were written, then **removed
+after they were found to break their routes**.
+
+**The symptom.** Both pages showed their loading skeleton permanently. Not a flash — the skeleton was
+the final rendered state, in dev and in a production build, on a clean browser profile.
+
+**What was measured.** For a route with a `loading.tsx`, the prerendered HTML contains three things:
+the skeleton inside `<main>`, the real content parked in `<div hidden id="S:0">` at the end of
+`<body>`, and a `$RC("B:0","S:0")` call that is supposed to swap the second into the first. In the
+browser the swap never completed: `div[hidden][id^="S:"]` remained in the DOM, `<main>` still held the
+skeleton, and `#site-root a[href^="/products/"]` counted **0**.
+
+Isolated by elimination. The home page, which reads the same data through the same service but has no
+`loading.tsx`, rendered perfectly — 12 products in place, zero hidden containers. Removing
+`products/loading.tsx` and rebuilding made the catalog render correctly and immediately. Neither the
+pre-paint script nor the hand-written `<head>` was responsible: disabling each in turn changed nothing.
+
+**Why removing it is right rather than a workaround.** A route-level loading state is meaningless on a
+statically prerendered route. `/products` and `/products/[slug]` are built at build time and served
+from cache, so a visitor never waits on data — the HTML is already complete when it arrives. The
+skeleton could only ever have been decoration, and here it was actively destructive.
+
+**Phase 4 implication.** Adding search and filtering will read `searchParams` and make the catalog
+dynamic, at which point a loading state becomes genuinely useful. Reintroduce it as a **scoped
+`<Suspense>` boundary around the product list only**, not as a route-level `loading.tsx` — and verify
+in a production build that content actually replaces the fallback before considering it done.
+
+**Also note:** an SEO consequence that pointed the same way. With the skeleton as the rendered state,
+a JavaScript-rendering crawler would have seen "Loading the product catalog." instead of the products.
+The content was in the HTML source, so an HTML-only crawler was fine, but the rendered view was empty.
+
+---
+
+## ADR-018 — `suppressHydrationWarning` on `<html>` is load-bearing
+
+**Status** Accepted · Phase 3
+
+The pre-paint script sets `data-ruo="ok"` on `<html>` before React hydrates. Without
+`suppressHydrationWarning` on that element, React reports a hydration mismatch and — in Next's own
+words — "recovers by client-rendering from the nearest error or Suspense boundary."
+
+That recovery path is not benign. It discards inline-script corrections within the boundary, and it was
+producing a visible console error on every page load. The attribute tells React to keep what the DOM
+already contains and discard its own output for that one element, which is exactly the intent.
+
+Diagnosed from the real console error rather than added prophylactically. Documented in
+`node_modules/next/dist/docs/01-app/02-guides/preventing-flash-before-hydration.md`.
+
+**Related, and left as-is:** React also warns that a `<script>` rendered inside a component tree will
+not execute on client-side navigation. That is accepted — the script only needs to run on an initial
+document load, because after hydration the gate's state comes from the store rather than the DOM
+attribute. The inline `<script dangerouslySetInnerHTML>` is the pattern Next documents for this.
+
+---
+
+## ADR-019 — Brand colours are taken from the vector logo, not estimated
+
+**Status** Accepted · Phase 3, supersedes the estimates in ADR-013
+
+The client supplied `peptologics logo.svg`, a true vector with four paths. Its three artwork fills are
+exactly `#033291` (cobalt), `#222223` (charcoal) and `#1C2A4A` (deep navy).
+
+The palette had previously been estimated from a compressed JPEG as `#1A3E9C`. The measured value is
+noticeably deeper and more saturated, and it is the one now anchoring `brand-800`. Contrast on white
+is **11.3 : 1**, better than the estimate.
+
+`#1D4ED8` from `CLAUDE.md` is retained at `brand-600` as the interactive accent, which the client
+approved. It sits above `brand-800` in luminance, so the scale stays monotonic.
+
+**Asset handling.** The SVG's first path is an opaque white rectangle covering the whole canvas, which
+would render as a white box on the dark footer. `public/brand/peptologics-badge.svg` is the same file
+with that one path removed, giving genuine transparency; the original in `public/assets` is untouched.
+The supplied PNG is `colorType 2` (RGB, no alpha) so it cannot serve that purpose.
+
+---
+
 ## Open questions — awaiting the client
 
 Nothing here is invented in code without being listed as `PLACEHOLDER`.

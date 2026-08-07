@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 
+import { Section } from "@/components/layout/Section";
+import { Button } from "@/components/ui/button";
 import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
 
 /**
  * Product detail error boundary. Next 16 passes `retry`, not `reset`.
  *
- * Note this only handles unexpected failures — an unknown slug renders
- * not-found.tsx instead, because the page calls `notFound()` for that case rather
- * than throwing.
+ * Only handles unexpected failures — an unknown slug renders not-found.tsx, because
+ * the page calls `notFound()` for that case rather than throwing.
  */
 export default function ProductError({
   error,
@@ -20,31 +21,26 @@ export default function ProductError({
   retry: () => void;
 }) {
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-16">
-      <h1 className="text-2xl font-bold tracking-tight">{MESSAGES.products.loadFailed}</h1>
-      <p className="mt-3 text-gray-600">
-        We could not load this product just now. Try again, or browse the full catalog.
-      </p>
+    <Section className="min-h-[55vh]">
+      <div className="mx-auto max-w-xl">
+        <p className="text-eyebrow text-danger font-mono uppercase">Product unavailable</p>
+        <h1 className="text-h2 text-ink-950 mt-3 font-bold">{MESSAGES.products.loadFailed}</h1>
 
-      <div className="mt-8 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() => retry()}
-          className="rounded-md bg-gray-900 px-4 py-2 font-medium text-white"
-        >
-          {MESSAGES.generic.retry}
-        </button>
-        <Link
-          href={ROUTES.products}
-          className="rounded-md border border-gray-300 px-4 py-2 font-medium"
-        >
-          All products
-        </Link>
+        <p className="text-ink-700 mt-4">
+          We could not load this product just now. Try again, or browse the full catalog.
+        </p>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Button onClick={() => retry()}>{MESSAGES.generic.retry}</Button>
+          <Button asChild variant="outline">
+            <Link href={ROUTES.products}>All products</Link>
+          </Button>
+        </div>
+
+        {error.digest ? (
+          <p className="text-ink-400 mt-10 font-mono text-xs">Reference: {error.digest}</p>
+        ) : null}
       </div>
-
-      {error.digest ? (
-        <p className="mt-8 font-mono text-xs text-gray-400">Reference: {error.digest}</p>
-      ) : null}
-    </main>
+    </Section>
   );
 }

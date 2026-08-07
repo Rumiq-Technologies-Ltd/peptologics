@@ -91,22 +91,30 @@ Commit `feat: add product catalog with repository and service layers`
 Branch `feature/design-system-and-disclaimer-gate`
 Commit `feat: add design system, site shell and research-use-only gate`
 
-- [ ] `shadcn init` for Tailwind v4 (`components.json` with `"config": ""`, utils alias `@/utils/cn`)
-- [ ] Add primitives: button, input, textarea, label, checkbox, badge, card, sheet, dialog, drawer, dropdown-menu, popover, separator, skeleton, sonner
-- [ ] `globals.css` — full `@theme` token set from the logo palette; remove the dark-mode block; `scrollbar-gutter: stable`; focus-visible ring
-- [ ] `layout.tsx` — Inter + IBM Plex Mono, `metadataBase`, `#site-root`, `data-scroll-behavior="smooth"`
-- [ ] `LatticeMark.tsx` — hand-authored SVG glyph (feeds favicon, OG image, patterns)
-- [ ] `HexFrame.tsx` — the hexagon icon container motif
-- [ ] Layout: `ComplianceStrip`, `SiteHeader`, `HeaderNav`, `MobileNav`, `SiteFooter`, `Container`, `Section`
-- [ ] Shared: `SkipLink`, `AnnounceRegion`, `EmptyState`, `ErrorState`, `SectionHeading`, skeletons
-- [ ] **Disclaimer gate**: pre-paint script, `role="dialog"` + `aria-modal`, `inert` focus trap, scroll lock, four checkboxes, `aria-disabled` submit, no Escape dismissal, `<noscript>` banner, route exemptions, `/not-eligible`
-- [ ] Home page with real copy: hero, trust bar, featured products, how it works, analytical standards, FAQ, final CTA
-- [ ] Legal page stubs: terms, privacy, research-use-only, shipping
-- [ ] `about`, `contact`, `lab-testing` pages
-- [ ] Verify: `curl` shows full content in raw HTML; no gate flash on reload; keyboard cannot escape the dialog; Escape does not dismiss; Lighthouse a11y ≥ 95; check mobile/tablet/desktop in the browser
-- [!] Client: transparent SVG or PNG logo; the wordmark typeface name
-- [!] Client: counsel-reviewed Research-Use-Only text
-- [!] Client: trust-badge captions you can substantiate
+- [x] `shadcn init` for Tailwind v4 (`components.json` with `"config": ""`, utils alias `@/utils/cn`)
+- [x] Add primitives: button, input, textarea, label, checkbox, badge, separator, skeleton, sheet, sonner
+- [x] Removed `next-themes`, which shadcn pulled in for sonner — a single-theme site has no use for it
+- [x] `globals.css` — full `@theme` token set from the **measured** logo colours; shadcn token bridge; dark-mode block removed; `scrollbar-gutter: stable`; focus-visible ring; lattice + brand-rule motifs; global reduced-motion
+- [x] `layout.tsx` — Inter + IBM Plex Mono, `metadataBase`, `#site-root`, `data-scroll-behavior`, `suppressHydrationWarning` (load-bearing — ADR-018)
+- [x] `public/brand/peptologics-badge.svg` — the supplied vector with its opaque white background path removed, so it composites on dark surfaces
+- [x] `BrandLogo.tsx` — serves the badge via `next/image` rather than inlining 42 KB of paths
+- [x] `LatticeMark.tsx` — hand-authored SVG glyph for small/decorative uses
+- [x] `HexFrame.tsx` — the hexagon icon container motif from the price-list poster
+- [x] Layout: `ComplianceStrip`, `SiteHeader`, `HeaderNav`, `MobileNav`, `SiteFooter`, `Container`, `Section`
+- [x] Shared: `SkipLink`
+- [x] **Disclaimer gate**: pre-paint script, `role="dialog"` + `aria-modal`, `inert` focus trap, scroll lock, four individually-checked affirmations, `aria-disabled` submit that explains what is missing, **no Escape dismissal**, `<noscript>` banner, route exemptions, `/not-eligible`
+- [x] Gate reads acknowledgement via `useSyncExternalStore` rather than setState-in-effect — correct for an external store, satisfies the React compiler lint rule, and gives cross-tab release for free
+- [x] Home page with real claim-free copy: hero, trust bar, featured products, how it works, analytical standards (dark band), FAQ (native `<details>`, no JS), final CTA
+- [x] Legal pages with substantive copy: terms, privacy, research-use-only, shipping
+- [x] `about`, `contact`, `lab-testing` pages
+- [x] Root `not-found.tsx` and `error.tsx`; catalog and detail error boundaries restyled
+- [x] **Removed both `loading.tsx` files** — they left their routes permanently showing a skeleton (ADR-017)
+- [x] Verify: all 11 pages return 200 with real content and an `h1`, no stuck skeletons; unknown slug still a real 404; gate present on content pages and exempt on all four policy pages; `inert` blocks focus and hit-testing while content stays visible behind it; Escape does not dismiss; countdown and enable transition announced; acceptance persists and releases `inert` + scroll lock; no-flash on reload proven via the CSS rule; mobile 375px has no horizontal overflow and 44px+ touch targets
+- [x] Client supplied the SVG and PNG logo
+- [!] Client: the wordmark typeface name — Inter cannot substitute it at display sizes
+- [!] Client: counsel-reviewed Research-Use-Only text (drafted and marked `TODO(legal)`)
+- [!] Client: confirm you can substantiate the five trust-badge claims, especially "third-party tested" and "cold-chain handling"
+- [!] Client: `NEXT_PUBLIC_WHATSAPP_NUMBER` and `NEXT_PUBLIC_CONTACT_EMAIL` — the footer and contact page show "coming soon" until set
 
 ---
 

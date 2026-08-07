@@ -1,26 +1,291 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * PeptoLogics design tokens.
+ *
+ * Tailwind v4 is CSS-first: there is no tailwind.config.ts. Anything declared in
+ * @theme becomes a utility (--color-brand-800 -> bg-brand-800, text-brand-800).
+ *
+ * Colours come from the vector logo, not from reading a compressed raster. The
+ * three fills present in public/assets/peptologics logo.svg are exactly:
+ *   #033291  cobalt blue
+ *   #222223  charcoal
+ *   #1C2A4A  deep navy (the lower-right end of the ring gradient)
+ * Every scale below is anchored on those.
+ */
+@theme {
+  /* ---------------------------------------------------------------------
+   * Brand blue. brand-800 is the logo colour and owns identity surfaces.
+   * brand-600 is the brighter interactive accent for links, hover and focus,
+   * where extra luminance makes a state change unmistakable.
+   * ------------------------------------------------------------------- */
+  --color-brand-50: #eff4fe;
+  --color-brand-100: #dbe5fc;
+  --color-brand-200: #bdcef9;
+  --color-brand-300: #92aef4;
+  --color-brand-400: #6187ec;
+  --color-brand-500: #3a63e2;
+  --color-brand-600: #1d4ed8;
+  --color-brand-700: #0f3eae;
+  --color-brand-800: #033291;
+  --color-brand-900: #05286f;
+  --color-brand-950: #041b4a;
+
+  /* Deep navy from the ring gradient. Used where blue meets charcoal. */
+  --color-brand-ink: #1c2a4a;
+
+  /* ---------------------------------------------------------------------
+   * Neutrals, anchored on the logo charcoal at ink-950.
+   * ------------------------------------------------------------------- */
+  --color-ink-50: #f7f7f8;
+  --color-ink-100: #efeff0;
+  --color-ink-200: #e2e2e4;
+  --color-ink-300: #c8c8cb;
+  --color-ink-400: #9a9a9e;
+  --color-ink-500: #75757a;
+  --color-ink-600: #58585d;
+  --color-ink-700: #45454a;
+  --color-ink-800: #333336;
+  --color-ink-900: #29292b;
+  --color-ink-950: #222223;
+
+  /* ---------------------------------------------------------------------
+   * Semantic. Each is AA or better on white.
+   * ------------------------------------------------------------------- */
+  --color-success: #0f7b4f;
+  --color-success-bg: #e8f5ee;
+  --color-warning: #b45309;
+  --color-warning-bg: #fdf3e7;
+  --color-danger: #b42318;
+  --color-danger-bg: #fdeceb;
+
+  /* ---------------------------------------------------------------------
+   * Type. Inter for everything; IBM Plex Mono for numeric data only —
+   * product codes, vial sizes, prices — where a monospace face keeps table
+   * columns optically aligned.
+   * ------------------------------------------------------------------- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* Fluid scale. Headings get text-wrap: balance in the base layer below. */
+  --text-display: clamp(2.25rem, 5vw, 3.5rem);
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.02em;
+
+  --text-h2: clamp(1.75rem, 3vw, 2.25rem);
+  --text-h2--line-height: 1.15;
+  --text-h2--letter-spacing: -0.015em;
+
+  --text-h3: clamp(1.25rem, 2vw, 1.5rem);
+  --text-h3--line-height: 1.25;
+
+  --text-lead: 1.125rem;
+  --text-lead--line-height: 1.6;
+
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1.4;
+  --text-eyebrow--letter-spacing: 0.08em;
+  --text-eyebrow--font-weight: 600;
+
+  --text-tagline: 0.6875rem;
+  --text-tagline--line-height: 1.4;
+  --text-tagline--letter-spacing: 0.12em;
+
+  /* ---------------------------------------------------------------------
+   * Radius, shadow, layout.
+   * ------------------------------------------------------------------- */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+
+  /* The default card treatment is a hairline border, not a shadow. Shadow is
+   * reserved for surfaces that genuinely float. */
+  --shadow-panel: 0 1px 2px 0 rgb(34 34 35 / 0.04), 0 8px 24px -8px rgb(34 34 35 / 0.12);
+  --shadow-overlay: 0 24px 64px -12px rgb(4 27 74 / 0.35);
+
+  /* Fixed chrome heights, referenced by sticky offsets and scroll-margin. */
+  --spacing-strip: 2rem;
+  --spacing-header: 4rem;
+
+  --ease-out-brand: cubic-bezier(0.2, 0, 0, 1);
 }
 
+/*
+ * shadcn/ui token bridge.
+ *
+ * shadcn components are written against semantic names — bg-background,
+ * text-muted-foreground, border-input, ring-ring. Mapping those onto the brand
+ * scale above means every component we pull in inherits this design system
+ * automatically, instead of arriving with slate defaults that have to be
+ * overridden at each call site.
+ *
+ * `@theme inline` rather than `@theme`: the values reference other custom
+ * properties, and inline resolves them at build time so the generated utilities
+ * hold real colours.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: white;
+  --color-foreground: var(--color-ink-950);
+
+  --color-card: white;
+  --color-card-foreground: var(--color-ink-950);
+
+  --color-popover: white;
+  --color-popover-foreground: var(--color-ink-950);
+
+  /* Primary is the logo blue. */
+  --color-primary: var(--color-brand-800);
+  --color-primary-foreground: white;
+
+  --color-secondary: var(--color-ink-100);
+  --color-secondary-foreground: var(--color-ink-950);
+
+  --color-muted: var(--color-ink-50);
+  --color-muted-foreground: var(--color-ink-600);
+
+  --color-accent: var(--color-brand-50);
+  --color-accent-foreground: var(--color-brand-800);
+
+  --color-destructive: var(--color-danger);
+  --color-destructive-foreground: white;
+
+  --color-border: var(--color-ink-200);
+  --color-input: var(--color-ink-300);
+  /* The focus ring uses the brighter accent, matching the base layer rule. */
+  --color-ring: var(--color-brand-600);
+
+  --radius: var(--radius-lg);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  /*
+   * Reserve the scrollbar gutter permanently.
+   *
+   * The disclaimer gate locks scrolling with `overflow: hidden` on <html>.
+   * Without a reserved gutter that removes the scrollbar and shifts the whole
+   * page sideways the moment the gate opens or closes. Reserving it always costs
+   * a few pixels and eliminates the shift entirely.
+   */
+  html {
+    scrollbar-gutter: stable;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: white;
+    color: var(--color-ink-950);
+    font-family: var(--font-sans);
+    /* Tabular figures site-wide so prices and quantities do not jitter as they
+     * change — the catalog is a data table and column alignment matters. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /*
+   * One visible focus treatment for everything.
+   *
+   * Uses the brighter brand-600 rather than the deep brand-800 so the ring stays
+   * clearly visible, with an offset so it reads against any background.
+   */
+  :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Dark surfaces need the ring lightened to stay visible. */
+  .on-dark :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+    outline-color: var(--color-brand-300);
+  }
+
+  ::selection {
+    background-color: var(--color-brand-100);
+    color: var(--color-brand-950);
+  }
+
+  /* Anchored navigation must not land underneath the sticky header. */
+  :target {
+    scroll-margin-top: calc(var(--spacing-strip) + var(--spacing-header) + 1rem);
+  }
+
+  /*
+   * Research-Use-Only gate: suppress it for a visitor who has already accepted.
+   *
+   * The gate is server-rendered so it blocks content from the first painted frame
+   * rather than appearing after hydration. For a returning visitor the pre-paint
+   * inline script sets data-ruo="ok" on <html> before the browser composites
+   * anything, and this rule hides the overlay — so there is no flash of a gate
+   * they have already dismissed. React then removes it from the DOM.
+   *
+   * This hides only the GATE. Page content is never hidden by any rule: hiding it
+   * pre-paint would hide it from Googlebot too, which crawls with an empty
+   * localStorage. See ADR-009.
+   */
+  html[data-ruo="ok"] [data-ruo-gate] {
+    display: none;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /*
+   * The molecular lattice from the logo, reused as background texture.
+   *
+   * A dot grid rather than a literal copy of the mark: repeating the logo as
+   * wallpaper cheapens it, whereas the underlying lattice geometry reads as
+   * laboratory paper. Deliberately very low contrast — felt, not seen.
+   */
+  .lattice-bg {
+    background-image: radial-gradient(
+      circle at center,
+      var(--color-brand-200) 1px,
+      transparent 1px
+    );
+    background-size: 28px 28px;
+  }
+
+  .lattice-bg-inverse {
+    background-image: radial-gradient(
+      circle at center,
+      rgb(146 174 244 / 0.18) 1px,
+      transparent 1px
+    );
+    background-size: 28px 28px;
+  }
+
+  /* The 2px rule that echoes the logo's blue-to-charcoal ring gradient. */
+  .brand-rule {
+    background-image: linear-gradient(
+      90deg,
+      var(--color-brand-800) 0%,
+      var(--color-brand-ink) 60%,
+      var(--color-ink-950) 100%
+    );
+  }
+}
+
+/*
+ * Respect a reduced-motion preference globally rather than per-component, so a
+ * new animation cannot forget to opt in.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

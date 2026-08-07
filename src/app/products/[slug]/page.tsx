@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ShieldCheckIcon } from "lucide-react";
 
-import { COMPLIANCE_NOTICE_LONG } from "@/constants/site";
+import { Section } from "@/components/layout/Section";
+import { Button } from "@/components/ui/button";
+import { COMPLIANCE_NOTICE_LONG, SITE_NAME } from "@/constants/site";
 import { ROUTES } from "@/constants/routes";
 import { getContainer } from "@/services/container";
 import { formatCostPerMg, formatCurrency } from "@/utils/formatCurrency";
@@ -15,20 +18,20 @@ export const revalidate = 3600;
  * Any slug not returned by `generateStaticParams` gets a real HTTP 404.
  *
  * This is deliberate and was chosen after measuring the alternative. With
- * `dynamicParams = true`, an unknown slug is rendered on demand — and because
- * this segment sets `revalidate`, that render is treated as prerenderable and
- * cached, so `notFound()` produces `not-found.tsx` with a **200** status. Verified
- * against a production build with a never-before-requested slug
- * (`x-nextjs-cache: MISS`, still `200 OK`). That is a soft 404: search engines
- * index it as a real page, and `robots: noindex` in `generateMetadata` mitigates
- * the indexing but not the wrong status.
+ * `dynamicParams = true`, an unknown slug is rendered on demand — and because this
+ * segment sets `revalidate`, that render is treated as prerenderable and cached, so
+ * `notFound()` produces `not-found.tsx` with a **200** status. Verified against a
+ * production build with a never-before-requested slug (`x-nextjs-cache: MISS`,
+ * still `200 OK`). That is a soft 404: search engines index it as a real page, and
+ * `robots: noindex` in `generateMetadata` mitigates the indexing but not the wrong
+ * status.
  *
  * The cost of `false` is that a product added to the database after a deploy 404s
  * until the next build, because `generateStaticParams` runs at build time only —
  * ISR revalidates existing paths, it does not discover new ones. Acceptable for a
  * curated catalog of this size, and documented in docs/deployment.md.
  *
- * Price changes are unaffected: `revalidate` below still refreshes the data on
+ * Price changes are unaffected: `revalidate` above still refreshes the data on
  * existing pages, and `POST /api/revalidate` forces it immediately.
  */
 export const dynamicParams = false;
@@ -49,7 +52,7 @@ export async function generateMetadata(props: PageProps<"/products/[slug]">): Pr
   const product = result.data;
   const strength = formatStrength(product.strengthMg);
 
-  // Built from the specification rather than from marketing copy, because product
+  // Built from the specification rather than marketing copy, because product
   // descriptions do not exist yet and must not be invented. Every claim here is a
   // fact from the catalog row.
   const description =
@@ -85,69 +88,125 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
 
   const product = result.data;
 
+  const specifications = [
+    { label: "Vial size", value: formatStrength(product.strengthMg), mono: true },
+    { label: "List price", value: formatCurrency(product.priceCents), mono: true, strong: true },
+    {
+      label: "Cost per milligram",
+      // For a blend this figure divides price by total milligrams across several
+      // peptides, so it is not comparable and would mislead.
+      value: product.isBlend
+        ? "Not applicable — multi-peptide blend"
+        : formatCostPerMg(product.costPerMg),
+      mono: !product.isBlend,
+    },
+    { label: "Form", value: "Lyophilized powder", mono: false },
+    { label: "Intended use", value: "In-vitro laboratory research only", mono: false },
+  ] as const;
+
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-12">
+    <Section lattice>
       <nav aria-label="Breadcrumb" className="text-sm">
-        <Link href={ROUTES.products} className="text-gray-600 underline-offset-4 hover:underline">
-          Products
-        </Link>
-        <span className="mx-2 text-gray-400" aria-hidden="true">
-          /
-        </span>
-        <span className="text-gray-900">{product.name}</span>
+        <ol className="flex items-center gap-2">
+          <li>
+            <Link
+              href={ROUTES.products}
+              className="text-ink-600 underline-offset-4 hover:underline"
+            >
+              Products
+            </Link>
+          </li>
+          <li aria-hidden="true" className="text-ink-300">
+            /
+          </li>
+          <li className="text-ink-950 font-medium" aria-current="page">
+            {product.name}
+          </li>
+        </ol>
       </nav>
 
-      <h1 className="mt-6 text-3xl font-bold tracking-tight">{product.name}</h1>
-      <p className="mt-2 font-mono text-gray-600">
-        {formatStrength(product.strengthMg)} per vial · lyophilized powder
-      </p>
+      <div className="mt-8 grid gap-12 lg:grid-cols-[7fr_5fr] lg:gap-16">
+        <div>
+          <h1 className="text-display text-ink-950 font-bold">{product.name}</h1>
+          <p className="text-lead text-ink-600 mt-3 font-mono">
+            {formatStrength(product.strengthMg)} per vial · lyophilized powder
+          </p>
 
-      <h2 className="mt-10 text-lg font-semibold">Specifications</h2>
-      <dl className="mt-4 divide-y divide-gray-200 border-y border-gray-200 text-sm">
-        <div className="flex justify-between py-3">
-          <dt className="text-gray-600">Vial size</dt>
-          <dd className="font-mono">{formatStrength(product.strengthMg)}</dd>
-        </div>
-        <div className="flex justify-between py-3">
-          <dt className="text-gray-600">List price</dt>
-          <dd className="font-mono font-semibold">{formatCurrency(product.priceCents)}</dd>
-        </div>
-        <div className="flex justify-between py-3">
-          <dt className="text-gray-600">Cost per milligram</dt>
-          <dd className="font-mono">
-            {product.isBlend ? (
-              <span className="text-gray-500">Not applicable — multi-peptide blend</span>
-            ) : (
-              formatCostPerMg(product.costPerMg)
-            )}
-          </dd>
-        </div>
-        <div className="flex justify-between py-3">
-          <dt className="text-gray-600">Form</dt>
-          <dd>Lyophilized powder</dd>
-        </div>
-      </dl>
+          <h2 className="text-h3 text-ink-950 mt-12 font-semibold">Specifications</h2>
+          <dl className="divide-ink-200 border-ink-200 mt-4 divide-y border-y text-sm">
+            {specifications.map((spec) => (
+              <div key={spec.label} className="flex items-baseline justify-between gap-6 py-3">
+                <dt className="text-ink-600">{spec.label}</dt>
+                <dd
+                  className={[
+                    "text-right",
+                    spec.mono ? "font-mono" : "",
+                    "strong" in spec && spec.strong ? "text-ink-950 font-semibold" : "text-ink-800",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {spec.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
 
-      {product.description ? (
-        <>
-          <h2 className="mt-10 text-lg font-semibold">About this compound</h2>
-          <p className="mt-3 text-gray-700">{product.description}</p>
-        </>
-      ) : null}
+          {product.description ? (
+            <>
+              <h2 className="text-h3 text-ink-950 mt-12 font-semibold">About this compound</h2>
+              <p className="text-ink-700 mt-3 max-w-prose">{product.description}</p>
+            </>
+          ) : null}
 
-      <div className="mt-10 rounded-lg border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">
-        <p className="font-semibold">Research use only</p>
-        <p className="mt-1">{COMPLIANCE_NOTICE_LONG}</p>
-        <p className="mt-2">
-          PeptoLogics is not a pharmacy. We do not provide dosing information, administration
-          guidance, or medical advice, and we do not supply diluents or administration materials.
-        </p>
+          <h2 className="text-h3 text-ink-950 mt-12 font-semibold">Analytical documentation</h2>
+          <p className="text-ink-700 mt-3 max-w-prose">
+            A lot-specific Certificate of Analysis is available on request. A certificate applies
+            only to the lot it identifies.{" "}
+            <Link
+              href={ROUTES.labTesting}
+              className="text-brand-600 font-medium underline underline-offset-2"
+            >
+              How we test
+            </Link>
+          </p>
+        </div>
+
+        {/* Sticky inquiry panel. Phase 4 replaces the CTA with quantity controls. */}
+        <aside className="lg:sticky lg:top-8 lg:self-start">
+          <div className="border-ink-200 shadow-panel rounded-xl border bg-white p-6">
+            <p className="text-eyebrow text-ink-500 uppercase">List price</p>
+            <p className="text-display text-ink-950 mt-1 font-mono font-bold">
+              {formatCurrency(product.priceCents)}
+            </p>
+            <p className="text-ink-600 mt-1 font-mono text-sm">
+              {product.isBlend
+                ? "Blend — cost per mg not comparable"
+                : formatCostPerMg(product.costPerMg)}
+            </p>
+
+            <Button asChild size="lg" className="mt-6 w-full">
+              <Link href={ROUTES.contact}>Request a quotation</Link>
+            </Button>
+
+            <p className="text-ink-600 mt-4 text-xs">
+              No payment is taken on this website. A representative confirms availability, lot
+              documentation and final pricing.
+            </p>
+          </div>
+
+          <div className="border-brand-200 bg-brand-50 mt-6 rounded-xl border p-5">
+            <ShieldCheckIcon className="text-brand-800 size-5" aria-hidden="true" />
+            <p className="text-ink-950 mt-2 text-sm font-semibold">Research use only</p>
+            <p className="text-ink-700 mt-2 text-sm">{COMPLIANCE_NOTICE_LONG}</p>
+            <p className="text-ink-700 mt-2 text-sm">
+              {SITE_NAME} is not a pharmacy. We do not provide dosing information, administration
+              guidance, or medical advice, and we do not supply diluents or administration
+              materials.
+            </p>
+          </div>
+        </aside>
       </div>
-
-      <p className="mt-8 text-sm text-gray-600">
-        Pricing shown is indicative list pricing. No payment is taken on this website — a
-        representative confirms availability, lot documentation and final pricing for every inquiry.
-      </p>
-    </main>
+    </Section>
   );
 }

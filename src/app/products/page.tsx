@@ -1,32 +1,30 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { COMPLIANCE_NOTICE } from "@/constants/site";
+import { Section } from "@/components/layout/Section";
+import { ProductRow, ProductRowHeader } from "@/features/products/components/ProductRow";
 import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
 import { getContainer } from "@/services/container";
-import { formatCostPerMg, formatCurrency } from "@/utils/formatCurrency";
-import { formatStrengthCompact } from "@/utils/formatStrength";
 
 /**
  * The catalog.
  *
- * A Server Component reading through the service layer — no client-side fetch, no
- * API hop to ourselves. Statically rendered and revalidated hourly, so a visitor
- * gets CDN-served HTML and a price change propagates within the hour (or
+ * A Server Component reading through the service layer — no client-side fetch and
+ * no HTTP hop to our own API. Statically rendered and revalidated hourly, so a
+ * visitor gets CDN-served HTML and a price change propagates within the hour (or
  * immediately via POST /api/revalidate).
  *
- * Presentation here is intentionally plain. The design system, the order panel
- * and the quantity controls arrive in Phase 3 and Phase 4; this phase proves the
- * data path.
+ * Search, filtering and quantity controls arrive in Phase 4 as client leaves; this
+ * page stays free of JavaScript.
  */
+
 /**
  * One hour, inlined as a literal.
  *
  * Segment config exports must be statically analyzable — Next cannot read an
- * imported constant or an expression like `60 * 60`, and a non-literal value
- * fails the build with "Invalid segment configuration export detected". Keep this
- * in step with the other catalog routes if it changes.
+ * imported constant or an expression like `60 * 60`, and a non-literal value fails
+ * the build with "Invalid segment configuration export detected". Keep this in step
+ * with the other catalog routes if it changes.
  */
 export const revalidate = 3600;
 
@@ -44,72 +42,47 @@ export default async function ProductsPage() {
   // renders a friendly page instead of hitting the error boundary.
   if (!result.success) {
     return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-12">
-        <h1 className="text-3xl font-bold tracking-tight">Research Peptides</h1>
-        <p className="mt-4 text-gray-600">{result.message}</p>
-      </main>
+      <Section>
+        <h1 className="text-h2 text-ink-950 font-bold">Research Peptides</h1>
+        <p className="text-ink-600 mt-4">{result.message}</p>
+      </Section>
     );
   }
 
   const products = result.data;
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-12">
-      <p className="text-xs font-semibold tracking-widest text-gray-500 uppercase">
-        {COMPLIANCE_NOTICE}
-      </p>
+    <Section lattice>
+      <p className="text-eyebrow text-brand-800 uppercase">Catalog</p>
+      <div className="brand-rule mt-3 h-0.5 w-24" aria-hidden="true" />
 
-      <h1 className="mt-4 text-3xl font-bold tracking-tight">Research Peptides</h1>
-      <p className="mt-3 max-w-2xl text-gray-600">
+      <h1 className="text-display text-ink-950 mt-6 font-bold">Research Peptides</h1>
+
+      <p className="text-lead text-ink-600 mt-5 max-w-2xl">
         List pricing shown with cost per milligram, so value is comparable across vial sizes. A
         representative confirms availability and final pricing for every inquiry.
       </p>
 
       {products.length === 0 ? (
-        <div className="mt-10 rounded-lg border border-gray-200 p-8">
-          <p className="font-medium">{MESSAGES.products.empty}</p>
-          <p className="mt-1 text-sm text-gray-600">{MESSAGES.products.emptyDetail}</p>
+        <div className="border-ink-200 mt-12 rounded-lg border bg-white p-8">
+          <p className="text-ink-950 font-semibold">{MESSAGES.products.empty}</p>
+          <p className="text-ink-600 mt-1 text-sm">{MESSAGES.products.emptyDetail}</p>
         </div>
       ) : (
-        <ul className="mt-10 divide-y divide-gray-200 border-y border-gray-200">
-          {products.map((product) => (
-            <li
-              key={product.id}
-              className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 py-4"
-            >
-              <div className="min-w-0">
-                <Link
-                  href={ROUTES.product(product.slug)}
-                  className="font-semibold underline-offset-4 hover:underline"
-                >
-                  {product.name}
-                </Link>
-                <p className="font-mono text-sm text-gray-600">
-                  {formatStrengthCompact(product.strengthMg)}/vial · single vial
-                </p>
-              </div>
-
-              <div className="flex items-baseline gap-4 font-mono text-sm">
-                <span className="text-base font-semibold">
-                  {formatCurrency(product.priceCents)}
-                </span>
-                {/*
-                  Cost per mg is suppressed for a blend: the figure divides price by
-                  total milligrams across several peptides, so it is not comparable
-                  to a single-peptide product and would mislead.
-                */}
-                <span className="w-24 text-right text-gray-600">
-                  {product.isBlend ? "—" : formatCostPerMg(product.costPerMg)}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div className="border-ink-200 shadow-panel mt-12 rounded-xl border bg-white p-5 sm:p-6">
+          <ProductRowHeader />
+          <ul className="divide-ink-100 divide-y">
+            {products.map((product) => (
+              <ProductRow key={product.id} product={product} />
+            ))}
+          </ul>
+        </div>
       )}
 
-      <p className="mt-8 text-sm text-gray-500">
-        {products.length} {products.length === 1 ? "compound" : "compounds"} available.
+      <p className="text-ink-600 mt-6 text-sm">
+        {products.length} {products.length === 1 ? "compound" : "compounds"} available. Pricing is
+        indicative — no payment is taken on this website.
       </p>
-    </main>
+    </Section>
   );
 }

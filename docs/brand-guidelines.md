@@ -34,57 +34,76 @@ the horizontal lockup: 160 px — below that, use the glyph alone.
 **Do not**: recolour it, add a shadow or glow, place it on a busy photograph, stretch it
 non-uniformly, rotate it, or set the wordmark in a substitute typeface.
 
-### Known asset gaps
+### Assets
 
-Both files are **JPEG on opaque white with no alpha**, which is the wrong format for flat vector
-artwork — there is visible ringing along the type edges. On white surfaces this is invisible because
-the ground composites away. On dark surfaces we crop the circular badge to `rounded-full`, which
-turns the white ground into a deliberate stamped-seal treatment rather than a compositing failure.
+| File                                     | What it is                                                                                     | Used for                                                 |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `public/assets/peptologics logo.svg`     | The supplied vector. Four paths: an opaque white background rectangle plus three artwork fills | Source of truth for colour. Not served directly          |
+| `public/brand/peptologics-badge.svg`     | The same file with the white background path removed                                           | **Every logo placement.** 42 KB, served via `next/image` |
+| `public/assets/peptologics logo (1).png` | 1254 × 1254, `colorType 2` — RGB with **no alpha channel**                                     | Not used; it cannot composite on a dark surface          |
+| `public/assets/*.jpeg`                   | The original raster lockups                                                                    | Reference only                                           |
 
-Outstanding requests to the client:
+The white-background path is why the derived file exists: without removing it, the logo renders as a
+white box on the dark footer and inside the disclaimer gate. Because the source is genuine vector, the
+fix is a one-path deletion rather than a manual cut-out. The originals are untouched.
 
-1. Vector source (`.svg`, `.ai`, `.eps`) for both lockups. This is the real fix.
-2. Failing that, transparent PNG at 3×.
-3. The name of the wordmark typeface — it is a squarish geometric sans that Inter cannot substitute
-   at display sizes.
+`BrandLogo` serves the badge through `next/image` rather than inlining it — 42 KB of path data is fine
+as an HTTP-cached asset and wasteful in every page's JavaScript. For small decorative uses (favicon,
+Open Graph card, empty states, background motif) use `LatticeMark`, a hand-authored ~120-line SVG of
+the glyph alone, which is fully tokenised and scales without artefacts.
+
+**Still outstanding:** the name of the wordmark typeface. It is a squarish geometric sans that Inter
+cannot substitute at display sizes, so the wordmark currently renders as Inter in `BrandLogo`'s text
+lockup while the badge itself carries the real letterforms.
 
 ---
 
 ## 2. Colour
 
-The logo uses exactly three colours. Everything else is a scale built around them.
+Taken from the vector logo, not estimated from a raster. The three artwork fills in
+`public/assets/peptologics logo.svg` are exactly `#033291`, `#222223` and `#1C2A4A`. Every scale below
+is anchored on those. An earlier estimate of `#1A3E9C`, read off a compressed JPEG, was wrong — see
+ADR-019.
 
 ### Brand blue
 
-| Token       | Hex           | Use                                              |
-| ----------- | ------------- | ------------------------------------------------ |
-| `brand-50`  | `#F1F4FD`     | Subtle section fills                             |
-| `brand-100` | `#DBE3F8`     | Callout backgrounds, tints                       |
-| `brand-200` | `#BCCAF1`     | Callout borders                                  |
-| `brand-300` | `#8FA6E4`     | Accents on dark backgrounds                      |
-| `brand-500` | `#3059C4`     | Hover on primary                                 |
-| `brand-600` | **`#1D4ED8`** | **Interactive accent** — links, focus ring       |
-| `brand-700` | **`#1A3E9C`** | **Primary** — logo blue. Buttons, header accents |
-| `brand-800` | `#16337F`     | Pressed states                                   |
-| `brand-900` | `#132D78`     | Dark brand bands                                 |
-| `brand-950` | `#0E2159`     | Deepest brand ground                             |
+| Token       | Hex           | Use                                                     |
+| ----------- | ------------- | ------------------------------------------------------- |
+| `brand-50`  | `#EFF4FE`     | Subtle section fills                                    |
+| `brand-100` | `#DBE5FC`     | Callout backgrounds, tints                              |
+| `brand-200` | `#BDCEF9`     | Callout borders, hexagon frames                         |
+| `brand-300` | `#92AEF4`     | Accents on dark backgrounds                             |
+| `brand-400` | `#6187EC`     | —                                                       |
+| `brand-500` | `#3A63E2`     | —                                                       |
+| `brand-600` | **`#1D4ED8`** | **Interactive accent** — links, hover, focus ring       |
+| `brand-700` | `#0F3EAE`     | Between the accent and the primary                      |
+| `brand-800` | **`#033291`** | **Primary — the logo blue.** Buttons, identity surfaces |
+| `brand-900` | `#05286F`     | Dark brand bands                                        |
+| `brand-950` | `#041B4A`     | Deepest brand ground                                    |
+| `brand-ink` | `#1C2A4A`     | The navy at the lower-right of the logo ring gradient   |
 
-Two blues, deliberately. `brand-700` is the logo blue and owns identity surfaces, so the header
-matches the mark sitting inside it. `brand-600` is brighter and owns interactive states, where the
-extra luminance makes hover and focus unmistakable. Never use them interchangeably.
+Two blues, deliberately. `brand-800` is the logo colour and owns identity surfaces, so the header
+matches the mark sitting inside it. `brand-600` is brighter and owns interactive states, where the extra
+luminance makes hover and focus unmistakable. Never use them interchangeably.
+
+The scale stays monotonic in lightness: `brand-600` sits **above** `brand-800`, because `#1D4ED8` is
+genuinely lighter than `#033291`.
 
 ### Neutral (charcoal)
 
 | Token     | Hex           | Use                                         |
 | --------- | ------------- | ------------------------------------------- |
-| `ink-50`  | `#F7F8FA`     | Alternating section background              |
-| `ink-100` | `#EFF1F3`     | Input backgrounds, table stripes            |
-| `ink-200` | `#E3E6E9`     | Hairline borders — the workhorse            |
-| `ink-300` | `#C9CED4`     | Disabled borders, dark-surface body text    |
-| `ink-400` | `#9AA1A9`     | Placeholder text                            |
-| `ink-600` | `#5A6169`     | Secondary text                              |
-| `ink-800` | `#33383D`     | Strong secondary                            |
-| `ink-950` | **`#1E2124`** | **Body text.** Dark bands, compliance strip |
+| `ink-50`  | `#F7F7F8`     | Alternating section background              |
+| `ink-100` | `#EFEFF0`     | Row dividers, input backgrounds             |
+| `ink-200` | `#E2E2E4`     | Hairline borders — the workhorse            |
+| `ink-300` | `#C8C8CB`     | Body text on dark surfaces                  |
+| `ink-400` | `#9A9A9E`     | Placeholder text, de-emphasised figures     |
+| `ink-500` | `#75757A`     | Eyebrow labels                              |
+| `ink-600` | `#58585D`     | Secondary text                              |
+| `ink-700` | `#45454A`     | Prose body                                  |
+| `ink-800` | `#333336`     | Strong secondary                            |
+| `ink-900` | `#29292B`     | —                                           |
+| `ink-950` | **`#222223`** | **Body text.** Dark bands, compliance strip |
 
 ### Semantic
 
@@ -92,31 +111,33 @@ extra luminance makes hover and focus unmistakable. Never use them interchangeab
 | --------- | ------------------------- |
 | `success` | `#0F7B4F`                 |
 | `warning` | `#B45309`                 |
-| `error`   | `#B42318`                 |
-| `info`    | `#1D4ED8` (= `brand-600`) |
+| `danger`  | `#B42318`                 |
+| info      | `#1D4ED8` (= `brand-600`) |
 
-### Contrast, verified
+### Contrast, computed from the measured values
 
 | Pair                     | Ratio    | Verdict                 |
 | ------------------------ | -------- | ----------------------- |
-| `ink-950` on white       | 15.6 : 1 | AAA                     |
-| `ink-600` on white       | 6.4 : 1  | AA (AAA for large text) |
-| `brand-700` on white     | 9.1 : 1  | AAA                     |
-| `brand-600` on white     | 6.3 : 1  | AA                      |
-| white on `brand-700`     | 9.1 : 1  | AAA                     |
-| white on `ink-950`       | 15.6 : 1 | AAA                     |
-| `ink-300` on `ink-950`   | 9.4 : 1  | AAA                     |
-| `brand-300` on `ink-950` | 7.2 : 1  | AAA                     |
-| `error` on white         | 6.1 : 1  | AA                      |
+| `ink-950` on white       | 15.9 : 1 | AAA                     |
+| `ink-700` on white       | 9.5 : 1  | AAA                     |
+| `ink-600` on white       | 7.0 : 1  | AAA                     |
+| `brand-800` on white     | 11.3 : 1 | AAA                     |
+| `brand-600` on white     | 6.7 : 1  | AA (AAA for large text) |
+| white on `brand-800`     | 11.3 : 1 | AAA                     |
+| white on `ink-950`       | 15.9 : 1 | AAA                     |
+| `ink-300` on `ink-950`   | 9.7 : 1  | AAA                     |
+| `brand-300` on `ink-950` | 7.6 : 1  | AAA                     |
+| `danger` on white        | 6.1 : 1  | AA                      |
 
-`ink-400` (placeholders) is 3.1 : 1 and is used **only** for placeholder text, never for content —
-placeholders are exempt from the AA text requirement, and no field relies on one for its label.
+`ink-400` is 3.1 : 1 and is used **only** for placeholder text and de-emphasised figures, never for
+content that must be read. Placeholders are exempt from the AA text requirement, and no field relies on
+one for its label.
 
 ### Deviation from CLAUDE.md
 
-`CLAUDE.md` prescribes `#111827` for body text. We use the logo charcoal `#1E2124` instead, so copy
-matches the wordmark directly above it. This is the only palette deviation. Its contrast is
-marginally lower than `#111827` (15.6 : 1 versus 16.7 : 1) — both AAA.
+`CLAUDE.md` prescribes `#111827` for body text. We use the logo charcoal `#222223` instead, so copy
+matches the wordmark directly above it. This is the only palette deviation, and both are AAA
+(15.9 : 1 versus 16.7 : 1).
 
 ---
 

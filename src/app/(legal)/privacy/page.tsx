@@ -72,7 +72,6 @@ export default function PrivacyPage() {
         <li>Our hosting provider, which serves this website</li>
         <li>Our database provider, which stores your inquiry</li>
         <li>Our email provider, which delivers your inquiry to our team</li>
-        <li>WhatsApp, if you choose to contact us that way</li>
       </ul>
       <p>
         We may also disclose information where the law requires it. Otherwise we will not disclose

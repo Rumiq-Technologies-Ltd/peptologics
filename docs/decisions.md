@@ -103,7 +103,8 @@ ergonomically. Client-side validation still shares the same Zod schema, so nothi
 
 ## ADR-007 — WhatsApp ships as a deep link plus a null adapter
 
-**Status** Accepted · Phase 5, revisited Phase 6
+**Status** ~~Accepted~~ **Superseded by ADR-023** · Phase 5. Kept for the reasoning, which is what
+made the removal an easy call: the null adapter meant nothing had to be unpicked.
 
 Server-side sending through the Meta Cloud API requires Business Verification, a WhatsApp Business
 Account, a registered number, a System User permanent token, **and an approved message template**.
@@ -467,6 +468,42 @@ This is safe only because of that shared fate. If the limiter ever moves to sepa
 (Redis, an edge KV), the trade reverses: an independent limiter being down would no longer imply the
 write path is down, and fail-closed — or a local fallback — becomes the correct choice. Revisit this ADR
 at that point, not before.
+
+---
+
+## ADR-023 — WhatsApp is removed; email is the only notification channel
+
+**Status** Accepted · supersedes ADR-007 · requested by the client, 7 August 2026
+
+The client's original brief asked for inquiries to reach the company by WhatsApp **and** email. Email
+was built first and works: a real submission during Phase 5 verification delivered through Resend on
+the first attempt. WhatsApp then required Meta Business Verification, a WhatsApp Business Account, a
+registered number, a System User token and an approved message template — days of account work for a
+second copy of a notification that already arrives.
+
+The client's decision: drop it. This ADR records that, and what was removed.
+
+**Removed**
+
+- The `WhatsAppService` interface and the null-adapter branch in `NotificationService`.
+- Six `WHATSAPP_*` server env vars, `isWhatsAppConfigured`, `WHATSAPP_TIMEOUT_MS`, and
+  `NEXT_PUBLIC_WHATSAPP_NUMBER` with its `whatsAppDeepLinkNumber` accessor.
+- The `wa.me` deep-link buttons on the success page, the footer and the contact page, and every copy
+  line promising WhatsApp contact.
+- The second `notification_log` intent row: `create_inquiry` now writes one, for email
+  (migration `20260807120000_create_inquiry_email_only`).
+- The WhatsApp runbook in `docs/deployment.md`, and Phase 6 in `docs/tasks.md`.
+
+**Deliberately kept**
+
+- `notification_log.channel` still accepts `'whatsapp'`. A CHECK constraint permitting an unused value
+  costs nothing, and re-adding a channel should not need a schema migration.
+- `NotificationChannel` remains a union of one, and the dispatcher still loops over an array of
+  channel results. Restoring a second channel is an adapter plus one array entry.
+
+**Cost accepted** One contact path. If Resend fails for a lead, there is no second channel that might
+still deliver — the mitigation is the `notification_log` dead-letter list, which records every failure
+for manual follow-up. That was already the design; it now carries more weight.
 
 ---
 

@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { MailIcon, MessageCircleIcon } from "lucide-react";
+import { MailIcon } from "lucide-react";
 
 import { Container } from "@/components/layout/Container";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { ROUTES } from "@/constants/routes";
 import { COMPLIANCE_NOTICE_LONG, SITE_NAME } from "@/constants/site";
-import { contactEmail, whatsAppDeepLinkNumber } from "@/lib/env.client";
+import { contactEmail } from "@/lib/env.client";
 
 /**
  * Site footer.
@@ -47,10 +47,6 @@ const FOOTER_SECTIONS = [
 ] as const;
 
 export function SiteFooter() {
-  const whatsAppHref = whatsAppDeepLinkNumber
-    ? `https://wa.me/${whatsAppDeepLinkNumber}`
-    : undefined;
-
   return (
     <footer className="on-dark bg-ink-950 text-ink-300 mt-auto">
       <Container>
@@ -89,31 +85,17 @@ export function SiteFooter() {
           ))}
         </div>
 
-        {(contactEmail || whatsAppHref) && (
+        {contactEmail ? (
           <div className="flex flex-wrap gap-x-8 gap-y-3 border-t border-white/10 py-6">
-            {contactEmail ? (
-              <a
-                href={`mailto:${contactEmail}`}
-                className="text-ink-300 inline-flex items-center gap-2 text-sm hover:text-white"
-              >
-                <MailIcon className="size-4" aria-hidden="true" />
-                {contactEmail}
-              </a>
-            ) : null}
-
-            {whatsAppHref ? (
-              <a
-                href={whatsAppHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-ink-300 inline-flex items-center gap-2 text-sm hover:text-white"
-              >
-                <MessageCircleIcon className="size-4" aria-hidden="true" />
-                Message us on WhatsApp
-              </a>
-            ) : null}
+            <a
+              href={`mailto:${contactEmail}`}
+              className="text-ink-300 inline-flex items-center gap-2 text-sm hover:text-white"
+            >
+              <MailIcon className="size-4" aria-hidden="true" />
+              {contactEmail}
+            </a>
           </div>
-        )}
+        ) : null}
 
         <div className="border-t border-white/10 py-6">
           <p className="text-tagline text-brand-300 uppercase">{COMPLIANCE_NOTICE_LONG}</p>

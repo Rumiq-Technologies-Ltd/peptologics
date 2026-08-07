@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckCircle2Icon, MailIcon, MessageCircleIcon } from "lucide-react";
+import { CheckCircle2Icon, MailIcon } from "lucide-react";
 
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
-import { SITE_NAME } from "@/constants/site";
-import { contactEmail, whatsAppDeepLinkNumber } from "@/lib/env.client";
+import { contactEmail } from "@/lib/env.client";
 
 /**
  * Inquiry confirmation.
@@ -16,8 +15,7 @@ import { contactEmail, whatsAppDeepLinkNumber } from "@/lib/env.client";
  * carried there — an order number is a customer-facing reference, not a credential,
  * and no PII appears in the URL (CLAUDE.md, Security).
  *
- * The WhatsApp button is a `wa.me` deep link, which needs no Meta approval and works
- * today; the server-side Cloud API adapter arrives in Phase 6 (ADR-007).
+ * Email is the only contact channel the site offers or promises (ADR-023).
  */
 
 export const metadata: Metadata = {
@@ -36,7 +34,7 @@ const NEXT_STEPS = [
   },
   {
     title: "We contact you",
-    detail: "You will hear from us by email, and by WhatsApp if you prefer that.",
+    detail: "You will hear from us by email, at the address on your inquiry.",
   },
   {
     title: "You confirm the final total",
@@ -56,14 +54,6 @@ export default async function InquirySuccessPage(props: PageProps<"/inquiry/succ
    */
   const reference =
     rawReference && ORDER_NUMBER_PATTERN.test(rawReference) ? rawReference : undefined;
-
-  const whatsAppHref = whatsAppDeepLinkNumber
-    ? `https://wa.me/${whatsAppDeepLinkNumber}?text=${encodeURIComponent(
-        reference
-          ? `Hello ${SITE_NAME}, I have submitted inquiry ${reference}.`
-          : `Hello ${SITE_NAME}, I have just submitted an inquiry through your website.`,
-      )}`
-    : undefined;
 
   return (
     <Section>
@@ -103,22 +93,8 @@ export default async function InquirySuccessPage(props: PageProps<"/inquiry/succ
         </ol>
 
         <div className="border-ink-200 mt-12 flex flex-col gap-3 border-t pt-8 sm:flex-row">
-          {whatsAppHref ? (
-            <Button asChild size="lg">
-              {/*
-                External link, so a plain anchor is correct here — next/link is for
-                internal navigation. `noopener` because `target="_blank"` otherwise
-                hands the opened tab a reference to this window.
-              */}
-              <a href={whatsAppHref} target="_blank" rel="noopener noreferrer">
-                <MessageCircleIcon aria-hidden="true" />
-                Message us on WhatsApp
-              </a>
-            </Button>
-          ) : null}
-
           {contactEmail ? (
-            <Button asChild size="lg" variant={whatsAppHref ? "outline" : "default"}>
+            <Button asChild size="lg">
               <a href={`mailto:${contactEmail}`}>
                 <MailIcon aria-hidden="true" />
                 Email us
@@ -131,7 +107,7 @@ export default async function InquirySuccessPage(props: PageProps<"/inquiry/succ
           </Button>
         </div>
 
-        {!whatsAppHref && !contactEmail ? (
+        {!contactEmail ? (
           <p className="text-ink-600 mt-6 text-sm">
             Our direct contact details are being finalised. Your inquiry has been received and a
             representative will reach out by email.

@@ -116,13 +116,8 @@ export function CartView({ catalog }: CartViewProps) {
 
         <p className="text-ink-600 mt-2 text-xs">{MESSAGES.cart.estimateNotice}</p>
 
-        {/*
-          TODO(phase-5): point this at ROUTES.inquiry once the inquiry form exists.
-          Until then it goes to the contact page, so the visitor is never handed a
-          dead link and this phase remains independently deployable.
-        */}
         <Button asChild size="lg" className="mt-5 w-full">
-          <Link href={ROUTES.contact}>
+          <Link href={ROUTES.inquiry}>
             Request a quotation
             <ArrowRightIcon aria-hidden="true" />
           </Link>

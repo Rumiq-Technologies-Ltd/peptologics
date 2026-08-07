@@ -1,6 +1,7 @@
 # API — PeptoLogics
 
-> **Status: skeleton.** Endpoint detail is filled in as each one is built (Phases 2 and 5).
+> Health, products and inquiries are implemented and documented in full. `POST /api/revalidate` is
+> specified in Phase 7.
 
 ---
 
@@ -54,8 +55,8 @@ SQL, table names and internal paths never appear in a response.
 | `POST` | `/api/inquiries`  | Create an inquiry.                                                | none, but same-origin + rate limited       |
 | `POST` | `/api/revalidate` | Purge the catalog cache after a price change.                     | `Authorization: Bearer $REVALIDATE_SECRET` |
 
-Detail — request shape, validation rules, every error response — is documented per endpoint as it is
-implemented.
+Detail — request shape, validation rules, every error response — is documented per endpoint below.
+`POST /api/revalidate` arrives in Phase 7.
 
 ---
 
@@ -112,14 +113,123 @@ comparable to a single-peptide product.
 `dynamicParams = false`. With `true`, Next renders and caches the not-found page and returns `200` — a
 soft 404. See ADR-014.
 
-## `POST /api/inquiries` — notes that apply now
+## `POST /api/inquiries`
 
-- **`Idempotency-Key` header, required.** A client-generated UUID, stable for the lifetime of one form
-  mount. Replaying the same key returns the original order without sending a second notification.
-- **No price fields are accepted.** The payload carries `{ productId, quantity }` only. Prices are
-  read from the database server-side (ADR-005). Sending a price is not rejected — there is simply no
-  field for it in the schema.
-- **Honeypot and dwell time.** A filled honeypot or a sub-3-second submission returns `201` with
-  nothing persisted, so an automated client cannot distinguish success from rejection.
-- **Notifications never affect the response.** The order is committed first. Email and WhatsApp
-  outcomes are recorded in `notification_log`; a failed send still returns `201`.
+Creates an inquiry: one `orders` row, one `order_items` row per product, and one `notification_log` row
+per channel — all in a single transaction (ADR-004). Notifications are dispatched after the commit and
+cannot affect the response.
+
+### Headers
+
+| Header            | Required | Notes                                                                 |
+| ----------------- | -------- | --------------------------------------------------------------------- |
+| `Content-Type`    | yes      | `application/json`                                                    |
+| `Idempotency-Key` | yes      | UUID, generated once per form mount. A replay returns the same order. |
+
+`Origin`, when present, must match `NEXT_PUBLIC_SITE_URL`, otherwise the request is refused with `403`.
+
+### Request body
+
+```json
+{
+  "customer": {
+    "name": "Ada Lovelace",
+    "email": "ada@example.com",
+    "phone": "+1 555 010 2030",
+    "address": "12 Analytical Engine Way",
+    "apartment": "Suite 4",
+    "city": "Cambridge",
+    "state": "MA",
+    "zipCode": "02139",
+    "notes": "Please send the COA for the current lot."
+  },
+  "items": [{ "productId": "uuid", "quantity": 2 }],
+  "honeypot": "",
+  "formStartedAt": 1754500000000,
+  "ruoAcknowledgedAt": "2026-08-07T10:15:00.000Z"
+}
+```
+
+**There is no price field anywhere in this schema.** Prices come from `products.price_cents`, read
+server-side (ADR-005). Extra keys — `unitPriceCents`, `subtotalCents`, anything else — are stripped by
+Zod and cannot influence what is stored. Verified: a payload claiming `1` cent for a $60 vial persisted
+`6000`.
+
+### Validation
+
+| Field                | Rule                                                                         |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `customer.name`      | required, 1–200 chars after sanitising                                       |
+| `customer.email`     | required, valid address, 5–254 chars, lowercased on the way in               |
+| `customer.phone`     | required, 7–32 chars; digits, `+`, and common separators kept                |
+| `customer.address`   | required, 1–300 chars                                                        |
+| `customer.apartment` | optional, ≤ 120 chars; empty becomes absent                                  |
+| `customer.city`      | required, 1–120 chars                                                        |
+| `customer.state`     | required, 2–100 chars                                                        |
+| `customer.zipCode`   | required, 3–20 chars                                                         |
+| `customer.notes`     | optional, ≤ 2000 chars; line breaks preserved, blank runs collapsed          |
+| `items`              | 1–25 entries, each `productId` a UUID and unique, `quantity` an integer 1–99 |
+| `honeypot`           | optional; **must be empty** — see below                                      |
+| `formStartedAt`      | optional epoch ms; absent or under 3s before now is treated as automated     |
+| `ruoAcknowledgedAt`  | optional ISO 8601 datetime; stored on the order                              |
+
+Every text field is trimmed and stripped of control, zero-width and exotic-space characters, then
+re-measured — so 200 zero-width characters do not pass as a name. The bounds mirror the CHECK
+constraints on `orders` exactly.
+
+### Responses
+
+**`201` — created**
+
+```json
+{
+  "success": true,
+  "message": "Your inquiry has been received.",
+  "data": { "orderNumber": "PL-001004", "created": true }
+}
+```
+
+`created: false` with an `orderNumber` means the key was replayed: the original order is returned and no
+second notification is sent. `orderNumber: null` means the submission was suppressed as automated —
+deliberately indistinguishable from success over the wire (ADR-021).
+
+**Failures**
+
+| Status | `code`                | When                                                                  |
+| ------ | --------------------- | --------------------------------------------------------------------- |
+| `400`  | `VALIDATION_FAILED`   | `Idempotency-Key` missing or not a UUID; body not JSON                |
+| `403`  | `FORBIDDEN`           | `Origin` is not this site                                             |
+| `409`  | `PRODUCT_UNAVAILABLE` | A requested product is not active — the whole inquiry is refused      |
+| `422`  | `VALIDATION_FAILED`   | Field errors, with `errors[]` keyed by dotted path (`customer.email`) |
+| `429`  | `RATE_LIMITED`        | 6th submission in 15 minutes from one hashed IP; sends `Retry-After`  |
+| `500`  | `PERSISTENCE_FAILED`  | The write failed. Nothing partial was stored                          |
+| `500`  | `UNEXPECTED`          | Anything else. Detail goes to the logs, never to the response         |
+
+A `409` refuses the submission rather than silently dropping the unavailable line: quoting a customer for
+less than they asked for is worse than asking them to review the list.
+
+### Rate limiting
+
+Five submissions per 15-minute fixed window, keyed on a salted SHA-256 of the client IP — the raw
+address is never stored. Counted after the spam filters and before pricing, so a bot costs nothing and a
+replayed key still counts. If the counter itself is unreachable the check fails **open** (ADR-022).
+
+### Spam handling
+
+A filled honeypot, a missing `formStartedAt`, or a dwell under 3 seconds returns `201` with
+`orderNumber: null`, persists nothing, and sends nothing. Each is logged with its reason and no customer
+data.
+
+### Notification behaviour
+
+`notification_log` gets a `pending` row per channel inside the order's transaction, then the outcome:
+
+| Status    | Meaning                                                                  |
+| --------- | ------------------------------------------------------------------------ |
+| `sent`    | Provider accepted it; `provider_message_id` recorded                     |
+| `failed`  | Provider rejected or timed out after 3 attempts on retryable errors only |
+| `skipped` | Channel not configured — expected, not an incident                       |
+| `pending` | Dispatch never completed. This is the dead-letter list                   |
+
+A failed or skipped channel still returns `201`. The lead is saved either way, which is the entire point
+of committing before notifying.

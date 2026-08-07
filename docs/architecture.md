@@ -116,18 +116,30 @@ coercion needs to exist in exactly one file.
 ## 4. Data flow — the inquiry write
 
 ```
-POST /api/inquiries
-   ├─ isSameOrigin()                         reject cross-origin posts
-   ├─ honeypot + dwell-time check            silent 201; the bot learns nothing
-   ├─ inquirySchema.safeParse()              no price field exists to tamper with
-   ├─ RateLimitService.check(hashIp(ip))     429 + Retry-After on the 6th hit / 15 min
-   ├─ ProductRepository.findByIds()          ← the server reads the real prices
-   ├─ resolveLineItems()                     computes every subtotal server-side
-   ├─ create_inquiry(payload) RPC            atomic: order + N items, ON CONFLICT DO NOTHING
-   └─ NotificationService.dispatch()         AFTER the commit. Cannot rethrow.
-        ├─ EmailService (Resend)      → notification_log: sent | failed | skipped
-        └─ WhatsAppService (null | Meta) → notification_log: sent | failed | skipped
+POST /api/inquiries                          route: 4 checks, then hand over
+   ├─ isSameOrigin()                         403 on a cross-origin post
+   ├─ Idempotency-Key header is a UUID       400 if absent or malformed
+   ├─ request.json()                         400 on unparseable input
+   ├─ inquirySchema.safeParse()              422 + per-field errors; no price field exists
+   │                                         to tamper with. Parsed BEFORE the limiter, so
+   │                                         a malformed flood costs no database round trip
+   └─ InquiryService.submit()                every business rule lives here
+        ├─ honeypot + dwell-time check       201 with orderNumber: null (ADR-021)
+        ├─ RateLimitService.checkInquiry()   429 + Retry-After on the 6th hit / 15 min
+        │                                    (fails open if the counter is down — ADR-022)
+        ├─ ProductRepository.findByIds()     ← the server reads the real prices
+        ├─ priceLines()                      computes every subtotal server-side;
+        │                                    a missing product is 409, never a silent trim
+        ├─ create_inquiry(payload) RPC       atomic: order + N items + 2 pending
+        │                                    notification rows, ON CONFLICT DO NOTHING
+        └─ NotificationService.dispatch()    AFTER the commit. Cannot rethrow.
+             ├─ EmailService (Resend)        → notification_log: sent | failed | skipped
+             └─ WhatsAppService (null | Meta) → notification_log: sent | failed | skipped
 ```
+
+Note where the spam filters sit: **inside the service, not the route.** They are business rules, and
+their answer to a bot — an ordinary success — is a business decision (ADR-021). The route only
+establishes that a request is well-formed and ours.
 
 Three invariants:
 
@@ -140,7 +152,12 @@ Three invariants:
 
 Idempotency: the client generates a UUID once per form mount and sends it as `Idempotency-Key`.
 `orders.idempotency_key` is `UNIQUE`, the RPC does `ON CONFLICT DO NOTHING` and reads back. A
-double-click or a network retry yields one order and one email.
+double-click or a network retry yields one order and one email — the replay path returns
+`created: false`, and the service skips dispatch entirely on that branch, so the operator never
+receives the same lead twice.
+
+Verified end to end: three POSTs with one key produced one order, one email row with `attempts: 1`,
+and the same `PL-` reference all three times.
 
 ---
 

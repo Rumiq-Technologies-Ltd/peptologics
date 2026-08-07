@@ -419,6 +419,57 @@ clickability; that is the smaller loss.
 
 ---
 
+## ADR-021 — A suppressed submission gets an ordinary success
+
+**Status** Accepted · Phase 5
+
+Two signals mark a submission as automated: a filled honeypot field, and a dwell time under
+`MIN_FORM_DWELL_SECONDS` (3s) between form mount and post. Either one means nothing is persisted and
+nothing is sent.
+
+**The response is still `201` with the same body a real submission gets**, differing only in
+`data.orderNumber` being `null` — which the client uses to skip the reference block on the success page
+and nothing else. A rejection would tell the author of the script exactly which check caught them, and
+the next version would pass it. Silence costs an author of _legitimate_ automation nothing either,
+because there is no legitimate automation posting this form.
+
+Consequences accepted deliberately:
+
+- **A false positive is invisible to the visitor.** Someone whose clock is badly skewed, or who somehow
+  fills nine fields in under three seconds, is told "received" and is not. Mitigated by logging every
+  suppression with its reason (`honeypot` / `dwell_missing` / `dwell_too_short`) and no customer data,
+  so a pattern is diagnosable without retaining junk.
+- **A missing `formStartedAt` is treated as a failed dwell check, not a pass.** Our own form always
+  sends it, so omitting the field must not be an easier bypass than forging it.
+- **`formStartedAt` is client-supplied and therefore forgeable.** A bot that backdates it by a minute
+  gets through. This filter is aimed at the common case — a script that posts the instant it parses the
+  page — and it is one of four layers, alongside the honeypot, same-origin, and the rate limiter.
+
+The filters live in `InquiryService`, not the Route Handler, because "what do we do about a bot" is a
+business rule and the route is meant to stay four checks long.
+
+---
+
+## ADR-022 — Rate limiting fails open
+
+**Status** Accepted · Phase 5
+
+If `check_rate_limit` throws — the database is unreachable, the function is missing — the service logs
+`rate_limit_check_failed_open` and allows the submission.
+
+The reasoning is that the counter lives in the _same database_ as the order it is protecting. If the
+counter is unreachable, the insert that follows cannot succeed either, so failing closed would convert
+one broken dependency into a second and less honest failure: a `429` telling the visitor they have sent
+too many inquiries, when in fact we are down. Failing open lets the request proceed and fail, if it
+fails, on its own terms — with the message that matches reality.
+
+This is safe only because of that shared fate. If the limiter ever moves to separate infrastructure
+(Redis, an edge KV), the trade reverses: an independent limiter being down would no longer imply the
+write path is down, and fail-closed — or a local fallback — becomes the correct choice. Revisit this ADR
+at that point, not before.
+
+---
+
 ## Open questions — awaiting the client
 
 Nothing here is invented in code without being listed as `PLACEHOLDER`.

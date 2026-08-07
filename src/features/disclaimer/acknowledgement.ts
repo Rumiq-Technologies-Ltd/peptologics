@@ -52,6 +52,30 @@ export function hasValidAcknowledgement(): boolean {
   }
 }
 
+/**
+ * When the visitor accepted, as an ISO string, or undefined if there is no valid
+ * record.
+ *
+ * The inquiry submission stores this on the order, so `orders.ruo_acknowledged_at`
+ * records that the person who sent it had accepted the policy and when. Reading it
+ * here rather than in the form keeps every use of the storage format in this module.
+ */
+export function getAcknowledgementTimestamp(): string | undefined {
+  try {
+    const raw = window.localStorage.getItem(RUO_STORAGE_KEY);
+    if (!raw) return undefined;
+
+    const parsed = JSON.parse(raw) as Partial<StoredAcknowledgement>;
+
+    if (parsed.v !== RUO_STORAGE_VERSION) return undefined;
+    if (typeof parsed.at !== "number" || !Number.isFinite(parsed.at)) return undefined;
+
+    return new Date(parsed.at).toISOString();
+  } catch {
+    return undefined;
+  }
+}
+
 /* --------------------------------------------------------------------------
  * External store plumbing for useSyncExternalStore.
  * ------------------------------------------------------------------------ */

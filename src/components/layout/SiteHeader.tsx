@@ -5,6 +5,7 @@ import { HeaderNav } from "@/components/layout/HeaderNav";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/ui/BrandLogo";
+import { CartBadge } from "@/features/cart/components/CartBadge";
 import { ROUTES } from "@/constants/routes";
 import { SITE_NAME } from "@/constants/site";
 
@@ -30,8 +31,12 @@ export function SiteHeader() {
             <BrandLogo size={36} preload />
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <HeaderNav />
+
+            {/* On every breakpoint: the list is the one piece of state a visitor
+                accumulates, so it needs a permanent way back to it. */}
+            <CartBadge />
 
             <Button asChild size="sm" className="hidden sm:inline-flex">
               <Link href={ROUTES.products}>Request a quote</Link>

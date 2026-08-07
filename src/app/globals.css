@@ -236,6 +236,28 @@
   html[data-ruo="ok"] [data-ruo-gate] {
     display: none;
   }
+
+  /*
+   * Clearance for the phone-only inquiry-list bar.
+   *
+   * The bar is `fixed`, so it covers whatever the page ends with — measured: the
+   * footer's last 69px sat underneath it. A spacer element cannot fix that, because
+   * the bar is rendered inside the page section and the footer comes after it; only
+   * padding on the document itself clears the whole flow.
+   *
+   * The attribute is set by StickyOrderBar while it is on screen. The breakpoint
+   * stays in CSS, because the bar itself is hidden by a `lg:hidden` class rather
+   * than unmounted, and JavaScript should not be re-deriving that threshold.
+   */
+  body[data-order-bar="visible"] {
+    padding-bottom: 5rem;
+  }
+
+  @media (width >= 64rem) {
+    body[data-order-bar="visible"] {
+      padding-bottom: 0;
+    }
+  }
 }
 
 @layer components {

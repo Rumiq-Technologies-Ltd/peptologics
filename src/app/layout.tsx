@@ -4,6 +4,7 @@ import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { ComplianceStrip } from "@/components/layout/ComplianceStrip";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { JsonLd } from "@/components/shared/JsonLd";
 import { SkipLink } from "@/components/shared/SkipLink";
 import { Toaster } from "@/components/ui/sonner";
 import { COMPLIANCE_NOTICE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/constants/site";
@@ -11,6 +12,7 @@ import { CartHydrator } from "@/features/cart/components/CartHydrator";
 import { DisclaimerGate } from "@/features/disclaimer/components/DisclaimerGate";
 import { DisclaimerPrePaintScript } from "@/features/disclaimer/prePaintScript";
 import { siteUrl } from "@/lib/env.client";
+import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/seo/structuredData";
 
 import "./globals.css";
 
@@ -47,6 +49,24 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
+  /*
+   * Open Graph and Twitter defaults, inherited by every page that does not override
+   * them. The image is deliberately absent here: Next injects `opengraph-image.tsx`
+   * automatically, and naming it as well would emit the tag twice.
+   */
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "en_US",
+    url: siteUrl,
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+  },
   // The compliance position belongs in the document metadata as well as on the
   // page, so it travels with any excerpt of the site.
   other: { "compliance-notice": COMPLIANCE_NOTICE },
@@ -90,6 +110,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           interfere with anything.
         */}
         <DisclaimerPrePaintScript />
+
+        {/*
+          Organization and WebSite, emitted once for the whole site. Both use stable
+          `@id`s, so page-level graphs reference them rather than redefining the
+          publisher on every route.
+        */}
+        <JsonLd schema={[buildOrganizationSchema(), buildWebSiteSchema()]} />
 
         {/*
           #site-root is what the disclaimer gate marks `inert`. One attribute

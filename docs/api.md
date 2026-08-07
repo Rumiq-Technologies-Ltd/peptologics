@@ -1,7 +1,6 @@
 # API — PeptoLogics
 
-> Health, products and inquiries are implemented and documented in full. `POST /api/revalidate` is
-> specified in Phase 7.
+> All four endpoints are implemented and documented in full.
 
 ---
 
@@ -56,7 +55,6 @@ SQL, table names and internal paths never appear in a response.
 | `POST` | `/api/revalidate` | Purge the catalog cache after a price change.                     | `Authorization: Bearer $REVALIDATE_SECRET` |
 
 Detail — request shape, validation rules, every error response — is documented per endpoint below.
-`POST /api/revalidate` arrives in Phase 7.
 
 ---
 
@@ -233,3 +231,51 @@ outcome. Email is the only channel (ADR-023):
 
 A failed or skipped channel still returns `201`. The lead is saved either way, which is the entire point
 of committing before notifying.
+
+## `POST /api/revalidate`
+
+Purges the catalog cache. The catalog is statically rendered with a one-hour ISR window, which is the
+right default and the wrong latency for a price correction — this makes the refresh immediate.
+
+**Auth:** `Authorization: Bearer $REVALIDATE_SECRET`, compared in constant time. With no secret
+configured the endpoint is closed, not open.
+
+**Body:** optional. `{ "slug": "retatrutide-10mg" }` also purges that product page.
+
+```bash
+curl -X POST https://peptologics.com/api/revalidate \
+  -H "Authorization: Bearer $REVALIDATE_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"slug":"retatrutide-10mg"}'
+```
+
+`/` and `/products` are **always** purged, with or without a slug. A price shows in three places — the
+detail page, the catalog row, the home page's featured strip — and refreshing one without the others is
+how a site ends up quoting two different prices for the same product.
+
+| Status | `code`               | When                                          |
+| ------ | -------------------- | --------------------------------------------- |
+| `200`  | —                    | Purged. `data.revalidated` lists the paths    |
+| `401`  | `UNAUTHORISED`       | Missing, malformed or wrong bearer token      |
+| `405`  | `METHOD_NOT_ALLOWED` | `GET`, so a browser visit gets a clear answer |
+| `422`  | `VALIDATION_FAILED`  | `slug` present but not a valid slug           |
+
+Adding a **new** product needs a redeploy, not a purge: `/products/[slug]` sets `dynamicParams = false`,
+so a slug absent at build time 404s until `generateStaticParams` runs again (ADR-014).
+
+---
+
+## SEO surfaces
+
+| Path                               | What it is                                                              |
+| ---------------------------------- | ----------------------------------------------------------------------- |
+| `/sitemap.xml`                     | 9 static routes + 12 product URLs with real `lastmod` from `updated_at` |
+| `/robots.txt`                      | Allows everything except `/cart`, `/inquiry*`, `/not-eligible`, `/api/` |
+| `/opengraph-image`                 | 1200×630 brand card, generated                                          |
+| `/products/[slug]/opengraph-image` | Per-product card with vial size and list price, prerendered for all 12  |
+| `/icon`, `/apple-icon`             | 32×32 and 180×180, generated from the brand colours                     |
+
+Structured data: `Organization` and `WebSite` site-wide, `FAQPage` on the home page built from the same
+array the page renders, `Product` + `BreadcrumbList` on each product page. `Product` carries **no
+`offers`** — nothing here is purchasable and claiming otherwise would put a "buy now" price into search
+results for a research reagent (ADR-012).

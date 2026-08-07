@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ClipboardListIcon, MailIcon, MessageCircleIcon } from "lucide-react";
+import { ClipboardListIcon, MailIcon } from "lucide-react";
 
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { HexFrame } from "@/components/ui/HexFrame";
 import { ROUTES } from "@/constants/routes";
 import { SITE_NAME } from "@/constants/site";
-import { contactEmail, whatsAppDeepLinkNumber } from "@/lib/env.client";
+import { contactEmail } from "@/lib/env.client";
 
 /**
  * Contact page.
@@ -25,10 +25,6 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
-  const whatsAppHref = whatsAppDeepLinkNumber
-    ? `https://wa.me/${whatsAppDeepLinkNumber}`
-    : undefined;
-
   return (
     <>
       <Section lattice>
@@ -48,7 +44,7 @@ export default function ContactPage() {
           Ways to reach us
         </h2>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2">
           {/* The primary path: a product list gives us everything needed to quote. */}
           <article className="border-brand-200 flex flex-col rounded-xl border bg-white p-6">
             <HexFrame>
@@ -82,26 +78,6 @@ export default function ContactPage() {
               // Rendered rather than hidden, so the channel is not silently missing
               // if the environment variable has not been set yet.
               <p className="text-ink-500 mt-5 text-sm">Email address coming soon.</p>
-            )}
-          </article>
-
-          <article className="border-ink-200 flex flex-col rounded-xl border bg-white p-6">
-            <HexFrame>
-              <MessageCircleIcon className="size-5" aria-hidden="true" />
-            </HexFrame>
-            <h3 className="text-ink-950 mt-3 font-semibold">WhatsApp</h3>
-            <p className="text-ink-600 mt-2 flex-1 text-sm">
-              Usually the quickest for a short question. Opens a chat with our team in your own
-              WhatsApp.
-            </p>
-            {whatsAppHref ? (
-              <Button asChild variant="outline" className="mt-5">
-                <a href={whatsAppHref} target="_blank" rel="noopener noreferrer">
-                  Message us
-                </a>
-              </Button>
-            ) : (
-              <p className="text-ink-500 mt-5 text-sm">WhatsApp number coming soon.</p>
             )}
           </article>
         </div>

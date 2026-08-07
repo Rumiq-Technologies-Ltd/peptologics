@@ -6,32 +6,24 @@ import type { EmailService } from "@/services/email.service";
 import type { NotificationRepository } from "@/services/notification.repository";
 
 /**
- * Fans an inquiry out to every notification channel.
+ * Notifies the company that an inquiry arrived.
  *
  * The contract this service exists to enforce: **it cannot throw.** Dispatch runs
  * after the order is committed, so an exception here could only turn a saved lead
- * into an error page for the customer — the worst possible trade. Every channel's
- * result, including a crash inside a channel, becomes a row in `notification_log`.
+ * into an error page for the customer — the worst possible trade. Every result,
+ * including a crash inside a channel, becomes a row in `notification_log`.
  *
- * Channels are independent. Email failing must not stop WhatsApp, which is why they
- * run through `allSettled` rather than `all` and why each records its own outcome.
+ * That row already exists as `pending`, written inside the order's transaction by
+ * `create_inquiry`. The ordering is what makes the table a reliable dead-letter list:
+ * if this process dies before dispatch, the pending row remains and the operator can
+ * see exactly which leads nobody was told about.
  *
- * The rows already exist as `pending`, written inside the order's transaction by
- * `create_inquiry`. That ordering is what makes the table a reliable dead-letter
- * list: if this process dies before dispatch, the pending rows remain and the
- * operator can see exactly which leads nobody was told about.
+ * **Email is the only channel** (ADR-023). The shape here — a channel that returns an
+ * outcome, a loop that records each one — is deliberately unchanged from the two-channel
+ * version, because the log table, the repository and the outcome type are all
+ * channel-generic. Adding a second channel later means writing an adapter and one more
+ * entry in the array below, not restructuring this file.
  */
-
-/**
- * The WhatsApp channel, as this service needs to see it.
- *
- * Declared here and left unimplemented until Phase 6 (ADR-007). Passing `undefined`
- * is a supported state, not a gap: the channel records `skipped` and the flow is
- * unaffected, which is exactly what a deployment without Meta credentials should do.
- */
-export interface WhatsAppService {
-  sendInquiryNotification(notification: InquiryNotification): Promise<NotificationOutcome>;
-}
 
 export interface NotificationService {
   /** Dispatches every channel and records each outcome. Resolves, never rejects. */
@@ -41,13 +33,11 @@ export interface NotificationService {
 export interface NotificationServiceDeps {
   email: EmailService;
   repository: NotificationRepository;
-  whatsApp?: WhatsAppService;
 }
 
 export function createNotificationService({
   email,
   repository,
-  whatsApp,
 }: NotificationServiceDeps): NotificationService {
   /**
    * Runs one channel and turns any escape into a `failed` outcome.
@@ -92,35 +82,9 @@ export function createNotificationService({
 
   return {
     async dispatch(notification): Promise<NotificationOutcome[]> {
-      const settled = await Promise.allSettled([
-        runChannel("email", () => email.sendInquiryNotification(notification)),
-
-        runChannel("whatsapp", async () => {
-          if (!whatsApp) {
-            return {
-              channel: "whatsapp",
-              status: "skipped",
-              attempts: 0,
-              errorMessage: "WhatsApp Cloud API is not enabled for this deployment.",
-            } satisfies NotificationOutcome;
-          }
-
-          return whatsApp.sendInquiryNotification(notification);
-        }),
-      ]);
-
-      const outcomes = settled.map((result, index): NotificationOutcome =>
-        result.status === "fulfilled"
-          ? result.value
-          : {
-              // Unreachable in practice — runChannel already catches. Kept because
-              // `allSettled` can technically reject a thunk and this must not throw.
-              channel: index === 0 ? "email" : "whatsapp",
-              status: "failed",
-              attempts: 0,
-              errorMessage: "Channel rejected without an outcome.",
-            },
-      );
+      const outcomes = [
+        await runChannel("email", () => email.sendInquiryNotification(notification)),
+      ];
 
       for (const outcome of outcomes) {
         await record(notification.orderId, outcome);

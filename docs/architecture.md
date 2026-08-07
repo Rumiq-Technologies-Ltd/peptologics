@@ -133,9 +133,11 @@ POST /api/inquiries                          route: 4 checks, then hand over
         ├─ create_inquiry(payload) RPC       atomic: order + N items + 2 pending
         │                                    notification rows, ON CONFLICT DO NOTHING
         └─ NotificationService.dispatch()    AFTER the commit. Cannot rethrow.
-             ├─ EmailService (Resend)        → notification_log: sent | failed | skipped
-             └─ WhatsAppService (null | Meta) → notification_log: sent | failed | skipped
+             └─ EmailService (Resend)        → notification_log: sent | failed | skipped
 ```
+
+Email is the only channel (ADR-023). The dispatcher, the log table and the repository all stay
+channel-generic, so a second channel is an adapter plus one array entry — not a restructure.
 
 Note where the spam filters sit: **inside the service, not the route.** They are business rules, and
 their answer to a bot — an ordinary success — is a business decision (ADR-021). The route only
@@ -213,21 +215,21 @@ Consequences worth remembering before adding a surface:
 
 ## 7. Directory map
 
-| Path                     | Contains                                                                                                                           |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `src/app/`               | Routes, layouts, metadata, Route Handlers. No business logic.                                                                      |
-| `src/components/ui/`     | Generic primitives (shadcn) + `LatticeMark`, `HexFrame`. No business logic.                                                        |
-| `src/components/layout/` | Compliance strip, header, nav, footer, container, section.                                                                         |
-| `src/components/shared/` | Reused across features: empty/error states, skeletons, skip link.                                                                  |
-| `src/features/<name>/`   | Self-contained feature: components, services, types, mappers, utils.                                                               |
-| `src/services/`          | Cross-feature services and `container.ts`, the one composition root.                                                               |
-| `src/lib/`               | Integrations and cross-cutting concerns: supabase, resend, whatsapp, logger, errors, http, resilience, security, validations, env. |
-| `src/store/`             | Zustand stores.                                                                                                                    |
-| `src/hooks/`             | Reusable client hooks.                                                                                                             |
-| `src/types/`             | Cross-cutting types: `api.ts`, `result.ts`, generated `database.types.ts`.                                                         |
-| `src/utils/`             | Pure functions. No React, no Next, no side effects.                                                                                |
-| `src/constants/`         | `site.ts`, `routes.ts`, `business.ts`, `messages.ts`. No magic strings elsewhere.                                                  |
-| `supabase/`              | `config.toml`, `migrations/`, `seed.sql`.                                                                                          |
+| Path                     | Contains                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `src/app/`               | Routes, layouts, metadata, Route Handlers. No business logic.                                                            |
+| `src/components/ui/`     | Generic primitives (shadcn) + `LatticeMark`, `HexFrame`. No business logic.                                              |
+| `src/components/layout/` | Compliance strip, header, nav, footer, container, section.                                                               |
+| `src/components/shared/` | Reused across features: empty/error states, skeletons, skip link.                                                        |
+| `src/features/<name>/`   | Self-contained feature: components, services, types, mappers, utils.                                                     |
+| `src/services/`          | Cross-feature services and `container.ts`, the one composition root.                                                     |
+| `src/lib/`               | Integrations and cross-cutting concerns: supabase, resend, logger, errors, http, resilience, security, validations, env. |
+| `src/store/`             | Zustand stores.                                                                                                          |
+| `src/hooks/`             | Reusable client hooks.                                                                                                   |
+| `src/types/`             | Cross-cutting types: `api.ts`, `result.ts`, generated `database.types.ts`.                                               |
+| `src/utils/`             | Pure functions. No React, no Next, no side effects.                                                                      |
+| `src/constants/`         | `site.ts`, `routes.ts`, `business.ts`, `messages.ts`. No magic strings elsewhere.                                        |
+| `supabase/`              | `config.toml`, `migrations/`, `seed.sql`.                                                                                |
 
 There is no `proxy.ts`. Nothing needs to run before render, and adding one would cost an invocation
 per request for no benefit.

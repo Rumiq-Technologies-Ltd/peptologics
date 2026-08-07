@@ -9,10 +9,10 @@ import { z } from "zod";
  * error rather than a leaked service-role key. Every secret in the application
  * is read here and nowhere else.
  *
- * Optional-by-design: Resend and WhatsApp credentials are `.optional()` so the
- * inquiry flow, the build, and local development all work before those accounts
- * exist. Missing credentials degrade a notification channel to `skipped`; they
- * never throw and never block an order from being saved.
+ * Optional-by-design: the Resend credentials are `.optional()` so the inquiry
+ * flow, the build, and local development all work before that account exists.
+ * Missing credentials degrade the email channel to `skipped`; they never throw
+ * and never block an order from being saved.
  */
 const serverEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -43,15 +43,6 @@ const serverEnvSchema = z.object({
   INQUIRY_NOTIFICATION_FROM: z.string().min(1).optional(),
   /** Comma-separated list of internal recipients. */
   INQUIRY_NOTIFICATION_TO: z.string().min(1).optional(),
-
-  // --- WhatsApp (Meta Cloud API) -------------------------------------------
-  WHATSAPP_ENABLED: z.enum(["true", "false"]).default("false"),
-  WHATSAPP_PHONE_NUMBER_ID: z.string().min(1).optional(),
-  WHATSAPP_ACCESS_TOKEN: z.string().min(1).optional(),
-  /** E.164, no '+' — the number that receives inquiry notifications. */
-  WHATSAPP_RECIPIENT: z.string().min(1).optional(),
-  WHATSAPP_TEMPLATE_NAME: z.string().min(1).optional(),
-  WHATSAPP_TEMPLATE_LOCALE: z.string().min(2).default("en"),
 
   // --- Operations -----------------------------------------------------------
   /** Bearer secret for POST /api/revalidate. */
@@ -127,17 +118,3 @@ export const env: ServerEnv = loadServerEnv();
 export const isEmailConfigured: boolean = Boolean(
   env.RESEND_API_KEY && env.INQUIRY_NOTIFICATION_FROM && env.INQUIRY_NOTIFICATION_TO,
 );
-
-/**
- * True only when WhatsApp is both switched on and fully credentialed. The
- * two-part check means a half-configured deployment degrades to `skipped`
- * instead of throwing on every inquiry.
- */
-export const isWhatsAppConfigured: boolean =
-  env.WHATSAPP_ENABLED === "true" &&
-  Boolean(
-    env.WHATSAPP_PHONE_NUMBER_ID &&
-    env.WHATSAPP_ACCESS_TOKEN &&
-    env.WHATSAPP_RECIPIENT &&
-    env.WHATSAPP_TEMPLATE_NAME,
-  );

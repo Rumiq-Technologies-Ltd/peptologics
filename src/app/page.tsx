@@ -75,8 +75,7 @@ const PROCESS_STEPS = [
   },
   {
     title: "Receive a quotation",
-    detail:
-      "A representative confirms availability, lot documentation and final pricing by email or WhatsApp.",
+    detail: "A representative confirms availability, lot documentation and final pricing by email.",
   },
   {
     title: "Dispatch",

@@ -34,7 +34,6 @@ export const MIN_FORM_DWELL_SECONDS = 3 as const;
 
 /** Timeouts for third-party calls, in milliseconds. */
 export const EMAIL_TIMEOUT_MS = 8_000 as const;
-export const WHATSAPP_TIMEOUT_MS = 6_000 as const;
 
 /** Retry budget for transient notification failures. */
 export const NOTIFICATION_RETRY_ATTEMPTS = 3 as const;

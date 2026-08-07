@@ -56,9 +56,6 @@ function buildContainer(): Container {
   const notifications = createNotificationService({
     email: createEmailService(),
     repository: createNotificationRepository(),
-    // WhatsApp arrives in Phase 6. Until then the channel records `skipped`, which
-    // is a first-class outcome rather than a failure (ADR-007).
-    whatsApp: undefined,
   });
 
   return {

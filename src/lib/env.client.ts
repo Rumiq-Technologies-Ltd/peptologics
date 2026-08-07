@@ -13,12 +13,5 @@ export const siteUrl: string = (
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
 ).replace(/\/+$/, "");
 
-/**
- * Company WhatsApp number in E.164 without the leading '+', used to build
- * `wa.me` deep links. Public by nature — it is printed in the footer.
- */
-export const whatsAppDeepLinkNumber: string | undefined =
-  process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || undefined;
-
 /** Public contact email, shown in the footer and on the contact page. */
 export const contactEmail: string | undefined = process.env.NEXT_PUBLIC_CONTACT_EMAIL || undefined;

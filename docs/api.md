@@ -75,7 +75,6 @@ because that exercises the key, RLS, and the connection — which is what breaks
     "latencyMs": 41,
     "channels": {
       "email": "not_configured",
-      "whatsapp": "not_configured",
       "inquiryWrites": "available"
     }
   }
@@ -116,8 +115,8 @@ soft 404. See ADR-014.
 ## `POST /api/inquiries`
 
 Creates an inquiry: one `orders` row, one `order_items` row per product, and one `notification_log` row
-per channel — all in a single transaction (ADR-004). Notifications are dispatched after the commit and
-cannot affect the response.
+for the email channel — all in a single transaction (ADR-004). The notification is dispatched after the
+commit and cannot affect the response.
 
 ### Headers
 
@@ -222,7 +221,8 @@ data.
 
 ### Notification behaviour
 
-`notification_log` gets a `pending` row per channel inside the order's transaction, then the outcome:
+`notification_log` gets a `pending` row for the email channel inside the order's transaction, then the
+outcome. Email is the only channel (ADR-023):
 
 | Status    | Meaning                                                                  |
 | --------- | ------------------------------------------------------------------------ |

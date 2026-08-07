@@ -1,6 +1,6 @@
 # Deployment — PeptoLogics
 
-Vercel (Next.js) + Supabase (PostgreSQL) + Resend (email) + optionally Meta WhatsApp Cloud API.
+Vercel (Next.js) + Supabase (PostgreSQL) + Resend (email).
 
 > **Status: skeleton.** Completed in Phase 9 with real project identifiers and a tested rollback.
 
@@ -45,20 +45,15 @@ in a screenshot.
 
 Until this is done, inquiries still save and the email channel records `skipped`. Nothing breaks.
 
-## WhatsApp Cloud API setup
+## Notification channels
 
-**Start this early — it is the longest lead time in the project.** Order matters:
+**Email is the only channel.** WhatsApp was removed at the client's request — see ADR-023. There are
+no Meta credentials to obtain, no template to get approved, and nothing in the deploy checklist that
+waits on Meta.
 
-1. Meta Business Account, then complete **Business Verification** (requires company documents; days).
-2. Create a WhatsApp Business Account and register a phone number.
-3. Create a **System User** and issue a permanent access token. Do not use a Graph Explorer token — it
-   expires.
-4. Submit a **message template** for approval. This is mandatory, not optional: free-form text sends
-   are only permitted within 24 hours of the recipient's last inbound message, and the recipient is
-   the company's own number, which will never message its own WABA. See ADR-007.
-5. Template variables cannot contain newlines, tabs, or four or more consecutive spaces — the order
-   summary must be flattened to a single line.
-6. Set `WHATSAPP_ENABLED=true` plus the four credentials.
+If it is ever wanted back, the work is an adapter plus one entry in `NotificationService.dispatch`:
+`notification_log` and its repository are already channel-generic, and the table's CHECK constraint
+still permits a `whatsapp` channel value.
 
 ## Adding a product to the catalog
 

@@ -177,17 +177,21 @@ Commit `feat: add inquiry submission with atomic persistence and email notificat
 
 ---
 
-## Phase 6 — WhatsApp
+## Phase 6 — ~~WhatsApp~~ **cancelled; WhatsApp removed instead**
 
-Branch `feature/whatsapp-notifications`
-Commit `feat: add env-gated WhatsApp Cloud API notifications`
+Branch `refactor/remove-whatsapp`
+Commit `refactor: remove WhatsApp notifications in favour of email only`
 
-- [ ] `whatsapp.service.ts` — Meta adapter, null adapter, factory
-- [ ] Template parameter flattening (Meta forbids newlines and 4+ spaces in variables)
-- [ ] WhatsApp runbook in `docs/deployment.md`
-- [ ] Verify: disabled records `skipped` and the flow is unaffected; enabled delivers the template
-- [!] Client: Meta Business verification, WABA, phone number ID, System User token, **approved template**.
-  **Start this during Phase 0 — it is the longest lead time in the project.**
+The client dropped WhatsApp on 7 August 2026 rather than take on the Meta account work. Email already
+delivers every lead. Recorded in ADR-023, which supersedes ADR-007.
+
+- [x] Removed `WhatsAppService`, the null-adapter branch, and the WhatsApp dispatch from `NotificationService`
+- [x] Removed six `WHATSAPP_*` server env vars, `isWhatsAppConfigured`, `WHATSAPP_TIMEOUT_MS`, `NEXT_PUBLIC_WHATSAPP_NUMBER` and `whatsAppDeepLinkNumber`
+- [x] Removed the `wa.me` buttons from the success page, footer and contact page, and every copy line promising WhatsApp contact
+- [x] Migration `20260807120000_create_inquiry_email_only` — the RPC writes one notification intent, for email
+- [x] `notification_log.channel` still permits `'whatsapp'`, and the dispatcher still loops over channel results: re-adding one is an adapter plus one array entry, no schema change
+- [x] Docs: ADR-023 added, ADR-007 marked superseded, deployment runbook replaced, architecture, api and the brief's decision table updated
+- [x] Verify: a live submission produced **1 notification row** (`email`, `sent`) and no `whatsapp` row; `/api/health` no longer reports a whatsapp channel; the site contains no `wa.me` link
 
 ---
 

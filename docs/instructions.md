@@ -33,6 +33,7 @@ The client's instructions, verbatim in substance:
   products, with the selection and prices shown in a **cart**.
 - On submitting the order, the visitor enters **name, email, phone number and address**.
 - That submission is sent to the company by **WhatsApp** and by **email**.
+  _(Amended 7 Aug 2026: WhatsApp dropped, email only — see decision 5 below and ADR-023.)_
 - The company then **reaches out to customers manually**. There is no online payment.
 - Use the existing empty Next.js project.
 - Read the disclaimer reference images and produce a **unique** gate for PeptoLogics.
@@ -55,16 +56,16 @@ The client's instructions, verbatim in substance:
 
 ## 3. Locked decisions
 
-| #   | Decision                                                                                                              | Source                    |
-| --- | --------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| 1   | Supabase project `pmbatptoffscqtnfmhbz`. Products live in Postgres, never hardcoded.                                  | Client                    |
-| 2   | Inquiry form: name, email, phone, street address, city, state, ZIP **required**; apt/suite and notes **optional**.    | Client                    |
-| 3   | No shipping fee, no order minimum. Cart shows an **estimated** subtotal; the representative confirms the final total. | Client                    |
-| 4   | Brand blue `#1A3E9C` (from the logo) is primary; `#1D4ED8` is the interactive accent.                                 | Client                    |
-| 5   | WhatsApp ships as a `wa.me` deep link plus an env-gated null adapter. The Meta Cloud API adapter lands later.         | Engineering — see ADR-007 |
-| 6   | Single light theme. No dark mode.                                                                                     | Engineering               |
-| 7   | Money as integer cents throughout.                                                                                    | Engineering — ADR-002     |
-| 8   | `cacheComponents` stays off until after launch.                                                                       | Engineering — ADR-008     |
+| #   | Decision                                                                                                              | Source                       |
+| --- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 1   | Supabase project `pmbatptoffscqtnfmhbz`. Products live in Postgres, never hardcoded.                                  | Client                       |
+| 2   | Inquiry form: name, email, phone, street address, city, state, ZIP **required**; apt/suite and notes **optional**.    | Client                       |
+| 3   | No shipping fee, no order minimum. Cart shows an **estimated** subtotal; the representative confirms the final total. | Client                       |
+| 4   | Brand blue `#1A3E9C` (from the logo) is primary; `#1D4ED8` is the interactive accent.                                 | Client                       |
+| 5   | **WhatsApp removed. Email is the only notification channel.** Supersedes the brief's point below.                     | Client, 7 Aug 2026 — ADR-023 |
+| 6   | Single light theme. No dark mode.                                                                                     | Engineering                  |
+| 7   | Money as integer cents throughout.                                                                                    | Engineering — ADR-002        |
+| 8   | `cacheComponents` stays off until after launch.                                                                       | Engineering — ADR-008        |
 
 ## 4. How to work through this
 

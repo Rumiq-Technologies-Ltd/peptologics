@@ -64,7 +64,15 @@ export interface InquiryNotification {
   subtotalCents: number;
 }
 
-export type NotificationChannel = "email" | "whatsapp";
+/**
+ * Email is the only channel.
+ *
+ * The union exists rather than being inlined so adding a second channel later is a
+ * one-line change here plus an adapter — the notification service, the log table and
+ * the repository are all already channel-generic. WhatsApp was removed in favour of
+ * email alone; see ADR-023.
+ */
+export type NotificationChannel = "email";
 
 export type NotificationStatus = "sent" | "failed" | "skipped";
 

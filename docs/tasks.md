@@ -222,12 +222,26 @@ Commit `feat: add metadata, structured data, sitemap and OG images`
 Branch `test/critical-paths`
 Commit `test: add unit and e2e coverage for the inquiry path`
 
-- [ ] Install `vitest`, `@vitest/coverage-v8`, `@testing-library/react`, `@testing-library/jest-dom`, `jsdom`, `@playwright/test`
-- [ ] Unit: price authority, quantity bounds, unavailable products
-- [ ] Unit: honeypot, rate limit, replay, notification isolation
-- [ ] Unit: `withRetry` retryable-vs-not classification; Zod schemas
-- [ ] E2E: gate → browse → add → submit → success
-- [ ] E2E: double-submit; honeypot; keyboard-only gate traversal
+- [x] Install `vitest`, `@vitest/coverage-v8`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom`, `@playwright/test`
+- [x] `vitest.config.mts` — two projects (node for logic, jsdom for components), `@` alias, `server-only` aliased to a stub so services can be imported at all
+- [x] `vitest.setup.ts` — jest-dom matchers plus an explicit `afterEach(cleanup)`, which Testing Library only auto-registers under `globals: true`
+- [x] Unit: price authority (server prices the lines, injected prices are stripped), quantity bounds, unavailable product refuses the whole inquiry
+- [x] Unit: honeypot, instant post, missing and future-dated dwell stamps — all answer 201 with `orderNumber: null` and touch neither the counter nor the database
+- [x] Unit: rate limit blocks with `Retry-After` and never reaches the catalog; fails **open** when the counter is down
+- [x] Unit: replay returns the original order and does **not** dispatch a second notification
+- [x] Unit: notification isolation — a channel that throws becomes a `failed` outcome, a failed log write is swallowed, and submission still succeeds
+- [x] Unit: `withRetry` retryable-vs-final by status (408/429/5xx retry; 4xx and plain `Error` do not); `withTimeout` really aborts the signal
+- [x] Unit: Zod schemas — sanitisation, every required field, bounds mirroring the database CHECKs, duplicate products, and the no-price guarantee
+- [x] Unit: product service (sort narrowing, search sanitising and capping, featured fallback, safe failure messages) and the display formatters
+- [x] Component: `QuantityStepper` queried by role and accessible name — remove at minimum, disabled at cap, disabled while rehydrating, live region announces
+- [x] E2E: gate → browse → add → cart → form → success, plus payload assertions (items, `Idempotency-Key`, **no price field**)
+- [x] E2E: double-submit yields one request; honeypot present, empty and untabbable; empty-form submission surfaces the error summary and sends nothing
+- [x] E2E: the gate blocks with `inert` while the content stays in the server HTML, refuses Escape, completes with the keyboard alone, persists across reload, and exempts the policy pages
+- [x] `npm run verify` now includes the unit suite; Playwright stays out of it so `verify` stays quick
+- [x] `docs/testing.md` — how to run each suite, what is covered, and what is deliberately not
+- [x] ADR-024 — why the E2E suite intercepts `POST /api/inquiries` instead of writing real orders and sending real email on every run
+- [x] Verify: **126 unit tests** and **11 Playwright specs** green; ~97% statement coverage over the logic the suites target
+- [x] Two real defects found by the tests: `sanitizePhone` left a trailing space after stripping letters (fixed); `clampQuantity(Infinity)` returns the minimum, which is correct and is now pinned
 
 ---
 

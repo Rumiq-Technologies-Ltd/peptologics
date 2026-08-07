@@ -507,6 +507,41 @@ for manual follow-up. That was already the design; it now carries more weight.
 
 ---
 
+## ADR-024 — The E2E suite intercepts the inquiry endpoint
+
+**Status** Accepted · Phase 8
+
+`e2e/inquiry-journey.spec.ts` drives the real browser through the real form and then
+intercepts `POST /api/inquiries`, answering `201` itself.
+
+The alternative — letting the request through — was rejected. Every run would write an
+order to the client's production Supabase and send a real email to their inbox, on a
+suite that is meant to be run freely and often. Seeding a separate test project would
+mean maintaining a second database and a second set of credentials for one spec file.
+
+What is lost is small and already covered elsewhere: the endpoint's own behaviour is
+tested at the service level against fakes (`inquiry.service.test.ts`) and was verified
+against the live database during Phase 5 — one order, two items, the notification row,
+a real email delivered, replay returning the same order, the 6th submission rate-limited.
+
+What is kept is the part only a browser can prove, and it is the part most likely to
+break silently:
+
+- the form assembles the correct items and quantities from the persisted list;
+- an `Idempotency-Key` header is present and is a UUID;
+- **no price field appears anywhere in the request body** — asserted by matching the
+  serialised payload against `/price/i` and `/subtotal/i` (ADR-005);
+- a double click produces one request, not two;
+- the list is cleared and the reference is shown on the success page.
+
+**Cost accepted** A change to the Route Handler's own contract — a renamed field, a
+different status code — would not fail this suite. The service tests and the documented
+contract in `docs/api.md` are what guard that, and a contract test against a seeded
+staging database is the natural thing to add if the endpoint ever grows consumers
+beyond our own form.
+
+---
+
 ## Open questions — awaiting the client
 
 Nothing here is invented in code without being listed as `PLACEHOLDER`.

@@ -13,3 +13,9 @@ public
 *.png
 *.ico
 src/types/database.types.ts
+
+# Test output
+coverage
+test-results
+playwright-report
+blob-report

@@ -58,7 +58,13 @@ export function sanitizeEmail(value: string): string {
   return sanitizeText(value).toLowerCase();
 }
 
-/** Keeps only digits, '+', and common separators so display formatting survives. */
+/**
+ * Keeps only digits, '+', and common separators so display formatting survives.
+ *
+ * Sanitised, filtered, then sanitised again. The second pass is not redundant:
+ * stripping the letters from "+1 555 0102030 ext" leaves a trailing space, which would
+ * otherwise be stored and shown. Caught by a unit test.
+ */
 export function sanitizePhone(value: string): string {
-  return sanitizeText(value).replace(/[^\d+()\-.\s]/g, "");
+  return sanitizeText(sanitizeText(value).replace(/[^\d+()\-.\s]/g, ""));
 }

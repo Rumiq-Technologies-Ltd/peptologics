@@ -147,20 +147,33 @@ Commit `feat: add persisted inquiry list with server-authoritative pricing groun
 Branch `feature/inquiry-submission`
 Commit `feat: add inquiry submission with atomic persistence and email notification`
 
-- [ ] `src/lib/validations/inquiry.schema.ts` — shared client/server, **no price field**
-- [ ] `src/features/inquiry/services/order.repository.ts`
-- [ ] `src/features/inquiry/services/inquiry.service.ts` — spam, rate limit, price authority, atomic persist, isolated notifications
-- [ ] `src/features/inquiry/services/rate-limit.service.ts`
-- [ ] `src/services/notification.service.ts` — cannot rethrow; writes every outcome to `notification_log`
-- [ ] `src/lib/resend/` + `email.service.ts` via raw `fetch`
-- [ ] Email templates: internal notification
-- [ ] `POST /api/inquiries` — honeypot, dwell time, same-origin, `Idempotency-Key`
-- [ ] `InquiryForm` — RHF + zodResolver, error summary with `role="alert"`, per-field messages
-- [ ] `/inquiry` + `loading` + `error`; `/inquiry/success` with the `wa.me` CTA
-- [ ] `docs/api.md`
-- [ ] Verify: 1 order + N items + 2 notification rows; double-submit yields one order; 6th submit 429s with `Retry-After`; honeypot returns 201 persisting nothing; injected price ignored
-- [!] Client: `RESEND_API_KEY`, verified sending domain (SPF/DKIM DNS), recipient inbox
-- [!] Client: company WhatsApp number
+- [x] `src/lib/validations/inquiry.schema.ts` — shared client/server, **no price field**; `string in, string out` so the resolver keeps type-checking the form (a `z.preprocess` wrapper widens the input to `unknown`)
+- [x] `src/features/inquiry/types/inquiry.ts` — request shapes vs persisted shapes kept apart
+- [x] `src/features/inquiry/services/order.repository.ts` — the `create_inquiry` RPC, payload typed as `Json` so an `undefined` cannot reach a NOT NULL
+- [x] `src/features/inquiry/services/rate-limit.repository.ts` + `rate-limit.service.ts` — atomic counter, fails **open** (ADR-022)
+- [x] `src/features/inquiry/services/inquiry.service.ts` — spam, rate limit, price authority, atomic persist, isolated notifications, replay skips dispatch
+- [x] `src/services/notification.repository.ts` + `notification.service.ts` — cannot rethrow; writes every outcome to `notification_log`; channels independent via `allSettled`
+- [x] `src/lib/resend/` + `src/services/email.service.ts` via raw `fetch` — no SDK for one POST
+- [x] Email template: internal notification, text **and** HTML, every field escaped at the point of insertion
+- [x] `POST /api/inquiries` — same-origin, `Idempotency-Key`, JSON parse, schema; spam and rate limit live in the service where the business rules belong
+- [x] `InquiryForm` — RHF + `standardSchemaResolver` (Zod 4 speaks Standard Schema), error summary with `role="alert"` that takes focus, per-field messages, off-screen honeypot, dwell stamp set in an effect (`Date.now()` during render is impure)
+- [x] `InquiryField` — one place for the label / hint / `aria-describedby` / `aria-invalid` wiring
+- [x] `InquirySummary` — editable line list beside the form, so fixing a quantity does not cost the form's contents
+- [x] `/inquiry` + `error.tsx`; `/inquiry/success` with the `wa.me` CTA and a validated `?ref`
+- [x] **No `/inquiry/loading.tsx`** — prerendered route, same reasoning as `/cart` (ADR-017)
+- [x] `/cart` CTA now points at `/inquiry`; the Phase 4 `TODO(phase-5)` is gone
+- [x] `docs/api.md` — full endpoint contract; `docs/architecture.md` §4 corrected to match the built flow; ADR-021 and ADR-022 added
+- [x] Verify: real submission through the UI created **1 order + 2 items + 2 notification rows**, email `sent` with a provider id on attempt 1, WhatsApp `skipped`; sanitisation held (`"  Dr Ada   Lovelace  "` stored as `Dr Ada Lovelace`, email lowercased, triple newline collapsed); `ruo_acknowledged_at` recorded
+- [x] Verify: three POSTs with one `Idempotency-Key` → **one order**, `created` true then false twice, one email row with `attempts: 1`
+- [x] Verify: injected `unitPriceCents/priceCents/subtotalCents: 1` ignored — stored `6000` from the catalog
+- [x] Verify: filled honeypot, `formStartedAt` of now, and a missing `formStartedAt` each returned **201 with `orderNumber: null`** and persisted nothing
+- [x] Verify: missing `Idempotency-Key` → 400; unknown product → 409 `PRODUCT_UNAVAILABLE`; the 6th counted submission → **429 with `Retry-After: 88`**
+- [x] Verify: empty form submit → 7 field errors, `aria-invalid` on all 7, summary announced; `?ref=<junk>` renders no reference block; success page is `noindex, nofollow`
+- [x] Test rows removed afterwards: orders, items, notification rows and the rate-limit bucket are all back to zero; 12 products untouched
+- [x] Client supplied `RESEND_API_KEY`, `INQUIRY_NOTIFICATION_FROM` and `INQUIRY_NOTIFICATION_TO` — a live email was delivered during verification
+- [!] Client: confirm whether `peptologics.com` is verified in Resend (SPF/DKIM). If the From address is still `onboarding@resend.dev`, delivery works only to your own Resend account inbox and must not go to production
+- [!] Client: `NEXT_PUBLIC_WHATSAPP_NUMBER` — the success page's WhatsApp CTA is hidden until it is set
+- [!] Client: `NEXT_PUBLIC_CONTACT_EMAIL` — the success page's email CTA is hidden until it is set
 
 ---
 

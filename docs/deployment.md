@@ -67,7 +67,17 @@ inserting a product:
 3. `POST /api/revalidate` refreshes the catalog listing, but does **not** create the new detail page.
 
 Editing an existing product — including its price — needs no redeploy. It propagates within the hour,
-or immediately via `POST /api/revalidate`.
+or immediately with:
+
+```bash
+curl -X POST https://peptologics.com/api/revalidate \
+  -H "Authorization: Bearer $REVALIDATE_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"slug":"retatrutide-10mg"}'
+```
+
+`/` and `/products` are purged too, with or without a slug — a price appears in three places and they
+must not disagree. Full contract in [api.md](./api.md).
 
 ## Database migrations
 

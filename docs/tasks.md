@@ -200,14 +200,20 @@ delivers every lead. Recorded in ADR-023, which supersedes ADR-007.
 Branch `feature/seo-and-metadata`
 Commit `feat: add metadata, structured data, sitemap and OG images`
 
-- [ ] `metadataBase` + per-page `generateMetadata` + canonicals
-- [ ] JSON-LD: Organization, WebSite, Product (**without `offers`** — see ADR-012), BreadcrumbList, FAQPage
-- [ ] `sitemap.ts`, `robots.ts`
-- [ ] `opengraph-image.tsx`, `icon.tsx`, `apple-icon.png`
-- [ ] `noindex` on cart, inquiry, success, not-eligible
-- [ ] `POST /api/revalidate`
-- [ ] `next.config.ts`: `images.remotePatterns`
-- [ ] Verify: Lighthouse ≥ 95 on all four; Rich Results passes on a product page; sitemap lists 12 slugs
+- [x] `metadataBase` + per-page metadata + canonicals — already in place from Phases 2–5; audited, every indexable page has a unique title, description and canonical
+- [x] Site-wide Open Graph and Twitter defaults in the root layout (image left implicit, so Next's own `opengraph-image` tag is not duplicated)
+- [x] `src/lib/seo/structuredData.ts` + `JsonLd` — the codebase's only `dangerouslySetInnerHTML`, with `<` escaped so a product name containing `</script>` cannot break out
+- [x] JSON-LD: Organization + WebSite site-wide, FAQPage on the home page from the same array it renders, Product (**no `offers`** — ADR-012) + BreadcrumbList on each product page
+- [x] `sitemap.ts` — static routes plus 12 products with real `lastmod`; the four `noindex` routes deliberately absent
+- [x] `robots.ts` — disallow list mirrors the `noindex` set, plus `/api/`
+- [x] `opengraph-image.tsx`, `products/[slug]/opengraph-image.tsx`, `icon.tsx`, `apple-icon.tsx` — all generated via `ImageResponse`, no static binaries to drift
+- [x] The product image route needed its **own** `generateStaticParams`: segment config is per-file, and without it the build left it dynamic — every social scrape would have cost a Supabase read
+- [x] `noindex` confirmed on cart, inquiry, success and not-eligible
+- [x] `POST /api/revalidate` — constant-time bearer comparison, always purges `/` and `/products`, optional `slug`
+- [x] `next.config.ts`: `images.remotePatterns` derived from `SUPABASE_URL`, AVIF/WebP, `poweredByHeader: false`
+- [x] Verify: sitemap has 21 URLs including all 12 products with `lastmod`, and none of the noindex routes; robots.txt matches; `Product` JSON-LD parses and contains no `offers` key; OG images, icon and apple-icon all return `200 image/png` and were rendered and eyeballed; revalidate returns 401 / 401 / 200 / 405 / 422 across no-token, wrong-token, valid-token, GET and bad-slug
+- [!] **Lighthouse not run** — no Chrome-driving CLI in this environment. Run it against the Vercel preview in Phase 9, before the production promotion
+- [!] Rich Results Test needs a public URL, so it also waits for the preview deployment
 
 ---
 

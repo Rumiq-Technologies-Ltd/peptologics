@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 import { ShieldCheckIcon } from "lucide-react";
 
 import { Section } from "@/components/layout/Section";
+import { JsonLd } from "@/components/shared/JsonLd";
 import { ProductRowControls } from "@/features/cart/components/ProductRowControls";
 import { COMPLIANCE_NOTICE_LONG, SITE_NAME } from "@/constants/site";
 import { ROUTES } from "@/constants/routes";
+import { buildBreadcrumbSchema, buildProductSchema } from "@/lib/seo/structuredData";
 import { getContainer } from "@/services/container";
 import { formatCostPerMg, formatCurrency } from "@/utils/formatCurrency";
 import { formatStrength } from "@/utils/formatStrength";
@@ -106,6 +108,20 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
 
   return (
     <Section lattice>
+      {/*
+        Product without an `offers` block (ADR-012), plus a BreadcrumbList matching the
+        visible trail immediately below — same labels, same order.
+      */}
+      <JsonLd
+        schema={[
+          buildProductSchema(product),
+          buildBreadcrumbSchema([
+            { name: "Products", path: ROUTES.products },
+            { name: product.name, path: ROUTES.product(product.slug) },
+          ]),
+        ]}
+      />
+
       <nav aria-label="Breadcrumb" className="text-sm">
         <ol className="flex items-center gap-2">
           <li>

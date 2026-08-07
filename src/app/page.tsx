@@ -9,11 +9,13 @@ import {
 } from "lucide-react";
 
 import { Section } from "@/components/layout/Section";
+import { JsonLd } from "@/components/shared/JsonLd";
 import { Button } from "@/components/ui/button";
 import { HexFrame } from "@/components/ui/HexFrame";
 import { ProductRow, ProductRowHeader } from "@/features/products/components/ProductRow";
 import { ROUTES } from "@/constants/routes";
 import { SITE_NAME, SITE_TAGLINE } from "@/constants/site";
+import { buildFaqSchema } from "@/lib/seo/structuredData";
 import { getContainer } from "@/services/container";
 
 /** One hour. Must be a literal — see the note in products/page.tsx. */
@@ -132,6 +134,13 @@ export default async function HomePage() {
 
   return (
     <>
+      {/*
+        FAQPage built from the same array the section below renders, so the markup
+        cannot describe an answer the page does not show — the mismatch Google's
+        structured-data policy treats as spam.
+      */}
+      <JsonLd schema={buildFaqSchema(FAQS)} />
+
       {/* ---------------------------------------------------------------- Hero */}
       <Section lattice>
         <div className="grid items-start gap-12 lg:grid-cols-[7fr_5fr] lg:gap-16">

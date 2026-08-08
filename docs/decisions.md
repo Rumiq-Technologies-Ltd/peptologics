@@ -135,7 +135,13 @@ chain if the client accepts it.
 
 ## ADR-008 — `cacheComponents` stays off until after launch
 
-**Status** Accepted · revisit in Phase 10
+**Status** Accepted · **revisited after launch and confirmed: it stays off permanently, unless the
+site gains per-visitor content.** The reasoning below was written before there was a production
+deployment to measure. Measured, it held: every route on the live domain serves
+`X-Vercel-Cache: PRERENDER`, so there is no per-request work for Cache Components to improve, and the
+streaming it enables has nothing to stream on a site with no auth, no personalisation and a
+client-side cart. Phase 10 is closed in `tasks.md` with that reasoning; reopen it if authentication,
+an admin dashboard, or personalised content ever lands.
 
 Enabling Next 16's Cache Components makes synchronous IO a **hard build error** in prerendered paths
 — `new Date()`, `Math.random()`, `crypto.randomUUID()` — and requires `generateStaticParams` to

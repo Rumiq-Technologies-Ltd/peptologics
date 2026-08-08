@@ -125,7 +125,7 @@ export default function LabTestingPage() {
             <p className="text-ink-700 mt-3 text-sm">
               We do not publish a headline purity figure on this page. A percentage is a specific,
               testable claim, and the honest place for it is the certificate for your lot — not
-              marketing copy that cannot be tied to the vial in your hand.
+              marketing materials that cannot be tied to the vial in your hand.
             </p>
             <p className="text-ink-700 mt-3 text-sm">
               Analytical results describe chemical composition. They say nothing about suitability

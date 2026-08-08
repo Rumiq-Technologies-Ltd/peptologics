@@ -50,7 +50,7 @@ const perMgFormatter = new Intl.NumberFormat("en-US", {
  * Formats a cost-per-milligram value.
  *
  * Two decimals matches the source price list. Note this rounds — K-L-O-W's true
- * value is 0.9375/mg and displays as $0.94, which is the intended behaviour.
+ * value is 1.125/mg and displays as $1.13, which is the intended behaviour.
  */
 export function formatCostPerMg(costPerMg: number): string {
   return `${perMgFormatter.format(costPerMg)}/mg`;

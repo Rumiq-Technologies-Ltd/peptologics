@@ -36,10 +36,20 @@ import type { NextConfig } from "next";
  * Revisit if the site ever gains a genuinely dynamic surface (authentication, an admin
  * dashboard); at that point a nonce costs nothing that is not already dynamic.
  */
+/**
+ * React's development build uses `eval()` for debugging features — reconstructing
+ * callstacks across environments, the error overlay. With a CSP and no `'unsafe-eval'`
+ * it logs an error on every page load and those features stop working.
+ *
+ * Allowed in development only. The production policy is unchanged, and React never uses
+ * `eval()` in a production build.
+ */
+const DEV_SCRIPT_SRC = process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
+
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   // Inline: Next's bootstrap and the gate's pre-paint script. See the note above.
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${DEV_SCRIPT_SRC}`,
   // Tailwind emits a stylesheet, but Next inlines critical CSS and injects style tags.
   "style-src 'self' 'unsafe-inline'",
   // data: for the generated OG/icon images; https: so client-supplied product
@@ -127,6 +137,33 @@ const nextConfig: NextConfig = {
         // Every route, including the API and the generated images.
         source: "/:path*",
         headers: SECURITY_HEADERS,
+      },
+    ];
+  },
+
+  /**
+   * Product URLs that changed when a vial size changed.
+   *
+   * `/products/[slug]` sets `dynamicParams = false`, so a slug that is no longer in the
+   * catalog returns a hard 404 — which is right for a product that never existed and
+   * wrong for one that simply moved. A permanent redirect passes the link equity on and
+   * keeps any bookmark or shared link working.
+   *
+   * Add a pair here whenever a size change renames a slug; never delete one.
+   */
+  async redirects() {
+    return [
+      // Tesamorelin moved from a 10 mg vial to 5 mg, 8 Aug 2026.
+      {
+        source: "/products/tesamorelin-10mg",
+        destination: "/products/tesamorelin-5mg",
+        permanent: true,
+      },
+      // Glutathione moved from a 10 mg vial to 1500 mg, 8 Aug 2026.
+      {
+        source: "/products/glutathione-10mg",
+        destination: "/products/glutathione-1500mg",
+        permanent: true,
       },
     ];
   },

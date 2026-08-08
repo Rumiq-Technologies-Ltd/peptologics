@@ -27,8 +27,15 @@ export function SiteHeader() {
             aria-label={`${SITE_NAME} home`}
             className="inline-flex items-center rounded-md"
           >
-            {/* The one logo above the fold, so it preloads. */}
-            <BrandLogo size={36} preload />
+            {/*
+              The client's mark alone — no badge ring, no wordmark beside it.
+
+              Not preloaded, unlike the SVG badge it replaced. `next/image` emits a 1x/2x
+              srcset for a raster source, and a preload can only name one candidate: the
+              browser then fetched the 2x and the preloaded 1x was wasted, which the
+              console said in as many words. At ~7 KB optimised it needs no head start.
+            */}
+            <BrandLogo variant="mark" size={40} />
           </Link>
 
           <div className="flex items-center gap-1 sm:gap-2">

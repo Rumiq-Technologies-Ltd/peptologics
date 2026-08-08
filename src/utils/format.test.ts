@@ -42,8 +42,11 @@ describe("formatCostPerMg", () => {
   });
 
   it("rounds to two places, matching the source price list", () => {
-    // K-L-O-W's true value is 0.9375/mg. Displaying $0.94 is intended (ADR-003).
-    expect(formatCostPerMg(0.9375)).toBe("$0.94/mg");
+    // K-L-O-W's true value is 1.125/mg. Displaying $1.13 is intended (ADR-003), and
+    // it is the client's own published figure.
+    expect(formatCostPerMg(1.125)).toBe("$1.13/mg");
+    // Glutathione's 1500 mg vial, the smallest figure in the catalog.
+    expect(formatCostPerMg(0.0333)).toBe("$0.03/mg");
   });
 });
 

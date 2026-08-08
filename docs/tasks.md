@@ -266,11 +266,46 @@ Commit `chore: configure vercel deployment and production environment`
 
 ---
 
-## Phase 10 — Cache Components (optional, post-launch only)
+## Phase 10 — Cache Components — **closed, deliberately not done**
 
-Branch `perf/enable-cache-components`
+Decided after launch, on the client's call, with production measured rather than guessed
+(ADR-008 revisited and confirmed):
 
-- [ ] `cacheComponents: true`; delete every `revalidate` / `dynamic` / `fetchCache` export
-- [ ] `'use cache'` + `cacheLife` + `cacheTag` on the product reads
-- [ ] `revalidateTag(tag, 'max')` — the profile argument is required in v16
-- [ ] Sweep for synchronous IO in prerendered paths (`new Date()` in a footer, etc.)
+- Every route on the live site serves `X-Vercel-Cache: PRERENDER` — static HTML from the CDN. There
+  is no per-request work left for Cache Components to make faster.
+- What it actually buys is streaming per-request personalisation into a static shell. This site has
+  no authentication, no personalisation, and a cart that lives in the visitor's own browser. There
+  is nothing to stream.
+- What it costs is real: `cacheComponents: true` turns synchronous IO into hard build errors, every
+  `revalidate` export has to be re-expressed as `cacheLife`/`cacheTag`, and `POST /api/revalidate`
+  changes semantics — on a site now live and collecting leads.
+
+Reopen only if the site gains something genuinely per-visitor: authentication, an admin dashboard,
+or personalised content. The original tasks are kept below so the work is not re-derived.
+
+- [ ] ~~`cacheComponents: true`; delete every `revalidate` / `dynamic` / `fetchCache` export~~
+- [ ] ~~`'use cache'` + `cacheLife` + `cacheTag` on the product reads~~
+- [ ] ~~`revalidateTag(tag, 'max')` — the profile argument is required in v16~~
+- [ ] ~~Sweep for synchronous IO in prerendered paths (`new Date()` in a footer, etc.)~~
+
+---
+
+## Post-launch — outstanding
+
+The launch is done; these are what remain.
+
+- [!] **Client, urgent:** set `NEXT_PUBLIC_SITE_URL` and the three Resend variables in Vercel
+  production, then redeploy. Until then the live site notifies nobody about a lead and every
+  canonical names the `*.vercel.app` host (ADR-025 guards both against recurrence, but cannot fix
+  a deployment that already shipped)
+- [ ] Lighthouse ≥ 95 on all four categories, against the live domain
+- [ ] Rich Results Test on a product page and on the home page's FAQ
+- [ ] One real end-to-end inquiry on the live site, then delete the test row
+- [ ] Submit the sitemap in Google Search Console once the canonical host is correct
+- [!] Client: counsel-reviewed Research-Use-Only text, still `TODO(legal)`
+- [!] Client: substantiate the five trust-badge claims, especially "third-party tested" and
+  "cold-chain handling"
+- [!] Client: product descriptions for all 12 compounds — the catalog ships with specifications only
+- [!] Client: confirm the 12 prices against your own records
+- [ ] Second Supabase project (or Supabase branching) for preview/development, before real lead
+      volume arrives — a preview deploy currently writes to the production database

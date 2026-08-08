@@ -135,7 +135,13 @@ chain if the client accepts it.
 
 ## ADR-008 — `cacheComponents` stays off until after launch
 
-**Status** Accepted · revisit in Phase 10
+**Status** Accepted · **revisited after launch and confirmed: it stays off permanently, unless the
+site gains per-visitor content.** The reasoning below was written before there was a production
+deployment to measure. Measured, it held: every route on the live domain serves
+`X-Vercel-Cache: PRERENDER`, so there is no per-request work for Cache Components to improve, and the
+streaming it enables has nothing to stream on a site with no auth, no personalisation and a
+client-side cart. Phase 10 is closed in `tasks.md` with that reasoning; reopen it if authentication,
+an admin dashboard, or personalised content ever lands.
 
 Enabling Next 16's Cache Components makes synchronous IO a **hard build error** in prerendered paths
 — `new Date()`, `Math.random()`, `crypto.randomUUID()` — and requires `generateStaticParams` to
@@ -539,6 +545,46 @@ different status code — would not fail this suite. The service tests and the d
 contract in `docs/api.md` are what guard that, and a contract test against a seeded
 staging database is the natural thing to add if the endpoint ever grows consumers
 beyond our own form.
+
+---
+
+## ADR-025 — Production refuses to build with a fake site URL or no email channel
+
+**Status** Accepted · Phase 9, after the first production deploy
+
+Both of these failed silently on the live site, and neither was visible from inside the
+application:
+
+1. `NEXT_PUBLIC_SITE_URL` was still the `*.vercel.app` URL, so every canonical link, Open
+   Graph URL, sitemap entry, `robots.txt` host and JSON-LD `@id` named a host that was not
+   the one serving the page. Nothing errored. The site simply told search engines it lived
+   somewhere else.
+2. The three Resend variables were unset in the Vercel production environment, so
+   `isEmailConfigured` was false. An inquiry still saved, still returned `201`, and still
+   showed the customer a confirmation with a reference number — and **nobody was told about
+   the lead.** The `notification_log` row read `skipped`, which is the correct record of what
+   happened and is invisible unless somebody queries it.
+
+Both are now build-time errors in `src/lib/env.ts`.
+
+**Why a build failure rather than a warning.** A warning in a build log is read once, by
+nobody. Both failures produce a site that looks entirely healthy — 200s, correct pages, a
+cheerful confirmation screen — while doing the wrong thing. The only moment either is cheap
+to notice is before the deploy exists.
+
+**Why `VERCEL_ENV` and not `NODE_ENV`.** A preview build also runs with
+`NODE_ENV=production`. Keying on it would fail every preview deploy, where a `*.vercel.app`
+URL is correct and Resend credentials are optional.
+
+**What this changes about the email channel.** `docs/deployment.md` previously said email was
+optional everywhere and degraded to `skipped`. That remains true for development and preview.
+In production it is now mandatory: email is the _only_ notification channel (ADR-023), so a
+production deployment without it is not a degraded site, it is a lead-collection form that
+discards leads.
+
+**Cost** A deploy now fails if the client rotates a Resend key and clears the variable, or
+renames the domain without updating the variable. That is the intended behaviour: fail the
+deploy, keep the last good one serving.
 
 ---
 

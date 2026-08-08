@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "peptologics Docs": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://gitmcp.io/Rumiq-Technologies-Ltd/peptologics"]
+    }
+  }
+}

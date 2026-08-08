@@ -164,5 +164,9 @@ test("an empty inquiry list disables submission and points back to the catalog",
   await page.goto("/inquiry");
 
   await expect(page.getByRole("button", { name: /^Send inquiry/ })).toBeDisabled();
-  await expect(page.getByRole("link", { name: "Browse the catalog" })).toBeVisible();
+  // Scoped to the form: the summary panel offers the same link in its own empty state,
+  // and both are present once it has hydrated.
+  await expect(
+    page.locator("form").getByRole("link", { name: "Browse the catalog" }),
+  ).toBeVisible();
 });

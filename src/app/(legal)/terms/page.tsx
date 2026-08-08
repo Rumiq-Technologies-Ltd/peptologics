@@ -82,7 +82,7 @@ export default function TermsPage() {
       <h2>7. Intellectual property</h2>
       <p>
         The {SITE_NAME} name, logo, site content and product listings are our property or used with
-        permission. You may not copy or reuse them without written consent.
+        our permission. You may not copy or reuse them without written consent.
       </p>
 
       <h2>8. Limitation of liability</h2>

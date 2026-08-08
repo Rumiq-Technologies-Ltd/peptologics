@@ -76,11 +76,26 @@ Generate the two secrets:
 node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
 ```
 
-Two production guardrails are enforced by `src/lib/env.ts` and will **fail the build** rather than
-deploy something half-configured:
+Four guardrails are enforced by `src/lib/env.ts` and will **fail the build** rather than deploy
+something half-configured. The last two exist because both failures happened on the live site and
+neither was visible from inside the application (ADR-025):
 
 - `SUPABASE_SERVICE_ROLE_KEY` is required when `NODE_ENV=production`.
 - `RATE_LIMIT_SALT` must not be the development default.
+- `NEXT_PUBLIC_SITE_URL` must be a real domain when `VERCEL_ENV=production` — not `localhost`, not
+  `*.vercel.app`. Pointed at the deployment URL, every canonical link, Open Graph URL, sitemap entry
+  and JSON-LD `@id` names a host that is not the one being served.
+- All three Resend variables are required when `VERCEL_ENV=production`. Email is the only
+  notification channel, so without them an inquiry saves, returns `201`, shows the customer a
+  reference number — and nobody is ever told about the lead.
+
+`VERCEL_ENV`, not `NODE_ENV`: a preview build also runs with `NODE_ENV=production`, and on a preview
+a `*.vercel.app` URL is correct and Resend credentials are optional.
+
+> **`NEXT_PUBLIC_SITE_URL` must match the primary host chosen in Vercel's Domains panel.** If
+> `www.peptologics.com` is primary and the apex redirects to it, this variable must be
+> `https://www.peptologics.com`. Set it to the apex while www is primary and every canonical points
+> at a URL that 308-redirects — a contradiction search engines have to resolve for themselves.
 
 ### 3. Deploy to preview and check it
 
@@ -99,8 +114,12 @@ Merge to `main`. Vercel builds and promotes automatically.
 ### 5. Add the domain
 
 Project → **Settings → Domains** → add `peptologics.com`. Add `www.peptologics.com` too; Vercel will
-offer to redirect one to the other — **redirect `www` → apex**, because every canonical URL, the
-sitemap and the structured data all use the bare domain.
+offer to redirect one to the other.
+
+**Either direction is fine — but `NEXT_PUBLIC_SITE_URL` must name whichever host you make primary.**
+The code has no preference: every canonical, the sitemap, `robots.txt` and the structured data are
+all derived from that one variable. What breaks is the mismatch, and the build now refuses it
+(ADR-025).
 
 Vercel then shows the exact DNS records to create. Use what the dashboard shows for your domain; it is
 authoritative and the values below are the general ones.

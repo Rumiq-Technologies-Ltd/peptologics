@@ -17,6 +17,15 @@ import { z } from "zod";
 const serverEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
+  /**
+   * Which Vercel environment this build is for. Set by Vercel, absent locally.
+   *
+   * `NODE_ENV` cannot tell these apart: a preview build also runs with
+   * `NODE_ENV=production`, so a rule keyed on it would fail every preview deploy.
+   * Every launch-critical check below is keyed on this instead.
+   */
+  VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
+
   // --- Site -----------------------------------------------------------------
   /** Absolute origin, no trailing slash. Drives metadataBase and canonical URLs. */
   NEXT_PUBLIC_SITE_URL: z.url().default("http://localhost:3000"),
@@ -69,6 +78,45 @@ const serverEnvSchemaWithProductionRules = serverEnvSchema
     {
       error: "Must be set to a real secret in production — the default salt is public.",
       path: ["RATE_LIMIT_SALT"],
+    },
+  )
+  /*
+   * The two rules below exist because both failures already happened on the live site,
+   * silently, and neither was visible from inside the application (ADR-025).
+   *
+   * They are keyed on VERCEL_ENV, not NODE_ENV: a preview build also runs with
+   * NODE_ENV=production, and neither rule should apply to a preview.
+   */
+  .refine(
+    (value) => {
+      if (value.VERCEL_ENV !== "production") return true;
+
+      const host = new URL(value.NEXT_PUBLIC_SITE_URL).hostname;
+      return host !== "localhost" && !host.endsWith(".vercel.app");
+    },
+    {
+      error:
+        "Must be the real customer-facing domain in production. Left unset or pointed at the " +
+        "*.vercel.app URL, every canonical link, Open Graph URL, sitemap entry and JSON-LD @id " +
+        "names a host that is not the one being served — which tells search engines the site " +
+        "lives somewhere else.",
+      path: ["NEXT_PUBLIC_SITE_URL"],
+    },
+  )
+  .refine(
+    (value) => {
+      if (value.VERCEL_ENV !== "production") return true;
+
+      return Boolean(
+        value.RESEND_API_KEY && value.INQUIRY_NOTIFICATION_FROM && value.INQUIRY_NOTIFICATION_TO,
+      );
+    },
+    {
+      error:
+        "All three Resend variables are required in production. Email is the only notification " +
+        "channel (ADR-023): without them an inquiry still saves and still returns a cheerful " +
+        "confirmation, but nobody is ever told about the lead.",
+      path: ["RESEND_API_KEY"],
     },
   );
 

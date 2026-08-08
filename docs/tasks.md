@@ -250,12 +250,19 @@ Commit `test: add unit and e2e coverage for the inquiry path`
 Branch `chore/deployment`
 Commit `chore: configure vercel deployment and production environment`
 
-- [ ] Link the Vercel project; set the preview/production env matrix
-- [ ] Domain + DNS; Resend domain verification
-- [ ] Security headers in `next.config.ts`: CSP, HSTS, `X-Content-Type-Options`, `Referrer-Policy`
-- [ ] Production Supabase migrations applied
-- [ ] `docs/deployment.md` with a rollback procedure
-- [!] Client: Vercel account/team access, domain registrar access
+- [x] Security headers in `next.config.ts`: CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`; `X-Powered-By` suppressed
+- [x] CSP keeps `'unsafe-inline'` on `script-src`, deliberately and with the reasoning in the config: a nonce is per-request, which makes every page dynamic and discards the static prerendering, and the gate's pre-paint script cannot wait for React to attach one. Hash-based fails on per-page JSON-LD
+- [x] Verified headers on a production build (`curl -sI`) — all seven present, `x-nextjs-cache: HIT` still served from the prerender
+- [x] Verified CSP does not break anything: fresh-profile browser shows the gate, 2 JSON-LD blocks, 12 hydrated rows, **zero console violations**; all 11 Playwright specs pass against the CSP build (the gate specs exercise the pre-paint script)
+- [x] Production Supabase migrations applied — all 12 present on `pmbatptoffscqtnfmhbz`, including `create_inquiry_email_only`
+- [x] Found: the remote migration ledger was written by the MCP tooling, so its versions do not match the local filenames. A plain `supabase db push` would try to re-create existing tables. Reconciliation procedure (`migration repair --status applied`) documented before it bites
+- [x] `docs/deployment.md` rewritten: env matrix per Vercel environment, first-time setup, exact DNS records, Resend zone records, headers, migrations, rollback (deployment / env var / database, each separately), and a 14-item post-deploy checklist
+- [x] Fixed an E2E strict-mode ambiguity found in passing: two "Browse the catalog" links exist once the summary panel hydrates
+- [!] **Client: Vercel project not created yet.** No Vercel CLI or account access in this environment — the dashboard steps, the env matrix and the DNS records are in `docs/deployment.md`, ready to follow
+- [!] **Client: Resend domain not verified.** The sender is still the sandbox `onboarding@resend.dev`, which delivers only to the Resend account owner. **Launch blocker** — real inquiries would reach nobody else
+- [!] Client: `NEXT_PUBLIC_CONTACT_EMAIL` still unset, so the footer and contact page hide the email CTA
+- [!] One Supabase project serves development, preview and production. Acceptable now, not once real leads arrive — see the note at the top of `docs/deployment.md`
+- [!] Lighthouse and the Rich Results Test still need the public URL; they are items 12 and 13 of the post-deploy checklist
 
 ---
 

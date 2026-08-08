@@ -56,7 +56,11 @@ export function SiteFooter() {
               The badge SVG has had its white background removed, so it renders
               cleanly on this near-black surface rather than as a white box.
             */}
-            <BrandLogo size={44} tone="dark" withTagline />
+            {/*
+              The mark composites cleanly here because its PNG carries real
+              transparency — the supplied JPEG's white background was removed.
+            */}
+            <BrandLogo variant="mark" size={44} tone="dark" withTagline />
 
             <p className="text-ink-400 mt-5 max-w-xs text-sm">
               Lyophilized research peptides supplied with lot documentation, for laboratory research

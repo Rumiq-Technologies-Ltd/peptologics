@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { HexFrame } from "@/components/ui/HexFrame";
 import { ROUTES } from "@/constants/routes";
 import { SITE_NAME } from "@/constants/site";
+import { CoaLibrary } from "@/features/products/components/CoaLibrary";
+import { getContainer } from "@/services/container";
 
 /**
  * Lab testing and Certificate of Analysis information.
@@ -15,10 +17,13 @@ import { SITE_NAME } from "@/constants/site";
  * percentage is quoted anywhere, deliberately — that is a substantiable numeric
  * claim and the client has not supplied supporting data.
  *
- * TODO(client): a COA library is not built. Whether COAs exist per product or per
- * lot, and where they are hosted, is open question 10 in docs/decisions.md. When
- * answered, this page becomes the natural home for a downloadable library.
+ * The certificate library reads `products.coa_url` from the catalog, so publishing one
+ * is a file plus a database update — never a code change. Products without a
+ * certificate are absent from the list rather than offering a button that goes nowhere.
  */
+/** One hour, matching the catalog. Must be a literal — see ../products/page.tsx (ADR-015). */
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "Lab Testing & COAs",
   description: `How ${SITE_NAME} analyzes production lots by HPLC and mass spectrometry, and how to request a lot-specific Certificate of Analysis.`,
@@ -46,7 +51,10 @@ const PANEL = [
   },
 ] as const;
 
-export default function LabTestingPage() {
+export default async function LabTestingPage() {
+  // Server-read, like every other catalog surface. Only the dialog is client-side.
+  const catalog = await getContainer().products.listActive();
+  const products = catalog.success ? catalog.data : [];
   return (
     <>
       <Section lattice>
@@ -107,16 +115,21 @@ export default function LabTestingPage() {
               </p>
             </div>
 
-            <h2 className="text-h2 text-ink-950 mt-12 font-bold">Requesting a COA</h2>
+            <h2 className="text-h2 text-ink-950 mt-12 font-bold">Published certificates</h2>
             <p className="text-ink-700 mt-4">
-              Ask when you submit an inquiry, or contact us with your order number and lot reference
-              and we will send the matching certificate.
+              The certificates below are published for the compounds we currently hold documentation
+              for. Each one applies only to the lot it identifies.
             </p>
 
-            {/* Honest about the current state rather than implying a library exists. */}
-            <p className="text-ink-600 mt-4 text-sm">
-              A searchable COA library is not yet published on this site. In the meantime a
-              representative will provide documentation directly.
+            <div className="mt-6">
+              <CoaLibrary products={products} />
+            </div>
+
+            <h3 className="text-h3 text-ink-950 mt-10 font-semibold">Requesting another</h3>
+            <p className="text-ink-700 mt-3">
+              For a compound not listed, or for the certificate matching the specific lot you
+              receive, ask when you submit an inquiry or contact us with your order number and we
+              will send it directly.
             </p>
           </div>
 

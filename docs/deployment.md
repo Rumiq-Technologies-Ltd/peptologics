@@ -249,8 +249,14 @@ curl -X POST https://peptologics.com/api/revalidate \
   -d '{"slug":"retatrutide-10mg"}'
 ```
 
-`/` and `/products` are purged too, with or without a slug — a price appears in three places and they
-must not disagree. Full contract in [api.md](./api.md).
+`/`, `/products` and `/lab-testing` are purged too, with or without a slug — a price appears in three
+places and a certificate in a fourth, and they must not disagree. Full contract in [api.md](./api.md).
+
+> **A data-only change plus a redeploy is not always enough.** Vercel restores `.next/cache` between
+> builds, and a prerendered page whose ISR entry is still valid can be reused even though the database
+> behind it changed. Seen locally: after publishing eight certificates, a rebuild kept serving the old
+> empty list until `.next` was deleted. If a change is invisible after a deploy, call
+> `POST /api/revalidate` — it is instant and cheaper than a cache-cleared rebuild.
 
 ## Notification channels
 

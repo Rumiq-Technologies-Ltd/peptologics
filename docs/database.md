@@ -58,8 +58,14 @@ Indexes: `(status, sort_order, name) WHERE deleted_at IS NULL` · `(sort_order) 
 status='active'` · `(cost_per_mg) WHERE status='active'` · unique on `slug`.
 
 The generated column reproduces the client's price list exactly — verified against all 12 rows:
-`6.00, 5.00, 6.50, 0.60, 5.00, 5.00, 5.00, 6.00, 0.11, 0.94, 3.33, 4.50`. K-L-O-W's true value is
-`0.9375`, stored at full precision and rounded only for display.
+`6.00, 5.00, 8.00, 0.60, 6.00, 5.00, 0.03, 6.00, 0.11, 1.13, 3.33, 4.50`. Values are stored at full
+precision and rounded only for display: K-L-O-W's true value is `1.125` and Glutathione's is
+`0.0333`.
+
+**Corrected 8 August 2026** on the client's instruction: Tesamorelin 10 mg → 5 mg at $40,
+Glutathione 10 mg → 1500 mg at $50, MOTS-c $50 → $60, K-L-O-W $75 → $90 with `is_blend` cleared so
+its cost-per-mg is shown. The two size changes renamed their slugs, so `next.config.ts` carries a
+permanent redirect for each old URL.
 
 ## `orders`
 

@@ -15,8 +15,20 @@ import { cn } from "@/utils/cn";
  * footer and inside the disclaimer gate. The original in `public/assets` is
  * untouched.
  */
+/** The client's mark alone, without the ring or the wordmark. 880×738 as supplied. */
+const MARK_ASPECT_RATIO = 880 / 738;
+
 export interface BrandLogoProps {
-  /** Rendered size in px. The badge is square. */
+  /**
+   * `badge` is the circular lockup, used on dark surfaces and in the gate.
+   * `mark` is the bare molecular glyph the client supplied for the header.
+   *
+   * `mark` is a JPEG with a white background rather than a transparent SVG, so it
+   * belongs only on white surfaces. It also carries no wordmark, which is why it
+   * forces `withWordmark` off — the image is the whole logo.
+   */
+  variant?: "badge" | "mark";
+  /** Rendered size in px. Height for `mark`, width and height for the square badge. */
   size?: number;
   /** Show the wordmark beside the badge. */
   withWordmark?: boolean;
@@ -33,6 +45,7 @@ export interface BrandLogoProps {
 }
 
 export function BrandLogo({
+  variant = "badge",
   size = 40,
   withWordmark = true,
   withTagline = false,
@@ -40,6 +53,20 @@ export function BrandLogo({
   className,
   preload = false,
 }: BrandLogoProps) {
+  if (variant === "mark") {
+    return (
+      <Image
+        src="/brand/peptologics-mark.jpeg"
+        // The only brand identifier in its container, so it carries the name.
+        alt={SITE_NAME}
+        width={Math.round(size * MARK_ASPECT_RATIO)}
+        height={size}
+        preload={preload}
+        className={cn("shrink-0", className)}
+      />
+    );
+  }
+
   const showWordmark = withWordmark || withTagline;
 
   return (

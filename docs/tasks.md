@@ -309,3 +309,19 @@ The launch is done; these are what remain.
 - [!] Client: confirm the 12 prices against your own records
 - [ ] Second Supabase project (or Supabase branching) for preview/development, before real lead
       volume arrives — a preview deploy currently writes to the production database
+
+### Shipped after launch
+
+- [x] **8 Certificates of Analysis published** on `/lab-testing` — a row per compound with a dialog
+      viewer, read from `products.coa_url` so publishing another is a file plus a database update,
+      never a code change. GHK-Cu, KPV, Glutathione and Ipamorelin have no certificate yet and are
+      simply absent from the list rather than offering a dead button
+- [x] Header and footer now use the client's molecular mark, with the wordmark kept beside it. The
+      supplied JPEG's white background was made transparent and the margin trimmed, so it composites
+      on the dark footer instead of arriving as a white tile
+- [x] Three defects found while building the above, each fixed and covered by a test: the dialog
+      emptied during its own fade-out; closing dropped keyboard focus to `<body>`; and the sticky
+      header painted over the close button, swallowing the click
+- [x] `POST /api/revalidate` now purges `/lab-testing` too — a certificate added to the database was
+      invisible behind a stale build cache until it did
+- [!] Client: certificates for the remaining four compounds, whenever they exist

@@ -4,31 +4,39 @@ import { SITE_NAME, SITE_TAGLINE } from "@/constants/site";
 import { cn } from "@/utils/cn";
 
 /**
- * The logo lockup.
+ * The logo lockup: a graphic, optionally with the wordmark beside it.
  *
- * Served as an SVG file through `next/image` rather than inlined, because the
- * supplied vector is 42 KB of path data — fine as an HTTP-cached asset, wasteful
- * in every page's JavaScript. For a small tokenised glyph use `LatticeMark`.
+ * Both graphics are served as files through `next/image` rather than inlined —
+ * the supplied vector alone is 42 KB of path data, fine as an HTTP-cached asset
+ * and wasteful in every page's JavaScript. For a small tokenised glyph use
+ * `LatticeMark`.
  *
- * `public/brand/peptologics-badge.svg` is the supplied vector with its opaque
- * white background rectangle removed, so it composites correctly on the dark
- * footer and inside the disclaimer gate. The original in `public/assets` is
- * untouched.
+ * `variant` chooses the graphic and nothing else. The wordmark is controlled
+ * separately, so either graphic can appear with or without it.
  */
-/** The client's mark alone, without the ring or the wordmark. 880×738 as supplied. */
-const MARK_ASPECT_RATIO = 880 / 738;
+
+/**
+ * The client's molecular mark, supplied as a JPEG on white.
+ *
+ * `public/brand/peptologics-mark.png` is that file with the near-white background
+ * made transparent and the surrounding margin trimmed, so it composites on the
+ * dark footer instead of arriving as a white tile. Downscaled to 240px tall — four
+ * times the largest place it is used. The original JPEG is untouched in
+ * `public/assets`.
+ */
+const MARK_SRC = "/brand/peptologics-mark.png";
+const MARK_ASPECT_RATIO = 293 / 240;
+
+/** The circular badge lockup: the supplied vector with its white backing removed. */
+const BADGE_SRC = "/brand/peptologics-badge.svg";
 
 export interface BrandLogoProps {
   /**
-   * `badge` is the circular lockup, used on dark surfaces and in the gate.
-   * `mark` is the bare molecular glyph the client supplied for the header.
-   *
-   * `mark` is a JPEG with a white background rather than a transparent SVG, so it
-   * belongs only on white surfaces. It also carries no wordmark, which is why it
-   * forces `withWordmark` off — the image is the whole logo.
+   * Which graphic to show. `mark` is the client's molecular glyph, `badge` the
+   * circular lockup. Both carry transparency, so both work on any surface.
    */
   variant?: "badge" | "mark";
-  /** Rendered size in px. Height for `mark`, width and height for the square badge. */
+  /** Rendered height in px. The badge is square; the mark is slightly wider than tall. */
   size?: number;
   /** Show the wordmark beside the badge. */
   withWordmark?: boolean;
@@ -53,30 +61,17 @@ export function BrandLogo({
   className,
   preload = false,
 }: BrandLogoProps) {
-  if (variant === "mark") {
-    return (
-      <Image
-        src="/brand/peptologics-mark.jpeg"
-        // The only brand identifier in its container, so it carries the name.
-        alt={SITE_NAME}
-        width={Math.round(size * MARK_ASPECT_RATIO)}
-        height={size}
-        preload={preload}
-        className={cn("shrink-0", className)}
-      />
-    );
-  }
-
   const showWordmark = withWordmark || withTagline;
+  const isMark = variant === "mark";
 
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <Image
-        src="/brand/peptologics-badge.svg"
+        src={isMark ? MARK_SRC : BADGE_SRC}
         alt={showWordmark ? "" : SITE_NAME}
         // Decorative when the wordmark beside it already names the brand.
         aria-hidden={showWordmark ? true : undefined}
-        width={size}
+        width={isMark ? Math.round(size * MARK_ASPECT_RATIO) : size}
         height={size}
         preload={preload}
         className="shrink-0"

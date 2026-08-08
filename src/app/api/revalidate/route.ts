@@ -77,11 +77,14 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   /*
-   * Always purge the list pages as well. A price change shows on the detail page and
-   * in the catalog row and the home page's featured strip, and refreshing one without
-   * the others is how a site ends up quoting two different prices for one product.
+   * Always purge every page built from the catalog. A price shows on the detail page,
+   * in the catalog row and in the home page's featured strip, and refreshing one
+   * without the others is how a site ends up quoting two different prices for one
+   * product. `/lab-testing` is here because it lists published certificates from
+   * `products.coa_url`, so a certificate added to the database is invisible until this
+   * runs — found the hard way when a stale build cache kept serving the old list.
    */
-  for (const path of [ROUTES.home, ROUTES.products]) {
+  for (const path of [ROUTES.home, ROUTES.products, ROUTES.labTesting]) {
     revalidatePath(path);
     revalidated.push(path);
   }

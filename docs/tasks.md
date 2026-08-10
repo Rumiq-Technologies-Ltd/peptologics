@@ -325,3 +325,20 @@ The launch is done; these are what remain.
 - [x] `POST /api/revalidate` now purges `/lab-testing` too — a certificate added to the database was
       invisible behind a stale build cache until it did
 - [!] Client: certificates for the remaining four compounds, whenever they exist
+- [x] **3D hero.** The specimen card in the hero's right column is now a WebGL amino acid built with
+      `three` / `@react-three/fiber` / `@react-three/drei` — cheap to swap because the Featured
+      products section already renders the same rows lower down. The hero itself moved out of
+      `page.tsx` into `src/features/home/components/`, and `AminoAcidScene.tsx` is isolated from the
+      layout around it
+- [x] 228 KB gz of three.js, lazy and measured: absent from the prerendered HTML and from every other
+      route's chunk list, so it never touches the critical path. LCP is still the server-rendered
+      `h1`, CLS from first paint under 0.05
+- [x] The loop runs only when the section is on screen, the tab is visible **and** the disclaimer gate
+      has been accepted; `prefers-reduced-motion` switches it to a still lit pose rather than a blank
+      canvas. Five Playwright specs cover all of it (ADR-026)
+- [x] Two things it broke, both fixed properly: `Container`'s `as: ElementType` stopped compiling once
+      R3F augmented `JSX.IntrinsicElements` globally (narrowed to a union of sectioning elements), and
+      the E2E suite went flaky under parallel WebGL contexts (workers capped at 2, with the reasoning
+      written down rather than papered over with retries)
+- [ ] Re-run Lighthouse on the live home page once this deploys — the 95 mobile target is the number
+      that decides whether the model stays

@@ -588,6 +588,59 @@ deploy, keep the last good one serving.
 
 ---
 
+## ADR-026 — The hero's 3D model, and what it costs
+
+**Status** Accepted · post-launch, at the client's request
+
+The hero's right column was a "specimen card": four live catalog rows and a link. It is now a
+WebGL amino acid built with `three`, `@react-three/fiber` and `@react-three/drei`.
+
+**Why replacing the card was cheap.** The Featured products section renders the same rows, with a
+full header, about 600px further down the same page. The card was largely duplicate content, so the
+only real loss is a price above the fold.
+
+**What it costs, measured rather than estimated.** The three.js bundle is **228 KB gzipped** — larger
+than the rest of the application's client JavaScript put together. Three things keep that from
+landing on anyone who does not see it:
+
+- `next/dynamic` with `ssr: false`, so it is fetched after hydration and never blocks first paint.
+- It is **absent from the prerendered HTML** and absent from every other route's chunk list —
+  verified by loading `/inquiry` and listing the chunks it actually requests.
+- The LCP element is still the `h1`: server-rendered text, outside any client boundary, in a hero
+  whose right column reserves its space with a fixed aspect box so nothing shifts when the canvas
+  arrives. Measured CLS from first paint: under 0.05.
+
+**Three gates decide whether the loop runs at all**, and all three must be open: the section is on
+screen, the tab is visible, and the disclaimer gate has been accepted. The third exists because on a
+first visit the gate covers the page and marks `#site-root` inert (ADR-009) — animating behind a
+modal the visitor cannot yet dismiss is the least useful work the site could do.
+
+**`prefers-reduced-motion` is honoured by pausing the loop, not by slowing it.** The canvas switches
+from `frameloop="always"` to `"demand"`, which still draws the initial frame — a still, lit pose
+rather than a blank rectangle. An end-to-end test asserts the canvas is byte-identical a second apart.
+
+**No environment maps, no HDR, no postprocessing.** `connect-src 'self'` means any drei helper
+fetching an environment map from a CDN would be blocked at runtime, so the lighting is three real
+lights. Bloom was declined: emissive materials on the brand-blue atoms read the same at hero scale
+and cost neither a dependency nor a second render pass.
+
+**Two things this broke, both fixed rather than worked around**
+
+- `Container`'s `as` prop was typed `ElementType`. R3F augments `JSX.IntrinsicElements` globally with
+  every three.js element, several of which type `children` as `never`, so `ElementType` resolved its
+  children to `never` and the file stopped compiling. The prop is now a fixed union of sectioning
+  elements, which is more honest about what a layout container accepts.
+- The end-to-end suite became flaky. Each hero spec holds a live WebGL context at 60fps, and at the
+  default worker count they starved unrelated specs — the inquiry submit intermittently never
+  navigated. Playwright now runs two workers. Every failure was contention between tests, confirmed by
+  each spec passing alone; a blanket `retries` would have hidden the same problem rather than bounding
+  it.
+
+**Revisit if** the Lighthouse mobile score drops below the 95 target on the home page. The model is
+one component and one dynamic import behind a props boundary, so removing it is a two-line change.
+
+---
+
 ## Open questions — awaiting the client
 
 Nothing here is invented in code without being listed as `PLACEHOLDER`.

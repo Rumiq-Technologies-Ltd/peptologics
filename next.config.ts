@@ -120,6 +120,24 @@ function supabaseImagePattern() {
 }
 
 const nextConfig: NextConfig = {
+  /**
+   * Keeps `sharp` out of the server bundle.
+   *
+   * `sharp` is a native addon whose libvips build loads its format handlers as separate
+   * platform libraries. Bundled by Turbopack, the raster pipeline still works — PNG in,
+   * PNG out — but the SVG loader is no longer found, so any `sharp(svgBuffer)` call fails
+   * with "Input buffer contains unsupported image format".
+   *
+   * That is exactly the call `next/og` makes: `ImageResponse` renders to SVG with satori,
+   * then rasterizes with `sharp` when it can import it. So every generated image route —
+   * `icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx` — returned a 500 and the dev
+   * server logged "failed to pipe response".
+   *
+   * Marking the package external leaves it to Node's own resolver, which loads the addon
+   * from `node_modules` with its libraries intact.
+   */
+  serverExternalPackages: ["sharp"],
+
   images: {
     remotePatterns: supabaseImagePattern(),
     // AVIF first, WebP as the fallback: both are widely supported and materially

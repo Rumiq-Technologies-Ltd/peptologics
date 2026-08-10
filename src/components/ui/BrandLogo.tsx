@@ -88,7 +88,6 @@ export function BrandLogo({
             {/* "Pepto" blue, "Logics" charcoal — matching the wordmark itself. */}
             <span className={tone === "dark" ? "text-brand-300" : "text-brand-800"}>Pepto</span>
             Logics
-         
           </span>
 
           {withTagline ? (

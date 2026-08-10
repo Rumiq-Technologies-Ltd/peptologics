@@ -44,8 +44,7 @@ export default function ResearchUseOnlyPage() {
       </p>
       <p>
         No product listed on this website has been approved by the United States Food and Drug
-        Administration, or by any comparable authority, for therapeutic
-        use.
+        Administration, or by any comparable authority, for therapeutic use.
       </p>
 
       <h2>We are not a pharmacy</h2>

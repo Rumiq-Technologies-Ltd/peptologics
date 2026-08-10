@@ -94,7 +94,8 @@ export default async function ProductOpengraphImage({
 
         {product ? (
           <div style={{ display: "flex", marginTop: 24, fontSize: 34, color: "#58585d" }}>
-            {formatStrength(product.strengthMg)} per vial · lyophilized powder
+            {formatStrength(product.strengthMg, product.strengthUnit)} per vial ·{" "}
+            {product.strengthUnit === "ml" ? "sterile solution" : "lyophilized powder"}
           </div>
         ) : null}
       </div>

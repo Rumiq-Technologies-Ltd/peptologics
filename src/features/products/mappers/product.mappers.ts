@@ -1,4 +1,9 @@
-import type { Product, ProductCategory, ProductStatus } from "@/features/products/types/product";
+import type {
+  Product,
+  ProductCategory,
+  ProductStatus,
+  StrengthUnit,
+} from "@/features/products/types/product";
 
 /**
  * The single row-to-domain boundary for products.
@@ -28,6 +33,7 @@ export interface ProductRow {
   description: string | null;
   category: string;
   strength_mg: number | string;
+  strength_unit: string;
   price_cents: number;
   cost_per_mg: number | string | null;
   is_blend: boolean;
@@ -40,6 +46,7 @@ export interface ProductRow {
 
 const PRODUCT_STATUSES: readonly ProductStatus[] = ["active", "out_of_stock", "archived"];
 const PRODUCT_CATEGORIES: readonly ProductCategory[] = ["peptide", "blend", "cosmetic", "supply"];
+const STRENGTH_UNITS: readonly StrengthUnit[] = ["mg", "ml"];
 
 /**
  * Coerces a PostgREST numeric to a JavaScript number.
@@ -77,6 +84,7 @@ export function toProduct(row: ProductRow): Product {
     description: row.description,
     category: toEnum(row.category, PRODUCT_CATEGORIES, "peptide"),
     strengthMg,
+    strengthUnit: toEnum(row.strength_unit, STRENGTH_UNITS, "mg"),
     priceCents: row.price_cents,
     // The database computes this, but recompute the fallback from cents rather
     // than defaulting to 0 — a missing generated value should not render "$0/mg".

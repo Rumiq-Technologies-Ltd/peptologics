@@ -6,6 +6,8 @@ import { ShieldCheckIcon } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { ProductRowControls } from "@/features/cart/components/ProductRowControls";
+import { ProductImage } from "@/features/products/components/ProductImage";
+import { hasComparableCostPerMg } from "@/features/products/utils/product.display";
 import { COMPLIANCE_NOTICE_LONG, SITE_NAME } from "@/constants/site";
 import { ROUTES } from "@/constants/routes";
 import { buildBreadcrumbSchema, buildProductSchema } from "@/lib/seo/structuredData";
@@ -52,14 +54,16 @@ export async function generateMetadata(props: PageProps<"/products/[slug]">): Pr
   }
 
   const product = result.data;
-  const strength = formatStrength(product.strengthMg);
+  const strength = formatStrength(product.strengthMg, product.strengthUnit);
 
   // Built from the specification rather than marketing copy, because product
   // descriptions do not exist yet and must not be invented. Every claim here is a
   // fact from the catalog row.
+  const presentation = product.strengthUnit === "ml" ? "a sterile solution" : "lyophilized powder";
+
   const description =
     product.description ??
-    `${product.name}, ${strength} per vial, supplied as lyophilized powder for laboratory research use only. List price ${formatCurrency(product.priceCents)}. Not for human or animal consumption.`;
+    `${product.name}, ${strength} per vial, supplied as ${presentation} for laboratory research use only. List price ${formatCurrency(product.priceCents)}. Not for human or animal consumption.`;
 
   return {
     title: `${product.name} ${strength}`,
@@ -90,19 +94,36 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
 
   const product = result.data;
 
+  const showsCostPerMg = hasComparableCostPerMg(product);
+  const isLiquid = product.strengthUnit === "ml";
+  const presentationLabel = isLiquid ? "sterile solution" : "lyophilized powder";
+
   const specifications = [
-    { label: "Vial size", value: formatStrength(product.strengthMg), mono: true },
+    {
+      label: isLiquid ? "Vial volume" : "Vial size",
+      value: formatStrength(product.strengthMg, product.strengthUnit),
+      mono: true,
+    },
     { label: "List price", value: formatCurrency(product.priceCents), mono: true, strong: true },
     {
       label: "Cost per milligram",
-      // For a blend this figure divides price by total milligrams across several
-      // peptides, so it is not comparable and would mislead.
-      value: product.isBlend
-        ? "Not applicable — multi-peptide blend"
-        : formatCostPerMg(product.costPerMg),
-      mono: !product.isBlend,
+      /*
+       * Suppressed in two cases: a blend, whose figure divides price across several
+       * peptides and is not comparable, and anything not sold by milligram — cost
+       * per milligram of a diluent is a meaningless quotient.
+       */
+      value: showsCostPerMg
+        ? formatCostPerMg(product.costPerMg)
+        : product.isBlend
+          ? "Not applicable — multi-peptide blend"
+          : "Not applicable — supplied by volume",
+      mono: showsCostPerMg,
     },
-    { label: "Form", value: "Lyophilized powder", mono: false },
+    {
+      label: "Form",
+      value: isLiquid ? "Sterile solution" : "Lyophilized powder",
+      mono: false,
+    },
     { label: "Intended use", value: "In-vitro laboratory research only", mono: false },
   ] as const;
 
@@ -145,8 +166,26 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
         <div>
           <h1 className="text-display text-ink-950 font-bold">{product.name}</h1>
           <p className="text-lead text-ink-600 mt-3 font-mono">
-            {formatStrength(product.strengthMg)} per vial · lyophilized powder
+            {formatStrength(product.strengthMg, product.strengthUnit)} per vial ·{" "}
+            {presentationLabel}
           </p>
+
+          {/*
+            The vial, at the one size where it is genuinely useful: large enough to
+            read the label, which carries the compound name and the fill quantity, so
+            a buyer can check the specification below against the product itself.
+
+            Capped at 26rem and left-aligned rather than filling the column — a
+            square photograph stretched to a 40rem column would push the
+            specifications table below the fold for no gain. `preload` because on this
+            page it is the largest contentful paint.
+          */}
+          <ProductImage
+            product={product}
+            sizes="(min-width: 1024px) 26rem, 90vw"
+            preload
+            className="mt-8 max-w-[26rem]"
+          />
 
           <h2 className="text-h3 text-ink-950 mt-12 font-semibold">Specifications</h2>
           <dl className="divide-ink-200 border-ink-200 mt-4 divide-y border-y text-sm">
@@ -196,9 +235,11 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
               {formatCurrency(product.priceCents)}
             </p>
             <p className="text-ink-600 mt-1 font-mono text-sm">
-              {product.isBlend
-                ? "Blend — cost per mg not comparable"
-                : formatCostPerMg(product.costPerMg)}
+              {showsCostPerMg
+                ? formatCostPerMg(product.costPerMg)
+                : product.isBlend
+                  ? "Blend — cost per mg not comparable"
+                  : `Supplied by volume · ${formatStrength(product.strengthMg, product.strengthUnit)} vial`}
             </p>
 
             <ProductRowControls

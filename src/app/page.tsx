@@ -12,8 +12,9 @@ import { Section } from "@/components/layout/Section";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { Button } from "@/components/ui/button";
 import { HexFrame } from "@/components/ui/HexFrame";
+import { ProductRowControls } from "@/features/cart/components/ProductRowControls";
 import { HeroSection } from "@/features/home/components/HeroSection";
-import { ProductRow, ProductRowHeader } from "@/features/products/components/ProductRow";
+import { ProductCard } from "@/features/products/components/ProductCard";
 import { ROUTES } from "@/constants/routes";
 import { SITE_NAME, SITE_TAGLINE } from "@/constants/site";
 import { buildFaqSchema } from "@/lib/seo/structuredData";
@@ -174,14 +175,44 @@ export default async function HomePage() {
             sizes.
           </p>
 
-          <div className="mt-8">
-            <ProductRowHeader />
-            <ul className="divide-ink-100 divide-y">
-              {products.map((product) => (
-                <ProductRow key={product.id} product={product} />
-              ))}
-            </ul>
-          </div>
+          {/*
+            Cards here, rows on the catalog. This is the discovery surface — a visitor
+            who has decided nothing yet is served by seeing what the product is, where
+            a table of figures gives them nothing to compare against.
+
+            Each card carries its own Add control, and that is the point of the change
+            rather than a detail of it: reaching an inquiry from this page used to mean
+            card, product page, add, review. It now means add, review. One navigation
+            removed from the shortest path on the site.
+          */}
+          {/*
+            Three across, not four. There are five featured products, and a four-column
+            grid leaves the fifth alone on its own row looking like a mistake; three
+            wraps to 3 + 2, which reads as a grid rather than an orphan. Revisit if the
+            client features a multiple of four.
+          */}
+          <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                /*
+                  No `preload` on any of these, deliberately. They sit well below the
+                  fold — the LCP element on this page is the hero heading, and the hero
+                  also lazy-loads a WebGL canvas. Preloading a card image here does not
+                  make it arrive sooner than the visitor scrolls to it; it just competes
+                  with the two things above it that do matter.
+                */
+                controls={
+                  <ProductRowControls
+                    productId={product.id}
+                    productName={product.name}
+                    layout="card"
+                  />
+                }
+              />
+            ))}
+          </ul>
 
           <Button asChild variant="outline" className="mt-8">
             <Link href={ROUTES.products}>View all products</Link>

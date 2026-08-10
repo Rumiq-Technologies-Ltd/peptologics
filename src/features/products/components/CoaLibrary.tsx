@@ -85,7 +85,7 @@ export function CoaLibrary({ products }: CoaLibraryProps) {
             <div className="min-w-0">
               <p className="text-ink-950 font-semibold">{product.name}</p>
               <p className="text-ink-600 mt-0.5 font-mono text-xs">
-                {formatStrength(product.strengthMg)} per vial
+                {formatStrength(product.strengthMg, product.strengthUnit)} per vial
               </p>
             </div>
 
@@ -119,8 +119,8 @@ export function CoaLibrary({ products }: CoaLibraryProps) {
               <DialogHeader className="border-ink-200 sticky top-0 z-10 border-b bg-white p-5 text-left">
                 <DialogTitle>{viewed.name} — Certificate of Analysis</DialogTitle>
                 <DialogDescription>
-                  {formatStrength(viewed.strengthMg)} per vial. A certificate applies only to the
-                  lot it identifies.
+                  {formatStrength(viewed.strengthMg, viewed.strengthUnit)} per vial. A certificate
+                  applies only to the lot it identifies.
                 </DialogDescription>
               </DialogHeader>
 

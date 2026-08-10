@@ -22,7 +22,7 @@ import { getReadClient } from "@/lib/supabase/client.server";
  * audit timestamps over the wire on every catalog render for nothing.
  */
 const PRODUCT_COLUMNS =
-  "id, slug, name, description, category, strength_mg, price_cents, cost_per_mg, is_blend, featured, sort_order, image_url, coa_url, status";
+  "id, slug, name, description, category, strength_mg, strength_unit, price_cents, cost_per_mg, is_blend, featured, sort_order, image_url, coa_url, status";
 
 export interface ProductRepository {
   findActive(options?: ProductListOptions): Promise<Product[]>;

@@ -16,35 +16,38 @@
 -- coa_url points at a published certificate in `public/coa/`, named for the slug. Null
 -- for a compound whose certificate the client has not supplied yet; the lab-testing page
 -- lists only the rows that have one.
+-- image_url points at a vial photograph in `public/products/`, named for the slug.
+-- Every row has one; a null would render the placeholder rather than break.
 insert into public.products (
-  slug, name, category, strength_mg, price_cents, is_blend, featured, sort_order, coa_url
+  slug, name, category, strength_mg, price_cents, is_blend, featured, sort_order, coa_url,
+  image_url
 )
 values
   -- $6.00/mg
-  ('retatrutide-10mg',  'Retatrutide',  'peptide',  10,    6000,  false, true,  10,  '/coa/retatrutide-10mg.jpg'),
+  ('retatrutide-10mg',  'Retatrutide',  'peptide',  10,    6000,  false, true,  10,  '/coa/retatrutide-10mg.jpg', '/products/retatrutide-10mg.webp'),
   -- $5.00/mg
-  ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  20,  '/coa/bpc-157-10mg.jpg'),
+  ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  20,  '/coa/bpc-157-10mg.jpg', '/products/bpc-157-10mg.webp'),
   -- $8.00/mg
-  ('tesamorelin-5mg',   'Tesamorelin',  'peptide',  5,     4000,  false, false, 30,  '/coa/tesamorelin-5mg.jpg'),
+  ('tesamorelin-5mg',   'Tesamorelin',  'peptide',  5,     4000,  false, false, 30,  '/coa/tesamorelin-5mg.jpg', '/products/tesamorelin-5mg.webp'),
   -- $0.60/mg — copper peptide, arguably 'cosmetic'; category to confirm
-  ('ghk-cu-50mg',       'GHK-Cu',       'peptide',  50,    3000,  false, true,  40,  null),
+  ('ghk-cu-50mg',       'GHK-Cu',       'peptide',  50,    3000,  false, true,  40,  null, '/products/ghk-cu-50mg.webp'),
   -- $6.00/mg
-  ('mots-c-10mg',       'MOTS-c',       'peptide',  10,    6000,  false, false, 50,  '/coa/mots-c-10mg.jpg'),
+  ('mots-c-10mg',       'MOTS-c',       'peptide',  10,    6000,  false, false, 50,  '/coa/mots-c-10mg.jpg', '/products/mots-c-10mg.webp'),
   -- $5.00/mg
-  ('kpv-10mg',          'KPV',          'peptide',  10,    5000,  false, false, 60,  null),
+  ('kpv-10mg',          'KPV',          'peptide',  10,    5000,  false, false, 60,  null, '/products/kpv-10mg.webp'),
   -- $0.0333/mg, displays as $0.03
-  ('glutathione-1500mg','Glutathione',  'peptide',  1500,  5000,  false, false, 70,  null),
+  ('glutathione-1500mg','Glutathione',  'peptide',  1500,  5000,  false, false, 70,  null, '/products/glutathione-1500mg.webp'),
   -- $6.00/mg
-  ('ss-31-10mg',        'SS-31',        'peptide',  10,    6000,  false, false, 80,  '/coa/ss-31-10mg.jpg'),
+  ('ss-31-10mg',        'SS-31',        'peptide',  10,    6000,  false, false, 80,  '/coa/ss-31-10mg.jpg', '/products/ss-31-10mg.webp'),
   -- $0.11/mg
-  ('nad-plus-500mg',    'NAD+',         'peptide',  500,   5500,  false, true,  90,  '/coa/nad-plus-500mg.jpg'),
+  ('nad-plus-500mg',    'NAD+',         'peptide',  500,   5500,  false, true,  90,  '/coa/nad-plus-500mg.jpg', '/products/nad-plus-500mg.webp'),
   -- $1.125/mg, displays as $1.13. Category stays 'blend', but is_blend is false so
   -- the cost-per-mg figure is shown: the client asked for it on 8 Aug 2026.
-  ('k-l-o-w-80mg',      'K-L-O-W',      'blend',    80,    9000,  false, false, 100, '/coa/k-l-o-w-80mg.jpg'),
+  ('k-l-o-w-80mg',      'K-L-O-W',      'blend',    80,    9000,  false, false, 100, '/coa/k-l-o-w-80mg.jpg', '/products/k-l-o-w-80mg.webp'),
   -- $3.3333/mg, displays as $3.33
-  ('tirzepatide-30mg',  'Tirzepatide',  'peptide',  30,    10000, false, true,  110, '/coa/tirzepatide-30mg.jpg'),
+  ('tirzepatide-30mg',  'Tirzepatide',  'peptide',  30,    10000, false, true,  110, '/coa/tirzepatide-30mg.jpg', '/products/tirzepatide-30mg.webp'),
   -- $4.50/mg
-  ('ipamorelin-10mg',   'Ipamorelin',   'peptide',  10,    4500,  false, false, 120, null)
+  ('ipamorelin-10mg',   'Ipamorelin',   'peptide',  10,    4500,  false, false, 120, null, '/products/ipamorelin-10mg.webp')
 on conflict (slug) do update set
   name        = excluded.name,
   category    = excluded.category,
@@ -52,8 +55,35 @@ on conflict (slug) do update set
   price_cents = excluded.price_cents,
   is_blend    = excluded.is_blend,
   coa_url     = excluded.coa_url,
+  image_url   = excluded.image_url,
   featured    = excluded.featured,
   sort_order  = excluded.sort_order,
   -- Revive a previously archived row rather than leaving it hidden.
   status      = 'active',
   deleted_at  = null;
+
+-- Supplies, kept in their own statement because they carry a unit the peptides do not.
+--
+-- Bacteriostatic water is sold by volume: the vial is 10 mL, not 10 mg. `strength_unit`
+-- records that, and the UI suppresses cost-per-mg for it — dollars per milligram of
+-- water is not a figure anyone should be shown.
+insert into public.products (
+  slug, name, category, strength_mg, strength_unit, price_cents, is_blend, featured,
+  sort_order, coa_url, image_url
+)
+values
+  ('bacteriostatic-water-10ml', 'Bacteriostatic Water', 'supply', 10, 'ml', 1200,
+   false, false, 130, null, '/products/bacteriostatic-water-10ml.webp')
+on conflict (slug) do update set
+  name          = excluded.name,
+  category      = excluded.category,
+  strength_mg   = excluded.strength_mg,
+  strength_unit = excluded.strength_unit,
+  price_cents   = excluded.price_cents,
+  is_blend      = excluded.is_blend,
+  coa_url       = excluded.coa_url,
+  image_url     = excluded.image_url,
+  featured      = excluded.featured,
+  sort_order    = excluded.sort_order,
+  status        = 'active',
+  deleted_at    = null;

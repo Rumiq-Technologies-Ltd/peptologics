@@ -20,6 +20,23 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
+
+  /*
+   * Capped deliberately, and this is a capacity decision rather than a workaround.
+   *
+   * Each hero spec holds a live WebGL context rendering at 60fps. At Playwright's
+   * default worker count those saturate the machine and starve unrelated specs — the
+   * inquiry submit intermittently never navigated, on a page where it takes well under
+   * a second when the machine is idle. Every one of those failures was contention
+   * between tests rather than a defect, confirmed by each spec passing consistently on
+   * its own.
+   *
+   * Two workers keeps the whole suite near a minute and makes it repeatable, which is
+   * worth more than the parallelism. A blanket `retries` would have hidden the same
+   * problem instead of bounding it.
+   */
+  workers: 2,
+
   reporter: process.env.CI ? "line" : [["list"], ["html", { open: "never" }]],
 
   use: {

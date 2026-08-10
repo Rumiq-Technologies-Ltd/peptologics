@@ -46,9 +46,21 @@ test("a visitor can build an inquiry list and submit it", async ({ page }) => {
   await expect(page).toHaveURL(/\/inquiry$/);
 
   await fillInquiryForm(page);
-  await page.getByRole("button", { name: /^Send inquiry/ }).click();
 
-  await expect(page).toHaveURL(/\/inquiry\/success\?ref=PL-009042/);
+  /*
+   * Wait for the button to be enabled before clicking it.
+   *
+   * It is disabled until the persisted list has rehydrated from localStorage, and
+   * Playwright's actionability check can be satisfied by the enabled state a moment
+   * before React re-disables it mid-hydration — the click then lands on nothing and the
+   * page simply stays put. This was intermittent until the suite got busy enough to
+   * widen the window, which is the usual way a race announces itself.
+   */
+  const send = page.getByRole("button", { name: /^Send inquiry/ });
+  await expect(send).toBeEnabled();
+  await send.click();
+
+  await expect(page).toHaveURL(/\/inquiry\/success\?ref=PL-009042/, { timeout: 15_000 });
   await expect(page.getByText("PL-009042")).toBeVisible();
 
   // The list is cleared on success, so the back button cannot land on a cart the
@@ -72,8 +84,11 @@ test("the submitted payload carries quantities and no prices", async ({ page }) 
 
   await page.goto("/inquiry");
   await fillInquiryForm(page);
-  await page.getByRole("button", { name: /^Send inquiry/ }).click();
-  await expect(page).toHaveURL(/\/inquiry\/success/);
+
+  const send = page.getByRole("button", { name: /^Send inquiry/ });
+  await expect(send).toBeEnabled();
+  await send.click();
+  await expect(page).toHaveURL(/\/inquiry\/success/, { timeout: 15_000 });
 
   const [submission] = submissions;
   expect(submission).toBeDefined();
@@ -108,11 +123,12 @@ test("double-clicking send produces one request, not two", async ({ page }) => {
   await fillInquiryForm(page);
 
   const send = page.getByRole("button", { name: /^Send inquiry/ });
+  await expect(send).toBeEnabled();
   await send.click();
   // The button disables itself while submitting, so the second click lands on nothing.
   await send.click({ force: true, timeout: 2000 }).catch(() => undefined);
 
-  await expect(page).toHaveURL(/\/inquiry\/success/);
+  await expect(page).toHaveURL(/\/inquiry\/success/, { timeout: 15_000 });
   expect(submissions).toHaveLength(1);
 });
 

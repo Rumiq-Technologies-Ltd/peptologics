@@ -12,6 +12,7 @@ import { Section } from "@/components/layout/Section";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { Button } from "@/components/ui/button";
 import { HexFrame } from "@/components/ui/HexFrame";
+import { HeroSection } from "@/features/home/components/HeroSection";
 import { ProductRow, ProductRowHeader } from "@/features/products/components/ProductRow";
 import { ROUTES } from "@/constants/routes";
 import { SITE_NAME, SITE_TAGLINE } from "@/constants/site";
@@ -141,65 +142,7 @@ export default async function HomePage() {
       */}
       <JsonLd schema={buildFaqSchema(FAQS)} />
 
-      {/* ---------------------------------------------------------------- Hero */}
-      <Section lattice>
-        <div className="grid items-start gap-12 lg:grid-cols-[7fr_5fr] lg:gap-16">
-          <div>
-            <p className="text-eyebrow text-brand-800 uppercase">{SITE_TAGLINE}</p>
-            <div className="brand-rule mt-3 h-0.5 w-24" aria-hidden="true" />
-
-            {/*
-              The LCP element is text: server-rendered, not wrapped by any client
-              component, with no hero image and no third-party script above the fold.
-            */}
-            <h1 className="text-display text-ink-950 mt-6 font-bold">
-              Research-grade peptides, documented lot by lot.
-            </h1>
-
-            <p className="text-lead text-ink-600 mt-6 max-w-2xl">
-              {SITE_NAME} supplies lyophilized research peptides with lot documentation available on
-              request. Compare list pricing and cost per milligram, build an inquiry list, and a
-              representative will confirm availability and provide a formal quotation.
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <Link href={ROUTES.products}>Browse products</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href={ROUTES.labTesting}>Lab testing &amp; COAs</Link>
-              </Button>
-            </div>
-
-            <p className="text-ink-600 mt-6 text-sm">
-              No online payment. Every inquiry is reviewed and answered by a representative.
-            </p>
-          </div>
-
-          {/*
-            The "specimen card": live catalog rows in the exact treatment used on
-            the catalog itself. Previews the product model with no photography,
-            which is both more clinical and compliance-safe — stock vial imagery
-            would imply human use.
-          */}
-          {products.length > 0 ? (
-            <div className="border-ink-200 shadow-panel rounded-xl border bg-white p-5">
-              <p className="text-eyebrow text-ink-500 uppercase">Selected compounds</p>
-              <ul className="divide-ink-100 mt-3 divide-y">
-                {products.slice(0, 4).map((product) => (
-                  <ProductRow key={product.id} product={product} />
-                ))}
-              </ul>
-              <Link
-                href={ROUTES.products}
-                className="text-brand-600 mt-4 inline-flex text-sm font-medium underline-offset-4 hover:underline"
-              >
-                See the full catalog →
-              </Link>
-            </div>
-          ) : null}
-        </div>
-      </Section>
+      <HeroSection />
 
       {/* ---------------------------------------------------------- Trust bar */}
       <Section surface="muted" compact aria-labelledby="trust-heading">

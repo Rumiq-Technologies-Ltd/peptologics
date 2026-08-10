@@ -33,6 +33,8 @@ slow ones for the journeys nobody would notice breaking.
 | `QuantityStepper.test.tsx`     | The control as a user and a screen reader meet it                                       |
 | `e2e/gate.spec.ts`             | The RUO gate: blocking, no Escape, keyboard-only, persistence, exempt policy pages      |
 | `e2e/inquiry-journey.spec.ts`  | Browse → add → cart → form → success, payload shape, double-submit, honeypot            |
+| `e2e/coa-library.spec.ts`      | Certificate rows, the dialog, focus restoration, and that each scan actually resolves   |
+| `e2e/hero-3d.spec.ts`          | WebGL context, canvas sizing and dpr cap, pixels drawn, CLS, reduced-motion stillness   |
 
 Coverage on the code these suites are meant to cover sits at ~97% of statements. That
 number is a by-product, not the goal — the goal is that every rule which decides what a
@@ -51,6 +53,12 @@ write rows to the client's Supabase and send a real email on every run. What the
 interception cannot fake is the part only a browser proves: that the form assembles the
 right request — correct items and quantities, an `Idempotency-Key` header, and no price
 field anywhere in the body.
+
+**Playwright runs two workers, not the default.** The hero specs each hold a live WebGL context at
+60fps; at full parallelism they starved unrelated specs and the inquiry submit intermittently never
+navigated. Every such failure was contention between tests rather than a defect — each spec passes
+consistently alone. Capping workers bounds the problem where a blanket `retries` would have hidden it
+(ADR-026).
 
 **Playwright runs against `next build && next start`, not `next dev`.** The gate depends
 on a pre-paint script and on hydration behaviour that differs between the two, and

@@ -53,14 +53,14 @@ export function SiteFooter() {
         <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             {/*
-              The badge SVG has had its white background removed, so it renders
-              cleanly on this near-black surface rather than as a white box.
+              The same lockup the header uses — mark plus wordmark, no tagline. The
+              tagline was dropped because it wrapped to two lines in this column and
+              repeated the strapline sitting directly beneath it.
+
+              `tone="dark"` is the one difference, and it is not cosmetic: the wordmark
+              is ink-950 by default, which is this surface's own colour.
             */}
-            {/*
-              The mark composites cleanly here because its PNG carries real
-              transparency — the supplied JPEG's white background was removed.
-            */}
-            <BrandLogo variant="mark" size={44} tone="dark" withTagline />
+            <BrandLogo variant="mark" size={36} tone="dark" />
 
             <p className="text-ink-400 mt-5 max-w-xs text-sm">
               Lyophilized research peptides supplied with lot documentation, for laboratory research

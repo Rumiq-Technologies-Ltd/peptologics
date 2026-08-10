@@ -35,8 +35,8 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
  * functional groups hanging off them take the blues.
  */
 const CORE_BLACK = "#222223"; // ink-950, the mark's connectors and inner nodes
-const LOGO_BLUE = "#033291"; // brand-800, the mark's outer spheres
-const BRIGHT_BLUE = "#1d4ed8"; // brand-600, the lighter blue of the wordmark
+const LOGO_BLUE = "#0031bc"; // brand-800, the mark's outer spheres
+const BRIGHT_BLUE = "#0044ff"; // brand-600, the lighter blue of the wordmark
 // The four terminal hydrogens: the mark's small joints, and dark for the same reason —
 // white vanished against the page's near-white background.
 const HYDROGEN = "#29292b"; // ink-900

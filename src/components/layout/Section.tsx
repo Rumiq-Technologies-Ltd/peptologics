@@ -51,7 +51,7 @@ export function Section({
       id={id}
       className={cn(
         SURFACE_CLASSES[surface],
-        compact ? "py-8" : "py-16 sm:py-20 lg:py-24",
+        compact ? "py-8" : "py-10 sm:py-10 lg:py-10",
         lattice && (surface === "dark" ? "lattice-bg-inverse" : "lattice-bg"),
         className,
       )}

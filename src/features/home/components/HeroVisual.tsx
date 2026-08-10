@@ -112,7 +112,21 @@ export function HeroVisual({ className }: HeroVisualProps) {
          * A fixed aspect box. The canvas fills it absolutely, so its height is decided
          * before any JavaScript loads and the section cannot resize when it does.
          */
-        "relative aspect-square w-full max-w-[26rem] lg:max-w-none",
+        "relative aspect-square w-full max-w-[32rem] lg:max-w-none",
+        /*
+         * VERTICAL POSITION — this is the knob.
+         *
+         * The grid centres the visual against the copy, which sits a little low against
+         * the headline. `-translate-y-8` lifts it 2rem. Raise the number to move the model
+         * up (`-translate-y-12` = 3rem), lower it to move down, and drop the minus sign to
+         * push it below centre (`translate-y-8`).
+         *
+         * A transform rather than a margin on purpose: it moves only the painted pixels,
+         * so the box the grid reserved — and therefore the layout — does not change.
+         * Applied from `lg` up, where the visual sits beside the copy; on smaller screens
+         * it stacks underneath and centring is already right.
+         */
+        "lg:-translate-y-14",
         className,
       )}
     >

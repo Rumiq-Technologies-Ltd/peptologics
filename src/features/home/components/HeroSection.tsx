@@ -23,6 +23,12 @@ import { HeroVisual } from "@/features/home/components/HeroVisual";
 export function HeroSection() {
   return (
     <Section lattice>
+      {/*
+        The split stays 7/5 rather than widening for the enlarged model. Both 6/5 and an
+        even split were measured at 1440px and each cost the headline a fourth line, which
+        is a poor trade for a decorative visual: the h1 is the LCP element. The model gains
+        its size from its own framing instead — see `AminoAcidScene`.
+      */}
       <div className="grid items-center gap-12 lg:grid-cols-[7fr_5fr] lg:gap-16">
         <div>
           <p className="text-eyebrow text-brand-800 uppercase">{SITE_TAGLINE}</p>

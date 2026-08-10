@@ -16,16 +16,23 @@ import { cn } from "@/utils/cn";
  */
 
 /**
- * The client's molecular mark, supplied as a JPEG on white.
+ * The client's molecular mark, supplied as a JPEG on white (and, as of the current
+ * asset, a background-removed PNG alongside it).
  *
- * `public/brand/peptologics-mark.png` is that file with the near-white background
- * made transparent and the surrounding margin trimmed, so it composites on the
- * dark footer instead of arriving as a white tile. Downscaled to 240px tall — four
- * times the largest place it is used. The original JPEG is untouched in
- * `public/assets`.
+ * `public/brand/peptologics-mark.png` is that source trimmed to its content bounds
+ * and downscaled to 240px tall — roughly five times the largest place it is used
+ * (44px, in the footer) — so it composites cleanly on the dark footer instead of
+ * arriving as a white tile. The originals are untouched in `public/assets`.
+ *
+ * Regenerating after a new source lands:
+ *   sharp(sourcePath).trim().resize({ height: 240 }).png().toFile(
+ *     "public/brand/peptologics-mark.png"
+ *   )
+ * then update `MARK_ASPECT_RATIO` below to the logged output width over 240 — the
+ * trim bounds shift with the artwork, so the ratio is not assumed to stay put.
  */
 const MARK_SRC = "/brand/peptologics-mark.png";
-const MARK_ASPECT_RATIO = 293 / 240;
+const MARK_ASPECT_RATIO = 283 / 240;
 
 /** The circular badge lockup: the supplied vector with its white backing removed. */
 const BADGE_SRC = "/brand/peptologics-badge.svg";

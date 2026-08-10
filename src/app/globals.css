@@ -7,30 +7,36 @@
  * Tailwind v4 is CSS-first: there is no tailwind.config.ts. Anything declared in
  * @theme becomes a utility (--color-brand-800 -> bg-brand-800, text-brand-800).
  *
- * Colours come from the vector logo, not from reading a compressed raster. The
- * three fills present in public/assets/peptologics logo.svg are exactly:
- *   #033291  cobalt blue
- *   #222223  charcoal
- *   #1C2A4A  deep navy (the lower-right end of the ring gradient)
- * Every scale below is anchored on those.
+ * EXPERIMENT BRANCH. The blue is the royal #0031BC supplied for review, replacing the
+ * #033291 cobalt read from the vector logo. The charcoal (#222223) and the deep navy
+ * (#1C2A4A) are unchanged — the navy already sits on the new hue, so it needed no work.
+ *
+ * The whole ramp is one hue, 224°, at full saturation, stepped only by lightness. That
+ * keeps the scale internally consistent and puts the supplied colour exactly at
+ * brand-800, where the old logo blue was — so every surface already reaching for "the
+ * brand colour" picks the new one up without a single component changing.
  */
 @theme {
   /* ---------------------------------------------------------------------
    * Brand blue. brand-800 is the logo colour and owns identity surfaces.
    * brand-600 is the brighter interactive accent for links, hover and focus,
    * where extra luminance makes a state change unmistakable.
+   *
+   * Contrast on white: brand-800 is 9.7:1 and brand-600 is 6.4:1, so both clear
+   * WCAG AA for body text — the old pair measured 9.4:1 and 6.0:1, so this is a
+   * slight gain rather than a compromise.
    * ------------------------------------------------------------------- */
-  --color-brand-50: #eff4fe;
-  --color-brand-100: #dbe5fc;
-  --color-brand-200: #bdcef9;
-  --color-brand-300: #92aef4;
-  --color-brand-400: #6187ec;
-  --color-brand-500: #3a63e2;
-  --color-brand-600: #1d4ed8;
-  --color-brand-700: #0f3eae;
-  --color-brand-800: #033291;
-  --color-brand-900: #05286f;
-  --color-brand-950: #041b4a;
+  --color-brand-50: #f0f4ff;
+  --color-brand-100: #dbe5ff;
+  --color-brand-200: #bdceff;
+  --color-brand-300: #94b0ff;
+  --color-brand-400: #668fff;
+  --color-brand-500: #3369ff;
+  --color-brand-600: #0044ff;
+  --color-brand-700: #003adb;
+  --color-brand-800: #0031bc;
+  --color-brand-900: #002794;
+  --color-brand-950: #001b66;
 
   /* Deep navy from the ring gradient. Used where blue meets charcoal. */
   --color-brand-ink: #1c2a4a;
@@ -44,7 +50,9 @@
   --color-ink-300: #c8c8cb;
   --color-ink-400: #9a9a9e;
   --color-ink-500: #75757a;
-  --color-ink-600: #58585d;
+  /* EXPERIMENT: the brief's body-copy grey (#444343), which prose already reaches for
+   * through ink-600. Warmer and darker than the old #58585d — 9.0:1 on white. */
+  --color-ink-600: #444343;
   --color-ink-700: #45454a;
   --color-ink-800: #333336;
   --color-ink-900: #29292b;
@@ -61,32 +69,48 @@
   --color-danger-bg: #fdeceb;
 
   /* ---------------------------------------------------------------------
-   * Type. Inter for everything; IBM Plex Mono for numeric data only —
-   * product codes, vial sizes, prices — where a monospace face keeps table
-   * columns optically aligned.
+   * Type. Plus Jakarta Sans standing in for General Sans (see layout.tsx);
+   * IBM Plex Mono for numeric data only — product codes, vial sizes, prices —
+   * where a monospace face keeps table columns optically aligned.
    * ------------------------------------------------------------------- */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-display-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  /* Fluid scale. Headings get text-wrap: balance in the base layer below. */
-  --text-display: clamp(2.25rem, 5vw, 3.5rem);
-  --text-display--line-height: 1.05;
-  --text-display--letter-spacing: -0.02em;
+  /* ---------------------------------------------------------------------
+   * EXPERIMENT: the brief's editorial scale, pulled back.
+   *
+   * As written the brief asks for 8–12rem headlines at weight 900. That is a
+   * poster scale — on a 1440px screen a 10rem headline is roughly four words a
+   * line, and this page has to carry a 14-word H1 plus a lead paragraph above
+   * the fold. So the direction is kept and the volume is not: tighter leading,
+   * much tighter tracking, one weight heavier, at a size the copy survives.
+   *
+   * Display tops out at 4.5rem against the old 3.5rem — noticeably bigger,
+   * about half what the brief asked for.
+   * ------------------------------------------------------------------- */
+  --text-display: clamp(2.5rem, 6vw, 4.5rem);
+  --text-display--line-height: 0.95;
+  --text-display--letter-spacing: -0.035em;
+  --text-display--font-weight: 800;
 
-  --text-h2: clamp(1.75rem, 3vw, 2.25rem);
-  --text-h2--line-height: 1.15;
-  --text-h2--letter-spacing: -0.015em;
+  --text-h2: clamp(1.875rem, 3.6vw, 2.75rem);
+  --text-h2--line-height: 1;
+  --text-h2--letter-spacing: -0.03em;
+  --text-h2--font-weight: 700;
 
-  --text-h3: clamp(1.25rem, 2vw, 1.5rem);
-  --text-h3--line-height: 1.25;
+  --text-h3: clamp(1.375rem, 2.2vw, 1.75rem);
+  --text-h3--line-height: 1.2;
+  --text-h3--letter-spacing: -0.02em;
 
+  /* The brief's 1.5 body leading, down from 1.6. */
   --text-lead: 1.125rem;
-  --text-lead--line-height: 1.6;
+  --text-lead--line-height: 1.5;
 
+  /* Labels: the brief's 0.2em tracking at weight 700, up from 0.08em/600. */
   --text-eyebrow: 0.75rem;
   --text-eyebrow--line-height: 1.4;
-  --text-eyebrow--letter-spacing: 0.08em;
-  --text-eyebrow--font-weight: 600;
+  --text-eyebrow--letter-spacing: 0.2em;
+  --text-eyebrow--font-weight: 700;
 
   --text-tagline: 0.6875rem;
   --text-tagline--line-height: 1.4;

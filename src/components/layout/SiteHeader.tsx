@@ -31,7 +31,7 @@ export function SiteHeader() {
               The client's mark with the wordmark beside it. The one logo above the
               fold, so it preloads.
             */}
-            <BrandLogo variant="mark" size={36} preload />
+            <BrandLogo variant="mark" size={50} preload />
           </Link>
 
           <div className="flex items-center gap-1 sm:gap-2">

@@ -34,6 +34,23 @@ import { cn } from "@/utils/cn";
 const MARK_SRC = "/brand/peptologics-mark.png";
 const MARK_ASPECT_RATIO = 283 / 240;
 
+/**
+ * Wordmark cap height as a fraction of the mark's height.
+ *
+ * Derived rather than a fixed `text-lg`, because the two were drifting: the mark grew
+ * to 50px in the header and the footer while the wordmark stayed at 18px, and the
+ * lockup started to read as a large glyph with small type bolted on. Tying the two
+ * together means changing `size` at a call site rescales the whole lockup, which is
+ * what "size" implies.
+ *
+ * 0.5 reproduces the original pairing — 36px mark against 18px type — so nothing that
+ * was already balanced moves.
+ */
+const WORDMARK_RATIO = 0.5;
+
+/** Tagline, when shown, sits at just under half the wordmark. */
+const TAGLINE_RATIO = 0.42;
+
 /** The circular badge lockup: the supplied vector with its white backing removed. */
 const BADGE_SRC = "/brand/peptologics-badge.svg";
 
@@ -72,7 +89,12 @@ export function BrandLogo({
   const isMark = variant === "mark";
 
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
+    <span
+      className={cn("inline-flex items-center", className)}
+      // Gap scales with the lockup too, at the ratio the fixed `gap-2.5` had against
+      // the original 36px mark. A constant gap looks pinched once the mark grows.
+      style={{ gap: `${Math.round(size * 0.28)}px` }}
+    >
       <Image
         src={isMark ? MARK_SRC : BADGE_SRC}
         alt={showWordmark ? "" : SITE_NAME}
@@ -88,21 +110,23 @@ export function BrandLogo({
         <span className="inline-flex flex-col justify-center leading-none">
           <span
             className={cn(
-              "text-lg font-bold tracking-tight",
+              "font-bold tracking-tight",
               tone === "dark" ? "text-white" : "text-ink-950",
             )}
+            style={{ fontSize: `${Math.round(size * WORDMARK_RATIO)}px` }}
           >
             {/* "Pepto" blue, "Logics" charcoal — matching the wordmark itself. */}
-            <span className={tone === "dark" ? "text-brand-800" : "text-brand-800"}>Pepto</span>
+            <span className="text-brand-800">Pepto</span>
             Logics
           </span>
 
           {withTagline ? (
             <span
-              className={cn(
-                "text-tagline mt-1 uppercase",
-                tone === "dark" ? "text-ink-300" : "text-ink-600",
-              )}
+              className={cn("mt-1 uppercase", tone === "dark" ? "text-ink-300" : "text-ink-600")}
+              style={{
+                fontSize: `${Math.round(size * TAGLINE_RATIO)}px`,
+                letterSpacing: "0.12em",
+              }}
             >
               {SITE_TAGLINE}
             </span>

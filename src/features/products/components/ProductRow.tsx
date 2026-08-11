@@ -2,8 +2,13 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ChevronRightIcon } from "lucide-react";
 
+import { ProductImage } from "@/features/products/components/ProductImage";
 import type { Product } from "@/features/products/types/product";
 import { ROUTES } from "@/constants/routes";
+import {
+  formatPresentation,
+  hasComparableCostPerMg,
+} from "@/features/products/utils/product.display";
 import { formatCostPerMg, formatCurrency } from "@/utils/formatCurrency";
 import { formatStrengthCompact } from "@/utils/formatStrength";
 import { cn } from "@/utils/cn";
@@ -19,6 +24,13 @@ import { cn } from "@/utils/cn";
  * cost per milligram — and a table-like row is what makes a column of figures
  * scannable. Cards would hide exactly the comparison the client's own price list
  * leads with.
+ *
+ * That held before there were photographs and it still holds after. What the vial
+ * render earns is a thumbnail, not the layout: it makes the row recognisable at a
+ * glance and shows the goods are real and labelled, while thirteen rows stay on one
+ * screen. A grid of thirteen near-identical vials would push the figures apart for a
+ * picture that barely differs product to product. `ProductCard` exists for the
+ * surfaces where recognition matters more than comparison.
  *
  * Still a Server Component. `controls` is a slot: the catalog passes the client
  * quantity control into it, and nothing else on the page becomes client-side.
@@ -42,7 +54,18 @@ const CONTROL_COLUMN_CLASSES = "flex w-28 shrink-0 justify-end sm:w-32";
 export function ProductRow({ product, controls, className }: ProductRowProps) {
   return (
     <li className={cn("group", className)}>
-      <div className="hover:bg-ink-50/70 flex items-center gap-4 rounded-md px-1 py-4 transition-colors sm:gap-6">
+      <div className="hover:bg-ink-50/70 flex items-center gap-3 rounded-md px-1 py-3 transition-colors sm:gap-6 sm:py-4">
+        {/*
+          Fixed 3rem/3.5rem well. Small enough that the row stays a row and thirteen
+          of them still fit a screen, large enough that the vial and its label colour
+          are recognisable. `sizes` matches those two widths at 2x.
+        */}
+        <ProductImage
+          product={product}
+          sizes="(min-width: 640px) 56px, 48px"
+          className="size-12 rounded-md sm:size-14"
+        />
+
         <div className="min-w-0 flex-1">
           <Link
             href={ROUTES.product(product.slug)}
@@ -51,7 +74,8 @@ export function ProductRow({ product, controls, className }: ProductRowProps) {
             {product.name}
           </Link>
           <p className="text-ink-600 mt-0.5 font-mono text-xs sm:text-sm">
-            {formatStrengthCompact(product.strengthMg)}/vial · lyophilized
+            {formatStrengthCompact(product.strengthMg, product.strengthUnit)}/vial ·{" "}
+            {formatPresentation(product)}
           </p>
         </div>
 
@@ -65,14 +89,24 @@ export function ProductRow({ product, controls, className }: ProductRowProps) {
           on the detail page.
         */}
         <p className="text-ink-600 hidden w-24 shrink-0 text-right font-mono text-sm sm:block">
-          {product.isBlend ? (
-            // For a blend this figure divides price by total milligrams across
-            // several peptides, so it is not comparable and would mislead.
-            <span className="text-ink-400" title="Not comparable for a multi-peptide blend">
+          {hasComparableCostPerMg(product) ? (
+            formatCostPerMg(product.costPerMg)
+          ) : (
+            /*
+             * Suppressed for a blend, whose figure divides price across several
+             * peptides, and for anything not sold by milligram — dollars per
+             * milligram of bacteriostatic water is not a number worth printing.
+             */
+            <span
+              className="text-ink-400"
+              title={
+                product.isBlend
+                  ? "Not comparable for a multi-peptide blend"
+                  : "Not applicable — this product is not sold by milligram"
+              }
+            >
               —
             </span>
-          ) : (
-            formatCostPerMg(product.costPerMg)
           )}
         </p>
 
@@ -102,6 +136,9 @@ export function ProductRowHeader({ withControls = false }: { withControls?: bool
       className="border-ink-200 text-eyebrow text-ink-500 hidden items-center gap-4 border-b px-1 pb-2 uppercase sm:flex sm:gap-6"
       aria-hidden="true"
     >
+      {/* Spacer matching the row's thumbnail well, so the headings stay over their
+          columns. Only `sm` widths matter — the header is hidden below that. */}
+      <span className="sm:size-14 sm:shrink-0" />
       <span className="min-w-0 flex-1">Compound</span>
       <span className="shrink-0">Price</span>
       <span className="w-24 shrink-0 text-right">Cost / mg</span>

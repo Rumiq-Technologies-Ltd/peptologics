@@ -11,6 +11,15 @@ export type ProductStatus = "active" | "out_of_stock" | "archived";
 
 export type ProductCategory = "peptide" | "blend" | "cosmetic" | "supply";
 
+/**
+ * The unit `strengthMg` is expressed in.
+ *
+ * Almost everything in the catalog is a lyophilized powder measured in milligrams. A
+ * diluent is a liquid measured in millilitres, and saying "10 mg" beside a photograph
+ * of a label reading "10 ML" is simply wrong — hence the column.
+ */
+export type StrengthUnit = "mg" | "ml";
+
 export interface Product {
   id: string;
   slug: string;
@@ -18,13 +27,16 @@ export interface Product {
   /** Client-supplied copy. Null for every product until they provide it. */
   description: string | null;
   category: ProductCategory;
-  /** Milligrams per vial. */
+  /** Vial contents, in `strengthUnit`. Named for the column, which predates the unit. */
   strengthMg: number;
+  strengthUnit: StrengthUnit;
   /** Integer cents. Never a float, never a string. */
   priceCents: number;
   /**
    * Dollars per milligram, derived by the database. Display only — it must never
    * enter money arithmetic, because it is a rounded quotient.
+   *
+   * Only meaningful when `strengthUnit` is `mg`. Use `hasComparableCostPerMg`.
    */
   costPerMg: number;
   /**

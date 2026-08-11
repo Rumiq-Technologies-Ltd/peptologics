@@ -26,6 +26,7 @@ export function makeProduct(overrides: Partial<Product> = {}): Product {
     description: null,
     category: "peptide",
     strengthMg: 10,
+    strengthUnit: "mg",
     priceCents: 6000,
     costPerMg: 6,
     isBlend: false,

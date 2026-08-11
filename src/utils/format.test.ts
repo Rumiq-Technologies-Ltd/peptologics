@@ -63,6 +63,20 @@ describe("formatStrength", () => {
   it("builds the catalog's vial label", () => {
     expect(formatVialLabel(10)).toBe("10mg/vial · single vial");
   });
+
+  /*
+   * Bacteriostatic water is 10 mL. Before the unit existed it would have rendered as
+   * "10 mg" beside a photograph of a label reading 10 ML.
+   */
+  it("renders millilitres with a capital L, distinguishing it from a one", () => {
+    expect(formatStrength(10, "ml")).toBe("10 mL");
+    expect(formatStrengthCompact(10, "ml")).toBe("10mL");
+    expect(formatVialLabel(10, "ml")).toBe("10mL/vial · single vial");
+  });
+
+  it("still defaults to milligrams, so existing call sites are unchanged", () => {
+    expect(formatStrength(10)).toBe(formatStrength(10, "mg"));
+  });
 });
 
 describe("slugify and isValidSlug", () => {

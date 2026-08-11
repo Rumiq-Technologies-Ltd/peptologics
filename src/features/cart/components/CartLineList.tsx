@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { QuantityStepper } from "@/features/cart/components/QuantityStepper";
 import type { CartLine } from "@/features/cart/types/cart";
+import { ProductImage } from "@/features/products/components/ProductImage";
 import { cartActions, useCartHasHydrated } from "@/hooks/useCart";
 import { formatCurrency, formatCurrencyExact } from "@/utils/formatCurrency";
 import { formatStrengthCompact } from "@/utils/formatStrength";
@@ -18,7 +19,11 @@ import { cn } from "@/utils/cn";
  * implementations would be three chances for them to disagree about what a line
  * looks like or what removing one does.
  *
- * `density="detailed"` adds the unit price column that the full page has room for.
+ * `density="detailed"` adds the unit price column that the full page has room for, and
+ * a vial thumbnail. The thumbnail is on the full page only, and deliberately: this is
+ * the last screen before someone commits to an inquiry, and recognising the vial is a
+ * faster confirmation that the right thing is on the list than re-reading the name.
+ * The compact panel and the mobile drawer are too narrow to spend that width on.
  */
 export interface CartLineListProps {
   lines: readonly CartLine[];
@@ -40,6 +45,10 @@ export function CartLineList({ lines, density = "compact", className }: CartLine
             isDetailed ? "py-5" : "py-4",
           )}
         >
+          {isDetailed ? (
+            <ProductImage product={line.product} sizes="56px" className="size-14 rounded-md" />
+          ) : null}
+
           <div className="min-w-0 flex-1">
             <Link
               href={ROUTES.product(line.product.slug)}
@@ -48,7 +57,7 @@ export function CartLineList({ lines, density = "compact", className }: CartLine
               {line.product.name}
             </Link>
             <p className="text-ink-600 mt-0.5 font-mono text-xs">
-              {formatStrengthCompact(line.product.strengthMg)}/vial
+              {formatStrengthCompact(line.product.strengthMg, line.product.strengthUnit)}/vial
               {isDetailed ? ` · ${formatCurrency(line.product.priceCents)} each` : null}
             </p>
           </div>

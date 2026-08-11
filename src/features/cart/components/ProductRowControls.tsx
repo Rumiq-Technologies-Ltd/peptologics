@@ -31,8 +31,12 @@ export interface ProductRowControlsProps {
   productId: string;
   /** Used in accessible names and the status message. */
   productName: string;
-  /** `row` for dense catalog rows, `block` for the product page's panel. */
-  layout?: "row" | "block";
+  /**
+   * `row` for dense catalog rows, `block` for the product page's panel, `card` for a
+   * product card — full width like `block`, but without the "Review inquiry list"
+   * button, which would repeat once per card in a grid.
+   */
+  layout?: "row" | "block" | "card";
   className?: string;
 }
 
@@ -47,6 +51,7 @@ export function ProductRowControls({
   const [status, setStatus] = useState("");
 
   const isBlock = layout === "block";
+  const isFullWidth = isBlock || layout === "card";
 
   function handleAdd(): void {
     const outcome = cartActions.addItem(productId);
@@ -65,13 +70,13 @@ export function ProductRowControls({
   }
 
   return (
-    <div className={cn(isBlock ? "flex flex-col gap-3" : "flex items-center", className)}>
+    <div className={cn(isFullWidth ? "flex flex-col gap-3" : "flex items-center", className)}>
       {quantity === 0 ? (
         <Button
           type="button"
           size={isBlock ? "lg" : "sm"}
-          variant={isBlock ? "default" : "outline"}
-          className={cn(isBlock ? "w-full" : "min-h-11 sm:min-h-9")}
+          variant={isFullWidth ? "default" : "outline"}
+          className={cn(isFullWidth ? "min-h-11 w-full" : "min-h-11 sm:min-h-9")}
           /*
            * Disabled until the persisted list has been read. Not cosmetic: a click
            * that lands mid-rehydration is discarded when the stored items are merged
@@ -82,7 +87,7 @@ export function ProductRowControls({
           onClick={handleAdd}
         >
           <PlusIcon aria-hidden="true" />
-          {isBlock ? "Add to inquiry list" : "Add"}
+          {isFullWidth ? "Add to inquiry list" : "Add"}
         </Button>
       ) : (
         <>
@@ -92,7 +97,7 @@ export function ProductRowControls({
             disabled={!hasHydrated}
             onChange={(next) => cartActions.setQuantity(productId, next)}
             onRemove={handleRemove}
-            className={isBlock ? "justify-between" : undefined}
+            className={isFullWidth ? "justify-between" : undefined}
           />
 
           {isBlock ? (

@@ -72,7 +72,7 @@ export function buildWebSiteSchema(): JsonLdNode {
  * purchasable offer.
  */
 export function buildProductSchema(product: Product): JsonLdNode {
-  const strength = formatStrength(product.strengthMg);
+  const strength = formatStrength(product.strengthMg, product.strengthUnit);
 
   return {
     "@context": "https://schema.org",

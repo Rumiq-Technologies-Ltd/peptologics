@@ -11,11 +11,27 @@ export const SITE_DESCRIPTION =
   "PeptoLogics supplies lyophilized research peptides with a Certificate of Analysis for every lot. Compare list pricing and cost per milligram, then request a quotation. For laboratory research use only." as const;
 
 /**
- * The compliance line shown in the strip at the top of every page and repeated
- * in the footer. Kept in one constant so it can never drift between surfaces.
+ * The compliance line. Kept in one constant so it can never drift between surfaces.
+ *
+ * No longer in the top strip — that space now carries the shipping promotion below.
+ * It still appears in the page metadata and on both generated Open Graph images, and
+ * the footer carries `COMPLIANCE_NOTICE_LONG` on every page, so the research-use-only
+ * disclosure remains site-wide.
  */
 export const COMPLIANCE_NOTICE =
   "For laboratory research use only · Not for human or animal consumption" as const;
+
+/**
+ * The promotional line in the strip above the header.
+ *
+ * Separate from the compliance notice on purpose: this one is marketing copy that
+ * will change whenever the offer does, and the compliance notice must not be edited
+ * by accident while doing it.
+ *
+ * TODO(client): the $250 threshold and "ground shipping" must match what Shipping &
+ * payment actually promises. A banner on every page is a representation to the buyer.
+ */
+export const SHIPPING_PROMOTION = "Free Ground Shipping on Orders Over $250" as const;
 
 export const COMPLIANCE_NOTICE_LONG =
   "All products are supplied for laboratory research use only. Not for human or animal consumption. Not evaluated by the FDA for therapeutic use." as const;

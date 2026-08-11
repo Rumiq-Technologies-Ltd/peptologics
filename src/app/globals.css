@@ -310,6 +310,63 @@
     background-size: 28px 28px;
   }
 
+  /*
+   * The promotional strip's marquee.
+   *
+   * Two identical copies of the message sit side by side inside the track, and the
+   * track slides exactly one copy's width before repeating. That is what makes the
+   * loop seamless — at -50% the second copy occupies precisely the pixels the first
+   * one started in, so the restart is invisible. A single copy would visibly snap
+   * back.
+   *
+   * `translate3d` rather than `translateX`, and `will-change`, so the browser
+   * promotes the track to its own compositor layer: the animation then runs off the
+   * main thread and cannot be janked by hydration or the hero's WebGL work.
+   */
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    /*
+     * `flex: none` is load-bearing, not tidiness. The track sits inside a flex row,
+     * so it inherits `flex-shrink: 1` and gets clamped to the strip's width — the
+     * box measured 1425px while each half was 1539px. The animation slides by 50%
+     * *of the box*, so a clamped box slides the wrong distance and the loop drifts
+     * instead of repeating seamlessly.
+     */
+    flex: none;
+    animation: marquee-slide 30s linear infinite;
+    will-change: transform;
+  }
+
+  @keyframes marquee-slide {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  /*
+   * Reduced motion stops the slide outright rather than merely shortening it.
+   *
+   * The global rule below collapses every animation to 0.01ms, which would leave
+   * this track parked at its final keyframe — readable, because the second copy is
+   * then in view, but arbitrary. Centring the first copy instead gives a deliberate
+   * static banner, which is what someone who asked for no motion should get.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+      animation: none;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .marquee-track > [aria-hidden="true"] {
+      display: none;
+    }
+  }
+
   /* The 2px rule that echoes the logo's blue-to-charcoal ring gradient. */
   .brand-rule {
     background-image: linear-gradient(

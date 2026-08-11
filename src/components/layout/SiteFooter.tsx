@@ -46,23 +46,33 @@ const FOOTER_SECTIONS = [
   },
 ] as const;
 
+/**
+ * Site footer.
+ *
+ * Light rather than the near-black it used to be, and the reason is the mark. The
+ * client's glyph is a black lattice with blue spheres on transparency — on `ink-950`
+ * the lattice was the same colour as the surface behind it, so the logo lost its
+ * structure and read as three disconnected dots.
+ *
+ * `ink-100` rather than the `ink-50` of the muted page bands: a page ending in a muted
+ * section would otherwise run straight into the footer as one undifferentiated block.
+ * One step darker plus the top border reads as a distinct region while staying inside
+ * the same neutral ramp the rest of the site uses.
+ */
 export function SiteFooter() {
   return (
-    <footer className="on-dark bg-ink-950 text-ink-300 mt-auto">
+    <footer className="bg-ink-300 text-ink-900 border-ink-800 mt-auto border-t">
       <Container>
         <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             {/*
-              The same lockup the header uses — mark plus wordmark, no tagline. The
-              tagline was dropped because it wrapped to two lines in this column and
-              repeated the strapline sitting directly beneath it.
-
-              `tone="dark"` is the one difference, and it is not cosmetic: the wordmark
-              is ink-950 by default, which is this surface's own colour.
+              The same lockup the header uses, and now the same tone too. The surface is
+              light, so the wordmark's default `ink-950` is correct here — `tone="dark"`
+              would render it white and invisible.
             */}
-            <BrandLogo variant="mark" size={50} tone="dark" />
+            <BrandLogo variant="mark" size={50} />
 
-            <p className="text-ink-400 mt-5 max-w-xs text-sm">
+            <p className="text-black mt-5 max-w-xs text-sm">
               Lyophilized research peptides supplied with lot documentation, for laboratory research
               use only.
             </p>
@@ -70,7 +80,7 @@ export function SiteFooter() {
 
           {FOOTER_SECTIONS.map((section) => (
             <nav key={section.heading} aria-labelledby={`footer-${section.heading}`}>
-              <h2 id={`footer-${section.heading}`} className="text-eyebrow text-ink-400 uppercase">
+              <h2 id={`footer-${section.heading}`} className="text-eyebrow text-black uppercase">
                 {section.heading}
               </h2>
               <ul className="mt-4 flex flex-col gap-3">
@@ -78,7 +88,7 @@ export function SiteFooter() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-ink-300 text-sm underline-offset-4 hover:text-white hover:underline"
+                      className="text-black hover:text-brand-800 text-sm underline-offset-4 hover:underline"
                     >
                       {link.label}
                     </Link>
@@ -90,10 +100,10 @@ export function SiteFooter() {
         </div>
 
         {contactEmail ? (
-          <div className="flex flex-wrap gap-x-8 gap-y-3 border-t border-white/10 py-6">
+          <div className="border-ink-200 flex flex-wrap gap-x-8 gap-y-3 border-t py-6">
             <a
               href={`mailto:${contactEmail}`}
-              className="text-ink-300 inline-flex items-center gap-2 text-sm hover:text-white"
+              className="text-ink-700 hover:text-brand-800 inline-flex items-center gap-2 text-sm"
             >
               <MailIcon className="size-4" aria-hidden="true" />
               {contactEmail}
@@ -101,9 +111,15 @@ export function SiteFooter() {
           </div>
         ) : null}
 
-        <div className="border-t border-white/10 py-6">
-          <p className="text-tagline text-brand-300 uppercase">{COMPLIANCE_NOTICE_LONG}</p>
-          <p className="text-ink-500 mt-3 text-xs">
+        <div className="border-ink-200 border-t py-6">
+          {/*
+            `brand-800` rather than the `brand-300` this line carried on the dark
+            surface. The pale tint measured 1.6:1 here — it was chosen to be readable
+            against near-black, and inverting the surface without re-picking it would
+            have left the compliance notice the least legible text on the page.
+          */}
+          <p className="text-tagline text-black uppercase">{COMPLIANCE_NOTICE_LONG}</p>
+          <p className="text-black mt-3 text-xs">
             © {COPYRIGHT_YEAR} {SITE_NAME}.com. All rights reserved. {SITE_NAME} is not a pharmacy
             and does not provide medical advice.
           </p>

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
-import { cartActions, useCartSummary } from "@/hooks/useCart";
+import { cartActions, useCartCouponCode, useCartSummary } from "@/hooks/useCart";
 import { getAcknowledgementTimestamp } from "@/features/disclaimer/acknowledgement";
 import { InquiryField } from "@/features/inquiry/components/InquiryField";
 import type { InquiryResult } from "@/features/inquiry/types/inquiry";
@@ -55,6 +55,7 @@ const SERVER_FIELD_PREFIX = "customer.";
 export function InquiryForm({ catalog }: InquiryFormProps) {
   const router = useRouter();
   const { lines, totals } = useCartSummary(catalog);
+  const couponCode = useCartCouponCode();
 
   const [formError, setFormError] = useState<string | null>(null);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
@@ -152,6 +153,13 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
           // human has filled the form. Omitted rather than faked if it ever is.
           formStartedAt: formStartedAt.current ?? undefined,
           ruoAcknowledgedAt: getAcknowledgementTimestamp(),
+          /*
+           * The code, not the discount. The server re-evaluates it against its own
+           * subtotal and its own coupon table, so this is a claim to be checked rather
+           * than a figure to be trusted (ADR-005). `undefined` when none is applied,
+           * which the schema drops from the payload entirely.
+           */
+          couponCode: couponCode ?? undefined,
         }),
       });
 

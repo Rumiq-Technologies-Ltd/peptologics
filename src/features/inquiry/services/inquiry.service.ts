@@ -2,6 +2,7 @@ import "server-only";
 
 import { MIN_FORM_DWELL_SECONDS } from "@/constants/business";
 import { MESSAGES } from "@/constants/messages";
+import { evaluateCoupon } from "@/features/cart/utils/coupon";
 import type { OrderRepository } from "@/features/inquiry/services/order.repository";
 import type { RateLimitService } from "@/features/inquiry/services/rate-limit.service";
 import type { InquiryLineItem, InquiryResult } from "@/features/inquiry/types/inquiry";
@@ -178,6 +179,23 @@ export function createInquiryService({
         return fail("PRODUCT_UNAVAILABLE", MESSAGES.inquiry.unavailable);
       }
 
+      /*
+       * The discount is computed here, from the subtotal this service just derived
+       * from the catalog — never taken from the request, which cannot express an
+       * amount at all. The browser showed the visitor a figure from the same table
+       * and the same function, so the two agree by construction rather than by trust.
+       *
+       * An unrecognised code applies nothing and is not an error. It is logged,
+       * because a code the client is advertising that nobody here recognises is worth
+       * knowing about, but it does not fail a submission the visitor has already
+       * filled in.
+       */
+      const coupon = evaluateCoupon(priced.subtotalCents, input.couponCode);
+
+      if (coupon.rejection === "unknown") {
+        logger.warn("inquiry_coupon_unknown", { couponCode: input.couponCode });
+      }
+
       let receipt;
 
       try {
@@ -186,6 +204,8 @@ export function createInquiryService({
           customer: input.customer,
           items: priced.lines,
           subtotalCents: priced.subtotalCents,
+          couponCode: coupon.coupon?.code,
+          discountCents: coupon.discountCents,
           ruoAcknowledgedAt: input.ruoAcknowledgedAt,
         });
       } catch (error) {
@@ -199,6 +219,8 @@ export function createInquiryService({
         created: receipt.created,
         itemCount: priced.lines.length,
         subtotalCents: priced.subtotalCents,
+        couponCode: coupon.coupon?.code ?? null,
+        discountCents: coupon.discountCents,
       });
 
       if (!receipt.created) {
@@ -225,6 +247,8 @@ export function createInquiryService({
         customer: input.customer,
         items: priced.lines,
         subtotalCents: priced.subtotalCents,
+        discountCents: coupon.discountCents,
+        totalCents: coupon.totalCents,
       });
 
       return ok({ orderNumber: receipt.orderNumber, created: true });

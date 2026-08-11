@@ -34,6 +34,9 @@ function makeInput(overrides: Partial<InquiryInput> = {}): InquiryInput {
     customer: makeCustomer() as InquiryInput["customer"],
     items: [{ productId: retatrutide.id, quantity: 2 }],
     formStartedAt: dwellPassing(),
+    // Present and undefined rather than absent: the schema output type has this key,
+    // so omitting it would make the fixture a different shape from a real payload.
+    couponCode: undefined,
     ...overrides,
   };
 }
@@ -262,6 +265,75 @@ describe("notification isolation", () => {
       orderId: "order-1",
       orderNumber: "PL-001000",
       subtotalCents: 12_000,
+    });
+  });
+});
+
+/**
+ * Coupons, from the service's point of view.
+ *
+ * The property under test is the same one that governs prices: the request carries a
+ * claim, the server decides what it is worth. A payload cannot express an amount, so
+ * these check that the amount stored is the one the server derived.
+ */
+describe("coupons", () => {
+  it("applies a known code against the server's own subtotal", async () => {
+    const { service, create } = makeHarness();
+
+    await service.submit(makeInput({ couponCode: "RESEARCH2026" }), context);
+
+    // Two vials at $60: $120 subtotal, 15% is $18.
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      subtotalCents: 12_000,
+      couponCode: "RESEARCH2026",
+      discountCents: 1_800,
+    });
+  });
+
+  it("accepts the code however it was typed", async () => {
+    const { service, create } = makeHarness();
+
+    await service.submit(makeInput({ couponCode: "  research2026 " }), context);
+
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      couponCode: "RESEARCH2026",
+      discountCents: 1_800,
+    });
+  });
+
+  it("stores no coupon and no discount for an unrecognised code", async () => {
+    const { service, create } = makeHarness();
+
+    const result = await service.submit(makeInput({ couponCode: "NOTACODE" }), context);
+
+    // Still a success: a mistyped code must not reject a filled-in inquiry.
+    expect(result.success).toBe(true);
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      couponCode: undefined,
+      discountCents: 0,
+    });
+  });
+
+  it("records a zero discount when no code was entered at all", async () => {
+    const { service, create } = makeHarness();
+
+    await service.submit(makeInput(), context);
+
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      couponCode: undefined,
+      discountCents: 0,
+    });
+  });
+
+  it("tells the notification the discounted total, not just the subtotal", async () => {
+    const { service, dispatch } = makeHarness();
+
+    await service.submit(makeInput({ couponCode: "RESEARCH2026" }), context);
+
+    expect(dispatch.mock.calls[0]?.[0]).toMatchObject({
+      subtotalCents: 12_000,
+      discountCents: 1_800,
+      totalCents: 10_200,
     });
   });
 });

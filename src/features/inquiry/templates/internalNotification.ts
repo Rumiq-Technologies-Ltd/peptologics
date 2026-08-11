@@ -37,7 +37,18 @@ export interface EmailContent {
 }
 
 export function buildInternalNotificationEmail(notification: InquiryNotification): EmailContent {
-  const { customer, items, subtotalCents, orderNumber } = notification;
+  const { customer, items, subtotalCents, discountCents, totalCents, orderNumber } = notification;
+
+  /*
+   * The discount rows appear only when there is one. An "Discount: $0.00" line on
+   * every inquiry is noise the representative would learn to skip, and the one time
+   * it mattered they would skip it too.
+   *
+   * `couponCode` is deliberately absent from this template's data: the notification
+   * carries the amount, and the amount is what the representative quotes from. If the
+   * operator ever needs to know which code was used, it is on the order row.
+   */
+  const hasDiscount = discountCents > 0;
 
   const addressLines = [
     customer.address,
@@ -69,6 +80,12 @@ export function buildInternalNotificationEmail(notification: InquiryNotification
     ),
     "",
     `Estimated subtotal: ${formatCurrencyExact(subtotalCents)}`,
+    ...(hasDiscount
+      ? [
+          `Discount applied:   -${formatCurrencyExact(discountCents)}`,
+          `Estimated total:    ${formatCurrencyExact(totalCents)}`,
+        ]
+      : []),
     "Prices are the list prices shown to the customer. Confirm availability and the final total.",
     ...(customer.notes ? ["", "CUSTOMER NOTES", customer.notes] : []),
     "",
@@ -119,6 +136,18 @@ export function buildInternalNotificationEmail(notification: InquiryNotification
             <td colspan="3" align="right" style="padding:10px 0;font-weight:600;">Estimated subtotal</td>
             <td align="right" style="padding:10px 0;font-weight:700;">${formatCurrencyExact(subtotalCents)}</td>
           </tr>
+          ${
+            hasDiscount
+              ? `<tr>
+            <td colspan="3" align="right" style="padding:4px 0;color:#0f7b4f;">Discount applied</td>
+            <td align="right" style="padding:4px 0;font-weight:600;color:#0f7b4f;">-${formatCurrencyExact(discountCents)}</td>
+          </tr>
+          <tr>
+            <td colspan="3" align="right" style="padding:10px 0;border-top:1px solid #e2e2e4;font-weight:700;">Estimated total</td>
+            <td align="right" style="padding:10px 0;border-top:1px solid #e2e2e4;font-weight:700;">${formatCurrencyExact(totalCents)}</td>
+          </tr>`
+              : ""
+          }
         </tfoot>
       </table>
       <p style="margin:8px 0 24px;font-size:12px;color:#58585d;">List prices as shown to the customer. Confirm availability and the final total.</p>

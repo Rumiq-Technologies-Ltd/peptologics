@@ -60,7 +60,7 @@ export function SiteFooter() {
               `tone="dark"` is the one difference, and it is not cosmetic: the wordmark
               is ink-950 by default, which is this surface's own colour.
             */}
-            <BrandLogo variant="mark" size={36} tone="dark" />
+            <BrandLogo variant="mark" size={50} tone="dark" />
 
             <p className="text-ink-400 mt-5 max-w-xs text-sm">
               Lyophilized research peptides supplied with lot documentation, for laboratory research

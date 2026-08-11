@@ -9,6 +9,7 @@ import {
   findQuantity,
   resolveCartLines,
 } from "@/features/cart/utils/cart.calculations";
+import { evaluateCoupon, type CouponEvaluation } from "@/features/cart/utils/coupon";
 import type { Product } from "@/features/products/types/product";
 import { cartActions, useCartStore } from "@/store/cart.store";
 
@@ -64,9 +65,22 @@ export function useCartUnitCount(): number {
   return useCartStore((state) => countUnits(state.items));
 }
 
+/** The stored coupon code, or null. A primitive, so the snapshot stays stable. */
+export function useCartCouponCode(): string | null {
+  return useCartStore((state) => state.couponCode);
+}
+
 export interface CartSummary {
   lines: CartLine[];
   totals: CartTotals;
+  /**
+   * The stored code resolved against the current subtotal.
+   *
+   * Re-evaluated on every change rather than stored, so removing the last vial from
+   * a list drops the discount to zero without anything having to remember to clear
+   * it. `coupon` is null when nothing is applied; `rejection` says why.
+   */
+  couponEvaluation: CouponEvaluation;
 }
 
 /**
@@ -79,9 +93,16 @@ export interface CartSummary {
  */
 export function useCartSummary(catalog: readonly Product[]): CartSummary {
   const items = useCartItems();
+  const couponCode = useCartCouponCode();
 
   return useMemo(() => {
     const lines = resolveCartLines(items, catalog);
-    return { lines, totals: calculateTotals(lines) };
-  }, [items, catalog]);
+    const totals = calculateTotals(lines);
+
+    return {
+      lines,
+      totals,
+      couponEvaluation: evaluateCoupon(totals.subtotalCents, couponCode),
+    };
+  }, [items, catalog, couponCode]);
 }

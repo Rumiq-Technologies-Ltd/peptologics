@@ -6,9 +6,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
 import { CartLineList } from "@/features/cart/components/CartLineList";
+import { CouponField } from "@/features/cart/components/CouponField";
 import { useCartHasHydrated, useCartSummary } from "@/hooks/useCart";
 import type { Product } from "@/features/products/types/product";
 import { formatCurrencyExact } from "@/utils/formatCurrency";
+import { cn } from "@/utils/cn";
 
 /**
  * What the visitor is about to ask for, shown beside the form.
@@ -27,7 +29,7 @@ export interface InquirySummaryProps {
 }
 
 export function InquirySummary({ catalog }: InquirySummaryProps) {
-  const { lines, totals } = useCartSummary(catalog);
+  const { lines, totals, couponEvaluation } = useCartSummary(catalog);
   const hasHydrated = useCartHasHydrated();
 
   return (
@@ -63,6 +65,8 @@ export function InquirySummary({ catalog }: InquirySummaryProps) {
           <CartLineList lines={lines} className="mt-2" />
 
           <div className="border-ink-200 mt-4 border-t pt-4">
+            <CouponField subtotalCents={totals.subtotalCents} className="mb-4" />
+
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-ink-700 text-sm font-medium">
                 Estimated subtotal
@@ -70,10 +74,42 @@ export function InquirySummary({ catalog }: InquirySummaryProps) {
                   ({totals.unitCount} {totals.unitCount === 1 ? "vial" : "vials"})
                 </span>
               </span>
-              <span className="text-ink-950 font-mono text-lg font-bold tabular-nums">
+              <span
+                className={cn(
+                  "font-mono tabular-nums",
+                  // Demoted to a plain figure once a discount exists: the total below
+                  // is the number that matters, and two bold figures compete.
+                  couponEvaluation.coupon
+                    ? "text-ink-700 text-sm"
+                    : "text-ink-950 text-lg font-bold",
+                )}
+              >
                 {formatCurrencyExact(totals.subtotalCents)}
               </span>
             </div>
+
+            {couponEvaluation.coupon ? (
+              <>
+                <div className="mt-2 flex items-baseline justify-between gap-4">
+                  <span className="text-success text-sm font-medium">
+                    Discount
+                    <span className="ml-1 font-mono font-normal">
+                      ({couponEvaluation.coupon.code})
+                    </span>
+                  </span>
+                  <span className="text-success font-mono text-sm font-semibold tabular-nums">
+                    −{formatCurrencyExact(couponEvaluation.discountCents)}
+                  </span>
+                </div>
+
+                <div className="border-ink-200 mt-3 flex items-baseline justify-between gap-4 border-t pt-3">
+                  <span className="text-ink-950 text-sm font-semibold">Estimated total</span>
+                  <span className="text-ink-950 font-mono text-lg font-bold tabular-nums">
+                    {formatCurrencyExact(couponEvaluation.totalCents)}
+                  </span>
+                </div>
+              </>
+            ) : null}
 
             <p className="text-ink-600 mt-2 text-xs">{MESSAGES.cart.estimateNotice}</p>
           </div>

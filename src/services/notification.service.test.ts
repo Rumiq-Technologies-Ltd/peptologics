@@ -31,6 +31,8 @@ const notification: InquiryNotification = {
     },
   ],
   subtotalCents: 6000,
+  discountCents: 0,
+  totalCents: 6000,
 };
 
 function makeHarness(sendImpl?: () => Promise<NotificationOutcome>) {

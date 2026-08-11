@@ -32,6 +32,16 @@ export interface CreateInquiryPayload {
   customer: InquiryCustomerInput;
   items: InquiryLineItem[];
   subtotalCents: number;
+  /**
+   * The canonical code that was actually applied, or undefined.
+   *
+   * Not what the visitor typed — what the server recognised. A mistyped code reaches
+   * the service and leaves no trace on the order, which is what the visitor was told
+   * would happen.
+   */
+  couponCode?: string;
+  /** Integer cents taken off, computed server-side. Zero when no coupon applied. */
+  discountCents: number;
   ruoAcknowledgedAt?: string;
 }
 
@@ -62,6 +72,10 @@ export interface InquiryNotification {
   customer: InquiryCustomerInput;
   items: InquiryLineItem[];
   subtotalCents: number;
+  /** Integer cents taken off by a coupon. Zero when none applied. */
+  discountCents: number;
+  /** Subtotal minus discount. What the representative should quote from. */
+  totalCents: number;
 }
 
 /**

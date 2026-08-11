@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { MAX_DISTINCT_LINES, MAX_LINE_QUANTITY, MIN_LINE_QUANTITY } from "@/constants/business";
+import { normalizeCouponCode } from "@/features/cart/utils/coupon";
 import {
   sanitizeEmail,
   sanitizeMultilineText,
@@ -194,6 +195,27 @@ export const inquirySchema = z.object({
 
   /** When the visitor accepted the Research-Use-Only gate, if the record survived. */
   ruoAcknowledgedAt: z.iso.datetime().optional(),
+
+  /**
+   * A coupon code, as typed. Never a discount amount.
+   *
+   * The same rule as prices (ADR-005): the payload carries the *claim*, the server
+   * decides what it is worth. A request cannot express "take $500 off" — only "I
+   * typed RESEARCH2026" — so a tampered body can at best name a code that exists.
+   *
+   * Deliberately not rejected here when unknown. Validating it against the table
+   * would turn a mistyped code into a 400 with a field error on a page the visitor
+   * has already filled in; the service applies what it recognises and silently
+   * ignores what it does not, which is what the panel already told them it would do.
+   */
+  couponCode: z
+    .string()
+    .max(40, { error: "That coupon code is too long." })
+    .optional()
+    .transform((value) => {
+      const cleaned = value ? normalizeCouponCode(value) : "";
+      return cleaned === "" ? undefined : cleaned;
+    }),
 });
 
 /** What the form holds while the visitor types. */

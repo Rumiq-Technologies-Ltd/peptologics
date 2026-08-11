@@ -7,7 +7,20 @@ import { MAX_DISTINCT_LINES, MIN_LINE_QUANTITY } from "@/constants/business";
 import { CART_STORAGE_KEY, CART_STORAGE_VERSION } from "@/constants/site";
 import type { CartAddOutcome, CartItem } from "@/features/cart/types/cart";
 import { clampQuantity, parsePersistedItems } from "@/features/cart/utils/cart.calculations";
+import { normalizeCouponCode } from "@/features/cart/utils/coupon";
 import { logger } from "@/lib/logger";
+
+/**
+ * Coerces a persisted coupon code, which is untrusted for the same reason the items
+ * are: `localStorage` is writable by anyone at the keyboard. Anything that is not a
+ * string, or normalises to nothing, becomes null rather than being repaired.
+ */
+function parsePersistedCouponCode(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+
+  const normalized = normalizeCouponCode(value);
+  return normalized.length > 0 ? normalized : null;
+}
 
 /**
  * The inquiry list store.
@@ -34,11 +47,25 @@ import { logger } from "@/lib/logger";
  */
 
 /** The slice that reaches storage. Everything else is derived or ephemeral. */
-type PersistedCart = Pick<CartState, "items">;
+type PersistedCart = Pick<CartState, "items" | "couponCode">;
 
 export interface CartState {
   /** Insertion-ordered. The order the visitor built the list in. */
   items: CartItem[];
+  /**
+   * The applied coupon code, canonicalised, or null.
+   *
+   * The *code* persists, never the discount. Same reasoning as prices (ADR-005): a
+   * stored amount could be edited in `localStorage` and would go stale the moment the
+   * list changed, whereas a code is re-evaluated against the live subtotal on every
+   * render and again by the server at submit.
+   *
+   * Added without bumping `CART_STORAGE_VERSION`: `merge` and `migrate` both read
+   * fields explicitly and default this one to null, so a v1 record written before
+   * this field existed still loads. Bumping the version would have discarded every
+   * saved list in the wild to add an optional field.
+   */
+  couponCode: string | null;
   /**
    * Whether `rehydrate()` has finished, successfully or not.
    *
@@ -55,6 +82,15 @@ export interface CartState {
   removeItem: (productId: string) => void;
   clear: () => void;
   /**
+   * Stores a coupon code, or clears it with null.
+   *
+   * Accepts whatever was typed and canonicalises it. An unknown code is still stored:
+   * whether it matches anything is a question for `evaluateCoupon` against the current
+   * subtotal, not for the store, and keeping the text lets the panel explain that the
+   * code was not recognised instead of silently emptying the field.
+   */
+  setCouponCode: (code: string | null) => void;
+  /**
    * Drops any line whose product is absent from the given ID set.
    *
    * Call this **only** with a complete active-catalog ID list — the `/cart` page's
@@ -68,6 +104,7 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      couponCode: null,
       hasHydrated: false,
 
       addItem: (productId, quantity = MIN_LINE_QUANTITY): CartAddOutcome => {
@@ -121,7 +158,19 @@ export const useCartStore = create<CartState>()(
       },
 
       clear: () => {
-        set({ items: [] });
+        // The coupon goes with the list. Leaving a code applied to an emptied list
+        // would greet the next visit with a discount on nothing.
+        set({ items: [], couponCode: null });
+      },
+
+      setCouponCode: (code) => {
+        if (code === null) {
+          set({ couponCode: null });
+          return;
+        }
+
+        const normalized = normalizeCouponCode(code);
+        set({ couponCode: normalized.length > 0 ? normalized : null });
       },
 
       reconcile: (availableProductIds) => {
@@ -141,7 +190,10 @@ export const useCartStore = create<CartState>()(
       version: CART_STORAGE_VERSION,
       skipHydration: true,
 
-      partialize: (state): PersistedCart => ({ items: state.items }),
+      partialize: (state): PersistedCart => ({
+        items: state.items,
+        couponCode: state.couponCode,
+      }),
 
       /**
        * No earlier schema has ever shipped, so a version mismatch means a record
@@ -149,17 +201,25 @@ export const useCartStore = create<CartState>()(
        * rebuild and expensive to misread.
        */
       migrate: (persistedState, version): PersistedCart => {
-        if (version !== CART_STORAGE_VERSION) return { items: [] };
+        if (version !== CART_STORAGE_VERSION) return { items: [], couponCode: null };
+
+        const stored = persistedState as Partial<PersistedCart> | null;
 
         return {
-          items: parsePersistedItems((persistedState as Partial<PersistedCart> | null)?.items),
+          items: parsePersistedItems(stored?.items),
+          couponCode: parsePersistedCouponCode(stored?.couponCode),
         };
       },
 
-      merge: (persistedState, currentState): CartState => ({
-        ...currentState,
-        items: parsePersistedItems((persistedState as Partial<PersistedCart> | null)?.items),
-      }),
+      merge: (persistedState, currentState): CartState => {
+        const stored = persistedState as Partial<PersistedCart> | null;
+
+        return {
+          ...currentState,
+          items: parsePersistedItems(stored?.items),
+          couponCode: parsePersistedCouponCode(stored?.couponCode),
+        };
+      },
 
       /**
        * `hasHydrated` is set on **both** paths. A quota error or a corrupt record
@@ -191,6 +251,7 @@ export const cartActions = {
     useCartStore.getState().setQuantity(productId, quantity),
   removeItem: (productId: string): void => useCartStore.getState().removeItem(productId),
   clear: (): void => useCartStore.getState().clear(),
+  setCouponCode: (code: string | null): void => useCartStore.getState().setCouponCode(code),
   reconcile: (availableProductIds: readonly string[]): void =>
     useCartStore.getState().reconcile(availableProductIds),
 } as const;

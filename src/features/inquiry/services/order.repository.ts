@@ -35,6 +35,8 @@ function toRpcPayload(payload: CreateInquiryPayload): Json {
   return {
     idempotency_key: payload.idempotencyKey,
     subtotal_cents: payload.subtotalCents,
+    coupon_code: payload.couponCode ?? null,
+    discount_cents: payload.discountCents,
     ruo_acknowledged_at: payload.ruoAcknowledgedAt ?? null,
     customer: {
       name: payload.customer.name,

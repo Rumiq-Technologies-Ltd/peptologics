@@ -10,9 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
 import { CartLineList } from "@/features/cart/components/CartLineList";
+import { CouponField } from "@/features/cart/components/CouponField";
 import { cartActions, useCartHasHydrated, useCartSummary } from "@/hooks/useCart";
 import type { Product } from "@/features/products/types/product";
 import { formatCurrencyExact } from "@/utils/formatCurrency";
+import { cn } from "@/utils/cn";
 
 /**
  * The `/cart` page body.
@@ -31,7 +33,7 @@ export interface CartViewProps {
 }
 
 export function CartView({ catalog }: CartViewProps) {
-  const { lines, totals } = useCartSummary(catalog);
+  const { lines, totals, couponEvaluation } = useCartSummary(catalog);
   const hasHydrated = useCartHasHydrated();
 
   const catalogIds = useMemo(() => catalog.map((product) => product.id), [catalog]);
@@ -107,12 +109,55 @@ export function CartView({ catalog }: CartViewProps) {
           </div>
         </dl>
 
+        {/*
+          The coupon is entered here as well as at checkout. Applying it before the
+          form means the visitor sees the discounted figure while deciding whether to
+          proceed, rather than discovering it after filling in an address — and the
+          code persists, so entering it in either place is the same act.
+        */}
+        <CouponField
+          subtotalCents={totals.subtotalCents}
+          className="border-ink-200 mt-4 border-t pt-4"
+        />
+
         <div className="border-ink-200 mt-4 flex items-baseline justify-between gap-4 border-t pt-4">
-          <span className="text-ink-950 font-semibold">Estimated subtotal</span>
-          <span className="text-ink-950 font-mono text-xl font-bold tabular-nums">
+          <span
+            className={
+              couponEvaluation.coupon ? "text-ink-700 text-sm" : "text-ink-950 font-semibold"
+            }
+          >
+            Estimated subtotal
+          </span>
+          <span
+            className={cn(
+              "font-mono tabular-nums",
+              couponEvaluation.coupon ? "text-ink-700 text-sm" : "text-ink-950 text-xl font-bold",
+            )}
+          >
             {formatCurrencyExact(totals.subtotalCents)}
           </span>
         </div>
+
+        {couponEvaluation.coupon ? (
+          <>
+            <div className="mt-2 flex items-baseline justify-between gap-4">
+              <span className="text-success text-sm font-medium">
+                Discount
+                <span className="ml-1 font-mono font-normal">({couponEvaluation.coupon.code})</span>
+              </span>
+              <span className="text-success font-mono text-sm font-semibold tabular-nums">
+                −{formatCurrencyExact(couponEvaluation.discountCents)}
+              </span>
+            </div>
+
+            <div className="border-ink-200 mt-3 flex items-baseline justify-between gap-4 border-t pt-3">
+              <span className="text-ink-950 font-semibold">Estimated total</span>
+              <span className="text-ink-950 font-mono text-xl font-bold tabular-nums">
+                {formatCurrencyExact(couponEvaluation.totalCents)}
+              </span>
+            </div>
+          </>
+        ) : null}
 
         <p className="text-ink-600 mt-2 text-xs">{MESSAGES.cart.estimateNotice}</p>
 

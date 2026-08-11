@@ -133,10 +133,12 @@ export type Database = {
           apartment: string | null;
           city: string;
           country: string;
+          coupon_code: string | null;
           created_at: string;
           currency: string;
           customer_name: string;
           deleted_at: string | null;
+          discount_cents: number;
           email: string;
           id: string;
           idempotency_key: string;
@@ -148,6 +150,7 @@ export type Database = {
           state: string;
           status: string;
           subtotal_cents: number;
+          total_cents: number | null;
           updated_at: string;
           zip_code: string;
         };
@@ -156,10 +159,12 @@ export type Database = {
           apartment?: string | null;
           city: string;
           country?: string;
+          coupon_code?: string | null;
           created_at?: string;
           currency?: string;
           customer_name: string;
           deleted_at?: string | null;
+          discount_cents?: number;
           email: string;
           id?: string;
           idempotency_key: string;
@@ -171,6 +176,7 @@ export type Database = {
           state: string;
           status?: string;
           subtotal_cents: number;
+          total_cents?: number | null;
           updated_at?: string;
           zip_code: string;
         };
@@ -179,10 +185,12 @@ export type Database = {
           apartment?: string | null;
           city?: string;
           country?: string;
+          coupon_code?: string | null;
           created_at?: string;
           currency?: string;
           customer_name?: string;
           deleted_at?: string | null;
+          discount_cents?: number;
           email?: string;
           id?: string;
           idempotency_key?: string;
@@ -194,6 +202,7 @@ export type Database = {
           state?: string;
           status?: string;
           subtotal_cents?: number;
+          total_cents?: number | null;
           updated_at?: string;
           zip_code?: string;
         };
@@ -217,6 +226,7 @@ export type Database = {
           sort_order: number;
           status: string;
           strength_mg: number;
+          strength_unit: string;
           updated_at: string;
         };
         Insert: {
@@ -236,6 +246,7 @@ export type Database = {
           sort_order?: number;
           status?: string;
           strength_mg: number;
+          strength_unit?: string;
           updated_at?: string;
         };
         Update: {
@@ -255,6 +266,7 @@ export type Database = {
           sort_order?: number;
           status?: string;
           strength_mg?: number;
+          strength_unit?: string;
           updated_at?: string;
         };
         Relationships: [];

@@ -124,33 +124,53 @@ export default async function LabTestingPage() {
             <div className="mt-6">
               <CoaLibrary products={products} />
             </div>
-
-            <h3 className="text-h3 text-ink-950 mt-10 font-semibold">Requesting another</h3>
-            <p className="text-ink-700 mt-3">
-              For a compound not listed, or for the certificate matching the specific lot you
-              receive, ask when you submit an inquiry or contact us with your order number and we
-              will send it directly.
-            </p>
           </div>
 
-          <aside className="border-ink-200 bg-ink-50 rounded-xl border p-6">
-            <h2 className="text-h3 text-ink-950 font-semibold">What we do not claim</h2>
-            <p className="text-ink-700 mt-3 text-sm">
-              We do not publish a headline purity figure on this page. A percentage is a specific,
-              testable claim, and the honest place for it is the certificate for your lot — not
-              marketing materials that cannot be tied to the vial in your hand.
-            </p>
-            <p className="text-ink-700 mt-3 text-sm">
-              Analytical results describe chemical composition. They say nothing about suitability
-              for any use, and no result should be read as endorsing use in or on humans or animals.
-            </p>
-            <Link
-              href={ROUTES.researchUseOnly}
-              className="text-brand-600 mt-4 inline-flex text-sm font-medium underline underline-offset-2"
-            >
-              Research-Use-Only Policy
-            </Link>
-          </aside>
+          {/*
+            `self-start` is what stops these stretching. A grid item defaults to
+            `align-items: stretch`, so the panel used to grow to the full height of the
+            certificate list beside it and ended in a long empty tail. Aligning to the
+            start makes each box exactly as tall as its own content.
+
+            Two boxes rather than one: they say different things. The first is a
+            disclaimer about what the certificates do not assert; the second is an
+            action. Sharing a border implied the second was part of the caveat.
+          */}
+          <div className="flex flex-col gap-6 self-start">
+            <aside className="border-ink-200 bg-ink-50 rounded-xl border p-6">
+              <h2 className="text-h3 text-ink-950 font-semibold">What we do not claim</h2>
+              <p className="text-ink-700 mt-3 text-sm">
+                We do not publish a headline purity figure on this page. A percentage is a specific,
+                testable claim, and the honest place for it is the certificate for your lot — not
+                marketing materials that cannot be tied to the vial in your hand.
+              </p>
+              <p className="text-ink-700 mt-3 text-sm">
+                Analytical results describe chemical composition. They say nothing about suitability
+                for any use, and no result should be read as endorsing use in or on humans or
+                animals.
+              </p>
+              <Link
+                href={ROUTES.researchUseOnly}
+                className="text-brand-600 mt-4 inline-flex text-sm font-medium underline underline-offset-2"
+              >
+                Research-Use-Only Policy
+              </Link>
+            </aside>
+
+            {/*
+              Moved out of the left column, where it sat under the certificate list as
+              an h3. It is a heading of the same rank as the panel above it now, so it
+              takes h2 — the visual size is unchanged, only the level.
+            */}
+            <aside className="border-ink-200 bg-ink-50 rounded-xl border p-6 mt-16">
+              <h2 className="text-h3 text-ink-950 font-semibold">Requesting another</h2>
+              <p className="text-ink-700 mt-3 text-sm">
+                For a compound not listed, or for the certificate matching the specific lot you
+                receive, ask when you submit an inquiry or contact us with your order number and we
+                will send it directly.
+              </p>
+            </aside>
+          </div>
         </div>
       </Section>
 

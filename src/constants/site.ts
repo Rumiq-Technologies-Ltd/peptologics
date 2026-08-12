@@ -28,10 +28,10 @@ export const COMPLIANCE_NOTICE =
  * will change whenever the offer does, and the compliance notice must not be edited
  * by accident while doing it.
  *
- * TODO(client): the $250 threshold and "ground shipping" must match what Shipping &
+ * TODO(client): the $200 threshold and "ground shipping" must match what Shipping &
  * payment actually promises. A banner on every page is a representation to the buyer.
  */
-export const SHIPPING_PROMOTION = "Free Ground Shipping on Orders Over $250" as const;
+export const SHIPPING_PROMOTION = "Free Ground Shipping on Orders Over $200" as const;
 
 export const COMPLIANCE_NOTICE_LONG =
   "All products are supplied for laboratory research use only. Not for human or animal consumption. Not evaluated by the FDA for therapeutic use." as const;

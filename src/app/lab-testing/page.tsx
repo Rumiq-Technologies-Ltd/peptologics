@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FileCheck2Icon, FlaskConicalIcon, SnowflakeIcon } from "lucide-react";
 
+import { PageHero } from "@/components/layout/PageHero";
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { HexFrame } from "@/components/ui/HexFrame";
@@ -57,20 +58,11 @@ export default async function LabTestingPage() {
   const products = catalog.success ? catalog.data : [];
   return (
     <>
-      <Section lattice>
-        <p className="text-eyebrow text-brand-800 uppercase">Analytical standards</p>
-        <div className="brand-rule mt-3 h-0.5 w-24" aria-hidden="true" />
-
-        <h1 className="text-display text-ink-950 mt-6 max-w-3xl font-bold">
-          Lab testing and Certificates of Analysis
-        </h1>
-
-        <p className="text-lead text-ink-600 mt-6 max-w-2xl">
-          A vial is only as good as the paperwork that describes it. Production lots are analyzed
-          for purity and identity, and the results are recorded on a lot-specific Certificate of
-          Analysis available on request.
-        </p>
-      </Section>
+      <PageHero
+        eyebrow="Analytical standards"
+        title="Lab testing and Certificates of Analysis"
+        lead="A vial is only as good as the paperwork that describes it. Production lots are analyzed for purity and identity, and the results are recorded on a lot-specific Certificate of Analysis available on request."
+      />
 
       <Section surface="muted" aria-labelledby="panel-heading">
         <h2 id="panel-heading" className="text-h2 text-ink-950 font-bold">

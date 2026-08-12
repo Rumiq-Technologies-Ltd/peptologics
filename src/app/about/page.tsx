@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ShieldCheckIcon } from "lucide-react";
 
+import { PageHero } from "@/components/layout/PageHero";
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
@@ -16,20 +17,17 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <>
-      <Section lattice>
-        <p className="text-eyebrow text-brand-800 uppercase">{SITE_TAGLINE}</p>
-        <div className="brand-rule mt-3 h-0.5 w-24" aria-hidden="true" />
-
-        <h1 className="text-display text-ink-950 mt-6 max-w-3xl font-bold">
-          A supplier built around documentation
-        </h1>
-
-        <p className="text-lead text-ink-600 mt-6 max-w-2xl">
-          {SITE_NAME} supplies lyophilized research peptides for in-vitro laboratory work. Our
-          proposition is not a wider catalog than anyone else&apos;s — it is that you can see what
-          you are buying, compare it honestly, and get the paperwork for the lot you received.
-        </p>
-      </Section>
+      <PageHero
+        eyebrow={SITE_TAGLINE}
+        title="A supplier built around documentation"
+        lead={
+          <>
+            {SITE_NAME} supplies lyophilized research peptides for in-vitro laboratory work. Our
+            proposition is not a wider catalog than anyone else&apos;s — it is that you can see what
+            you are buying, compare it honestly, and get the paperwork for the lot you received.
+          </>
+        }
+      />
 
       <Section surface="muted" aria-labelledby="supply-heading">
         <div className="grid gap-12 lg:grid-cols-[7fr_5fr] lg:gap-16">

@@ -85,7 +85,7 @@ export default function ContactPage() {
 
       <Section aria-labelledby="expect-heading">
         <div className="max-w-2xl">
-          <h2 id="expect-heading" className="text-h2 text-ink-950 font-bold">
+          <h2 id="expect-heading" className="text-h2 text-ink-950 font-bold lg:whitespace-nowrap">
             What we can and cannot help with
           </h2>
 

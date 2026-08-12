@@ -63,7 +63,13 @@ export default function AboutPage() {
             </p>
           </div>
 
-          <aside className="border-brand-200 bg-brand-50 rounded-xl border p-6">
+          {/*
+            `self-start`, not a height. A grid item defaults to `align-items: stretch`,
+            so this box was growing to match the left column's full height and ending
+            in a long empty tail below the link. Aligning to the start makes it exactly
+            as tall as its own content — same fix as the lab-testing page's asides.
+          */}
+          <aside className="border-brand-200 bg-brand-50 self-start rounded-xl border p-6">
             <ShieldCheckIcon className="text-brand-800 size-6" aria-hidden="true" />
             <h2 className="text-h3 text-ink-950 mt-3 font-semibold">What we are not</h2>
             <p className="text-ink-700 mt-3 text-sm">

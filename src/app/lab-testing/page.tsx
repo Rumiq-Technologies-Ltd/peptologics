@@ -162,7 +162,7 @@ export default async function LabTestingPage() {
               an h3. It is a heading of the same rank as the panel above it now, so it
               takes h2 — the visual size is unchanged, only the level.
             */}
-            <aside className="border-ink-200 bg-ink-50 rounded-xl border p-6 mt-16">
+            <aside className="border-ink-200 bg-ink-50 rounded-xl border p-6 lg:mt-16">
               <h2 className="text-h3 text-ink-950 font-semibold">Requesting another</h2>
               <p className="text-ink-700 mt-3 text-sm">
                 For a compound not listed, or for the certificate matching the specific lot you

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ClipboardListIcon, MailIcon } from "lucide-react";
 
+import { PageHero } from "@/components/layout/PageHero";
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { HexFrame } from "@/components/ui/HexFrame";
@@ -27,17 +28,11 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <>
-      <Section lattice>
-        <p className="text-eyebrow text-brand-800 uppercase">Get in touch</p>
-        <div className="brand-rule mt-3 h-0.5 w-24" aria-hidden="true" />
-
-        <h1 className="text-display text-ink-950 mt-6 font-bold">Contact us</h1>
-
-        <p className="text-lead text-ink-600 mt-6 max-w-2xl">
-          Questions about availability, vial sizes, or lot documentation are welcome before you
-          order. A representative answers every inquiry personally.
-        </p>
-      </Section>
+      <PageHero
+        eyebrow="Get in touch"
+        title="Contact us"
+        lead="Questions about availability, vial sizes, or lot documentation are welcome before you order. A representative answers every inquiry personally."
+      />
 
       <Section surface="muted" aria-labelledby="channels-heading">
         <h2 id="channels-heading" className="sr-only">

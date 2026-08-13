@@ -72,7 +72,7 @@ export function SiteFooter() {
             */}
             <BrandLogo variant="mark" size={50} />
 
-            <p className="text-black mt-5 max-w-xs text-sm">
+            <p className="mt-5 max-w-xs text-sm text-black">
               Lyophilized research peptides supplied with lot documentation, for laboratory research
               use only.
             </p>
@@ -88,7 +88,7 @@ export function SiteFooter() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-black hover:text-brand-800 text-sm underline-offset-4 hover:underline"
+                      className="hover:text-brand-800 text-sm text-black underline-offset-4 hover:underline"
                     >
                       {link.label}
                     </Link>
@@ -119,7 +119,7 @@ export function SiteFooter() {
             have left the compliance notice the least legible text on the page.
           */}
           <p className="text-tagline text-black uppercase">{COMPLIANCE_NOTICE_LONG}</p>
-          <p className="text-black mt-3 text-xs">
+          <p className="mt-3 text-xs text-black">
             © {COPYRIGHT_YEAR} {SITE_NAME}.com. All rights reserved. {SITE_NAME} is not a pharmacy
             and does not provide medical advice.
           </p>

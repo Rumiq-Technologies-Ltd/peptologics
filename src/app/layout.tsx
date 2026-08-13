@@ -10,6 +10,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { COMPLIANCE_NOTICE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/constants/site";
 import { CartHydrator } from "@/features/cart/components/CartHydrator";
 import { DisclaimerGate } from "@/features/disclaimer/components/DisclaimerGate";
+import { MotionPrePaintScript } from "@/components/motion/motionPrePaintScript";
+import { ScrollReveal } from "@/components/motion/ScrollReveal";
 import { DisclaimerPrePaintScript } from "@/features/disclaimer/prePaintScript";
 import { siteUrl } from "@/lib/env.client";
 import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/seo/structuredData";
@@ -112,6 +114,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <DisclaimerPrePaintScript />
 
         {/*
+          Arms the scroll-reveal CSS. Must run pre-paint for the same reason the gate
+          script does — setting it after hydration would paint one frame of visible
+          content before hiding it. See the component for why it fails open.
+        */}
+        <MotionPrePaintScript />
+
+        {/*
           Organization and WebSite, emitted once for the whole site. Both use stable
           `@id`s, so page-level graphs reference them rather than redefining the
           publisher on every route.
@@ -160,6 +169,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           after hydration — see CartHydrator for why that cannot happen earlier.
         */}
         <CartHydrator />
+
+        {/*
+          Renders nothing either. One IntersectionObserver for every `[data-reveal]`
+          section on the page, rebuilt per route. Mounted here rather than per page so
+          a section opts in with an attribute and stays a Server Component.
+        */}
+        <ScrollReveal />
 
         <Toaster position="bottom-right" />
       </body>

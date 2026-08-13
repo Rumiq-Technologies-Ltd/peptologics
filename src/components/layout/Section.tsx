@@ -25,6 +25,24 @@ export interface SectionProps {
   id?: string;
   /** Renders a plain block instead of a Container-wrapped one. */
   bleed?: boolean;
+  /**
+   * Fade and rise the section into view as it is scrolled to.
+   *
+   * Off by default, which is the deliberate direction. Two kinds of section must not
+   * animate and a default of `true` would have quietly caught both:
+   *
+   * - **The first section on a page.** It is above the fold, and on most pages it
+   *   holds the `h1` that is the Largest Contentful Paint element. Starting it at
+   *   `opacity: 0` defers LCP until an observer has fired, which is a measurable
+   *   Lighthouse cost for a decoration nobody scrolled to see.
+   * - **Transactional surfaces** — the inquiry list and the checkout. Someone
+   *   adjusting a quantity or filling in an address should not have the page moving
+   *   underneath them.
+   *
+   * Adding the attribute costs nothing on its own: it is inert until the pre-paint
+   * script arms the CSS, and `ScrollReveal` is what eventually sets `data-revealed`.
+   */
+  reveal?: boolean;
   "aria-labelledby"?: string;
 }
 
@@ -42,6 +60,7 @@ export function Section({
   className,
   id,
   bleed = false,
+  reveal = false,
   ...rest
 }: SectionProps) {
   const inner = bleed ? children : <Container>{children}</Container>;
@@ -55,6 +74,9 @@ export function Section({
         lattice && (surface === "dark" ? "lattice-bg-inverse" : "lattice-bg"),
         className,
       )}
+      // An attribute rather than a class, so this stays a Server Component and the
+      // observer in ScrollReveal has a single selector to find every one of them.
+      data-reveal={reveal ? "" : undefined}
       {...rest}
     >
       {inner}

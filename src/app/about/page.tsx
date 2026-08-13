@@ -29,7 +29,7 @@ export default function AboutPage() {
         }
       />
 
-      <Section surface="muted" aria-labelledby="supply-heading">
+      <Section surface="muted" reveal aria-labelledby="supply-heading">
         <div className="grid gap-12 lg:grid-cols-[7fr_5fr] lg:gap-16">
           <div>
             <h2 id="supply-heading" className="text-h2 text-ink-950 font-bold">
@@ -89,7 +89,7 @@ export default function AboutPage() {
         </div>
       </Section>
 
-      <Section>
+      <Section reveal>
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-h2 text-ink-950 font-bold">Have a question first?</h2>
           <p className="text-ink-600 mt-4">

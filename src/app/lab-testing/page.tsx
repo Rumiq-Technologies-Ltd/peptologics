@@ -64,7 +64,7 @@ export default async function LabTestingPage() {
         lead="A vial is only as good as the paperwork that describes it. Production lots are analyzed for purity and identity, and the results are recorded on a lot-specific Certificate of Analysis available on request."
       />
 
-      <Section surface="muted" aria-labelledby="panel-heading">
+      <Section surface="muted" reveal aria-labelledby="panel-heading">
         <h2 id="panel-heading" className="text-h2 text-ink-950 font-bold">
           The analytical panel
         </h2>
@@ -82,7 +82,7 @@ export default async function LabTestingPage() {
         </ul>
       </Section>
 
-      <Section aria-labelledby="coa-heading">
+      <Section reveal aria-labelledby="coa-heading">
         <div className="grid gap-12 lg:grid-cols-[7fr_5fr] lg:gap-16">
           <div>
             <h2 id="coa-heading" className="text-h2 text-ink-950 font-bold">
@@ -166,7 +166,7 @@ export default async function LabTestingPage() {
         </div>
       </Section>
 
-      <Section surface="muted">
+      <Section surface="muted" reveal>
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-h2 text-ink-950 font-bold">Ask about documentation</h2>
           <p className="text-ink-600 mt-4">

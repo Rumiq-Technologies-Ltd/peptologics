@@ -34,7 +34,7 @@ export default function ContactPage() {
         lead="Questions about availability, vial sizes, or lot documentation are welcome before you order. A representative answers every inquiry personally."
       />
 
-      <Section surface="muted" aria-labelledby="channels-heading">
+      <Section surface="muted" reveal aria-labelledby="channels-heading">
         <h2 id="channels-heading" className="sr-only">
           Ways to reach us
         </h2>
@@ -78,7 +78,7 @@ export default function ContactPage() {
         </div>
       </Section>
 
-      <Section aria-labelledby="expect-heading">
+      <Section reveal aria-labelledby="expect-heading">
         <div className="max-w-2xl">
           <h2 id="expect-heading" className="text-h2 text-ink-950 font-bold lg:whitespace-nowrap">
             What we can and cannot help with

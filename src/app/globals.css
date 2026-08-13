@@ -355,6 +355,51 @@
 }
 
 /*
+ * Scroll reveal.
+ *
+ * Everything here is scoped to `html[data-motion="on"]`, which only the pre-paint
+ * script sets and only when the visitor has not asked for reduced motion. That scope
+ * is the whole safety design: with no attribute there is no hidden state, so a failed
+ * script, a blocked bundle or JavaScript being off leaves every page fully readable.
+ * Hiding first and reverse-engineering visibility in JavaScript fails to a blank page.
+ *
+ * `opacity` and `transform` only. Both are composited, so a page of revealing sections
+ * costs no layout and no paint, and — the reason this is safe to apply site-wide —
+ * contributes exactly zero to Cumulative Layout Shift. Animating height, margin or
+ * top would move real boxes and wreck the metric.
+ *
+ * 500ms is longer than the 300ms ceiling for interactive UI, and deliberately: this is
+ * marketing motion the visitor watches rather than a control they are waiting on.
+ */
+html[data-motion="on"] [data-reveal] {
+  opacity: 0;
+  /*
+   * 1.75rem. The first pass used 1rem, which at speed was too small to register as
+   * movement — the section simply appeared. Enough travel to read as arrival, still
+   * short enough that a fast scroller never catches a block visibly sliding a long
+   * way up its own height.
+   */
+  transform: translateY(1.75rem);
+  /*
+   * 850ms, up from 500ms. The 300ms ceiling that governs interactive UI does not
+   * apply here: nobody is waiting on this to finish before they can act, and the
+   * whole point is that it is watched rather than merely completed. At 500ms,
+   * paired with a trigger that fired while the section was still off-screen, it was
+   * reliably over before the section reached a comfortable reading position.
+   */
+  transition:
+    opacity 850ms var(--ease-out-brand),
+    transform 850ms var(--ease-out-brand);
+  /* Set inline as `--reveal-index` on siblings that should arrive in sequence. */
+  transition-delay: calc(var(--reveal-index, 0) * 90ms);
+}
+
+html[data-motion="on"] [data-reveal][data-revealed] {
+  opacity: 1;
+  transform: none;
+}
+
+/*
  * Respect a reduced-motion preference globally rather than per-component, so a
  * new animation cannot forget to opt in.
  */
@@ -366,5 +411,20 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /*
+   * Belt and braces with the pre-paint check, for anyone who turns the preference on
+   * mid-session: the attribute is already on <html> at that point, so without this the
+   * hidden state would survive with its transition collapsed to nothing.
+   *
+   * Reduced motion here means no reveal rather than a gentler one. A scroll reveal is
+   * purely decorative — there is no comprehension it carries and nothing to preserve
+   * in a reduced form — and skipping it outright removes any path to invisible content.
+   */
+  html[data-motion="on"] [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

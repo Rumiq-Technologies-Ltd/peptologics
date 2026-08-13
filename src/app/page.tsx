@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -146,13 +147,24 @@ export default async function HomePage() {
       <HeroSection />
 
       {/* ---------------------------------------------------------- Trust bar */}
+      {/*
+        The band itself does not reveal — its only non-item child is an `sr-only`
+        heading, so animating the wrapper would fade in an empty box and then stagger
+        its contents inside it. The signals carry the motion on their own.
+      */}
       <Section surface="muted" compact aria-labelledby="trust-heading">
         <h2 id="trust-heading" className="sr-only">
           How we supply
         </h2>
         <ul className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-5">
-          {TRUST_SIGNALS.map(({ icon: Icon, label, detail }) => (
-            <li key={label}>
+          {TRUST_SIGNALS.map(({ icon: Icon, label, detail }, index) => (
+            /*
+              Each signal arrives 60ms after the one before it, so the row reads
+              left-to-right rather than flashing as one block. `--reveal-index` is set
+              on the item itself, not inherited from the list: driving a child's
+              transform from a parent variable restyles every sibling on each frame.
+            */
+            <li key={label} data-reveal style={{ "--reveal-index": index } as CSSProperties}>
               <HexFrame>
                 <Icon className="size-5" aria-hidden="true" />
               </HexFrame>
@@ -165,7 +177,7 @@ export default async function HomePage() {
 
       {/* -------------------------------------------------- Featured products */}
       {products.length > 0 ? (
-        <Section aria-labelledby="catalog-heading">
+        <Section reveal aria-labelledby="catalog-heading">
           <p className="text-eyebrow text-brand-800 uppercase">Catalog</p>
           <h2 id="catalog-heading" className="text-h2 text-ink-950 mt-3 font-bold">
             Frequently requested compounds
@@ -221,7 +233,7 @@ export default async function HomePage() {
       ) : null}
 
       {/* ------------------------------------------------------- How it works */}
-      <Section surface="muted" aria-labelledby="process-heading">
+      <Section surface="muted" reveal aria-labelledby="process-heading">
         <p className="text-eyebrow text-brand-800 uppercase">Process</p>
         <h2 id="process-heading" className="text-h2 text-ink-950 mt-3 font-bold">
           From inquiry to dispatch in four steps
@@ -241,7 +253,7 @@ export default async function HomePage() {
       </Section>
 
       {/* ----------------------------------------- Analytical standards (dark) */}
-      <Section surface="dark" lattice aria-labelledby="standards-heading">
+      <Section surface="dark" lattice reveal aria-labelledby="standards-heading">
         <p className="text-eyebrow text-brand-300 uppercase">Analytical standards</p>
         <h2 id="standards-heading" className="text-h2 mt-3 max-w-3xl font-bold text-white">
           Lot documentation, available on request
@@ -277,7 +289,7 @@ export default async function HomePage() {
       </Section>
 
       {/* ---------------------------------------------------------------- FAQ */}
-      <Section aria-labelledby="faq-heading">
+      <Section reveal aria-labelledby="faq-heading">
         <p className="text-eyebrow text-brand-800 uppercase">Questions</p>
         <h2 id="faq-heading" className="text-h2 text-ink-950 mt-3 font-bold">
           Frequently asked questions
@@ -307,7 +319,7 @@ export default async function HomePage() {
       </Section>
 
       {/* ---------------------------------------------------------- Final CTA */}
-      <Section surface="muted">
+      <Section surface="muted" reveal>
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-h2 text-ink-950 font-bold">Ready to request a quotation?</h2>
           <p className="text-ink-600 mt-4">

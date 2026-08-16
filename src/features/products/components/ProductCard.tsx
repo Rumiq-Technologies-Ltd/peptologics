@@ -22,7 +22,7 @@ import { cn } from "@/utils/cn";
  * what the home page is for: a visitor who has not yet decided anything is served
  * better by seeing what the product is than by a table they have no basis to read.
  *
- * Worth being honest about what the photograph does and does not do here. Thirteen
+ * Worth being honest about what the photograph does and does not do here. Eighteen
  * vials of the same design differ only by their label, so the image is weak as a
  * differentiator between two products — it will not help anyone choose BPC-157 over
  * KPV. What it does is establish that these are real, labelled, documented goods, and

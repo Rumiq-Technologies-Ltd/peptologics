@@ -27,8 +27,8 @@ import { cn } from "@/utils/cn";
  *
  * That held before there were photographs and it still holds after. What the vial
  * render earns is a thumbnail, not the layout: it makes the row recognisable at a
- * glance and shows the goods are real and labelled, while thirteen rows stay on one
- * screen. A grid of thirteen near-identical vials would push the figures apart for a
+ * glance and shows the goods are real and labelled, while eighteen rows stay on one
+ * screen. A grid of eighteen near-identical vials would push the figures apart for a
  * picture that barely differs product to product. `ProductCard` exists for the
  * surfaces where recognition matters more than comparison.
  *
@@ -56,7 +56,7 @@ export function ProductRow({ product, controls, className }: ProductRowProps) {
     <li className={cn("group", className)}>
       <div className="hover:bg-ink-50/70 flex items-center gap-3 rounded-md px-1 py-3 transition-colors sm:gap-6 sm:py-4">
         {/*
-          Fixed 3rem/3.5rem well. Small enough that the row stays a row and thirteen
+          Fixed 3rem/3.5rem well. Small enough that the row stays a row and eighteen
           of them still fit a screen, large enough that the vial and its label colour
           are recognisable. `sizes` matches those two widths at 2x.
         */}

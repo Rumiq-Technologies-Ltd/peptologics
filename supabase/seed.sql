@@ -44,7 +44,7 @@ values
   -- $6.00/mg
   ('mots-c-10mg',       'MOTS-c',       'peptide',  10,    6000,  false, false, 70,  '/coa/mots-c-10mg.jpg', '/products/mots-c-10mg.webp'),
   -- $3.75/mg
-  ('mots-c-40mg',       'MOTS-c',       'peptide',  40,    15000, false, false, 80,  null, '/products/mots-c-40mg.webp'),
+  ('mots-c-40mg',       'MOTS-c',       'peptide',  40,    15000, false, false, 80,  '/coa/mots-c-40mg.jpg', '/products/mots-c-40mg.webp'),
   -- $5.00/mg
   ('kpv-10mg',          'KPV',          'peptide',  10,    5000,  false, false, 90,  null, '/products/kpv-10mg.webp'),
   -- $0.0333/mg, displays as $0.03
@@ -60,7 +60,7 @@ values
   -- $2.00/mg
   ('cjc-ipa-30mg',      'CJC/IPA',      'blend',    30,    6000,  false, false, 140, null, '/products/cjc-ipa-30mg.webp'),
   -- $4.50/mg
-  ('wolverine-20mg',    'Wolverine',    'blend',    20,    9000,  false, false, 150, null, '/products/wolverine-20mg.webp'),
+  ('wolverine-20mg',    'Wolverine',    'blend',    20,    9000,  false, false, 150, '/coa/wolverine-20mg.jpg', '/products/wolverine-20mg.webp'),
   -- $3.3333/mg, displays as $3.33
   ('tirzepatide-30mg',  'Tirzepatide',  'peptide',  30,    10000, false, true,  160, '/coa/tirzepatide-30mg.jpg', '/products/tirzepatide-30mg.webp'),
   -- $4.50/mg

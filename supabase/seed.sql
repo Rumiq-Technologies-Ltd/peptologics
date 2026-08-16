@@ -22,32 +22,49 @@ insert into public.products (
   slug, name, category, strength_mg, price_cents, is_blend, featured, sort_order, coa_url,
   image_url
 )
+--
+-- Where a compound is stocked in two vial sizes, the sizes sit next to each other in
+-- `sort_order` so the catalog reads as one product offered at two strengths rather than
+-- as two unrelated rows. That is why the numbering was rewritten on 16 Aug 2026 when the
+-- larger Retatrutide, Tesamorelin and MOTS-c vials were added; the relative order of the
+-- original rows is unchanged.
 values
   -- $6.00/mg
   ('retatrutide-10mg',  'Retatrutide',  'peptide',  10,    6000,  false, true,  10,  '/coa/retatrutide-10mg.jpg', '/products/retatrutide-10mg.webp'),
   -- $5.00/mg
-  ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  20,  '/coa/bpc-157-10mg.jpg', '/products/bpc-157-10mg.webp'),
-  -- $8.00/mg
-  ('tesamorelin-5mg',   'Tesamorelin',  'peptide',  5,     4000,  false, false, 30,  '/coa/tesamorelin-5mg.jpg', '/products/tesamorelin-5mg.webp'),
-  -- $0.60/mg — copper peptide, arguably 'cosmetic'; category to confirm
-  ('ghk-cu-50mg',       'GHK-Cu',       'peptide',  50,    3000,  false, true,  40,  null, '/products/ghk-cu-50mg.webp'),
-  -- $6.00/mg
-  ('mots-c-10mg',       'MOTS-c',       'peptide',  10,    6000,  false, false, 50,  '/coa/mots-c-10mg.jpg', '/products/mots-c-10mg.webp'),
+  ('retatrutide-30mg',  'Retatrutide',  'peptide',  30,    15000, false, false, 20,  null, '/products/retatrutide-30mg.webp'),
   -- $5.00/mg
-  ('kpv-10mg',          'KPV',          'peptide',  10,    5000,  false, false, 60,  null, '/products/kpv-10mg.webp'),
-  -- $0.0333/mg, displays as $0.03
-  ('glutathione-1500mg','Glutathione',  'peptide',  1500,  5000,  false, false, 70,  null, '/products/glutathione-1500mg.webp'),
+  ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  30,  '/coa/bpc-157-10mg.jpg', '/products/bpc-157-10mg.webp'),
+  -- $8.00/mg
+  ('tesamorelin-5mg',   'Tesamorelin',  'peptide',  5,     4000,  false, false, 40,  '/coa/tesamorelin-5mg.jpg', '/products/tesamorelin-5mg.webp'),
+  -- $7.00/mg
+  ('tesamorelin-10mg',  'Tesamorelin',  'peptide',  10,    7000,  false, false, 50,  null, '/products/tesamorelin-10mg.webp'),
+  -- $0.60/mg — copper peptide, arguably 'cosmetic'; category to confirm
+  ('ghk-cu-50mg',       'GHK-Cu',       'peptide',  50,    3000,  false, true,  60,  null, '/products/ghk-cu-50mg.webp'),
   -- $6.00/mg
-  ('ss-31-10mg',        'SS-31',        'peptide',  10,    6000,  false, false, 80,  '/coa/ss-31-10mg.jpg', '/products/ss-31-10mg.webp'),
+  ('mots-c-10mg',       'MOTS-c',       'peptide',  10,    6000,  false, false, 70,  '/coa/mots-c-10mg.jpg', '/products/mots-c-10mg.webp'),
+  -- $3.75/mg
+  ('mots-c-40mg',       'MOTS-c',       'peptide',  40,    15000, false, false, 80,  null, '/products/mots-c-40mg.webp'),
+  -- $5.00/mg
+  ('kpv-10mg',          'KPV',          'peptide',  10,    5000,  false, false, 90,  null, '/products/kpv-10mg.webp'),
+  -- $0.0333/mg, displays as $0.03
+  ('glutathione-1500mg','Glutathione',  'peptide',  1500,  5000,  false, false, 100, null, '/products/glutathione-1500mg.webp'),
+  -- $6.00/mg
+  ('ss-31-10mg',        'SS-31',        'peptide',  10,    6000,  false, false, 110, '/coa/ss-31-10mg.jpg', '/products/ss-31-10mg.webp'),
   -- $0.11/mg
-  ('nad-plus-500mg',    'NAD+',         'peptide',  500,   5500,  false, true,  90,  '/coa/nad-plus-500mg.jpg', '/products/nad-plus-500mg.webp'),
+  ('nad-plus-500mg',    'NAD+',         'peptide',  500,   5500,  false, true,  120, '/coa/nad-plus-500mg.jpg', '/products/nad-plus-500mg.webp'),
   -- $1.125/mg, displays as $1.13. Category stays 'blend', but is_blend is false so
-  -- the cost-per-mg figure is shown: the client asked for it on 8 Aug 2026.
-  ('k-l-o-w-80mg',      'K-L-O-W',      'blend',    80,    9000,  false, false, 100, '/coa/k-l-o-w-80mg.jpg', '/products/k-l-o-w-80mg.webp'),
-  -- $3.3333/mg, displays as $3.33
-  ('tirzepatide-30mg',  'Tirzepatide',  'peptide',  30,    10000, false, true,  110, '/coa/tirzepatide-30mg.jpg', '/products/tirzepatide-30mg.webp'),
+  -- the cost-per-mg figure is shown: the client asked for it on 8 Aug 2026. The two
+  -- blends below follow the same rule.
+  ('k-l-o-w-80mg',      'K-L-O-W',      'blend',    80,    9000,  false, false, 130, '/coa/k-l-o-w-80mg.jpg', '/products/k-l-o-w-80mg.webp'),
+  -- $2.00/mg
+  ('cjc-ipa-30mg',      'CJC/IPA',      'blend',    30,    6000,  false, false, 140, null, '/products/cjc-ipa-30mg.webp'),
   -- $4.50/mg
-  ('ipamorelin-10mg',   'Ipamorelin',   'peptide',  10,    4500,  false, false, 120, null, '/products/ipamorelin-10mg.webp')
+  ('wolverine-20mg',    'Wolverine',    'blend',    20,    9000,  false, false, 150, null, '/products/wolverine-20mg.webp'),
+  -- $3.3333/mg, displays as $3.33
+  ('tirzepatide-30mg',  'Tirzepatide',  'peptide',  30,    10000, false, true,  160, '/coa/tirzepatide-30mg.jpg', '/products/tirzepatide-30mg.webp'),
+  -- $4.50/mg
+  ('ipamorelin-10mg',   'Ipamorelin',   'peptide',  10,    4500,  false, false, 170, null, '/products/ipamorelin-10mg.webp')
 on conflict (slug) do update set
   name        = excluded.name,
   category    = excluded.category,
@@ -73,7 +90,7 @@ insert into public.products (
 )
 values
   ('bacteriostatic-water-10ml', 'Bacteriostatic Water', 'supply', 10, 'ml', 1200,
-   false, false, 130, null, '/products/bacteriostatic-water-10ml.webp')
+   false, false, 180, null, '/products/bacteriostatic-water-10ml.webp')
 on conflict (slug) do update set
   name          = excluded.name,
   category      = excluded.category,

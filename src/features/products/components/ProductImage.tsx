@@ -21,7 +21,7 @@ import { cn } from "@/utils/cn";
  * reads as the vial appearing rather than a panel changing colour.
  *
  * **Space is reserved by aspect ratio.** The images are square, the well is square, and
- * the box exists in the layout before any image data does — so a catalog of thirteen
+ * the box exists in the layout before any image data does — so a catalog of eighteen
  * photographs cannot shift the page as it loads.
  *
  * **`sizes` is required, not optional.** Without it `next/image` assumes the image
@@ -38,7 +38,7 @@ export interface ProductImageProps {
   sizes: string;
   /**
    * Set on the one image most likely to be the largest contentful paint. Off
-   * everywhere else, so a catalog of thirteen does not open thirteen eager requests.
+   * everywhere else, so a catalog of eighteen does not open eighteen eager requests.
    */
   preload?: boolean;
   className?: string;

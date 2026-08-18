@@ -32,6 +32,15 @@ export const INQUIRY_RATE_LIMIT_WINDOW_SECONDS = 900 as const;
  */
 export const MIN_FORM_DWELL_SECONDS = 3 as const;
 
+/**
+ * How soon the confirmation email promises a representative will be in touch.
+ *
+ * A number in a customer-facing promise, so it lives here rather than inline in the
+ * template: if the client changes the commitment, this is the one place to change it.
+ * Confirmed by the client on 17 Aug 2026.
+ */
+export const INQUIRY_RESPONSE_HOURS = 24 as const;
+
 /** Timeouts for third-party calls, in milliseconds. */
 export const EMAIL_TIMEOUT_MS = 8_000 as const;
 

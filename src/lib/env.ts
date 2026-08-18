@@ -52,6 +52,19 @@ const serverEnvSchema = z.object({
   INQUIRY_NOTIFICATION_FROM: z.string().min(1).optional(),
   /** Comma-separated list of internal recipients. */
   INQUIRY_NOTIFICATION_TO: z.string().min(1).optional(),
+  /**
+   * Sender for the customer confirmation. Falls back to `INQUIRY_NOTIFICATION_FROM`.
+   *
+   * Separate from the internal sender because the two are read by different people. The
+   * internal notification can come from anything that delivers; the confirmation is the
+   * customer's only written record of the exchange and should come from an address they
+   * would recognise and can reply to — `hello@peptologics.com` rather than a no-reply.
+   *
+   * Optional, and the fallback is what keeps it optional: an environment that has not set
+   * it still sends confirmations, from the same address as everything else, rather than
+   * silently skipping them.
+   */
+  CUSTOMER_CONFIRMATION_FROM: z.string().min(1).optional(),
 
   // --- Operations -----------------------------------------------------------
   /** Bearer secret for POST /api/revalidate. */
@@ -166,3 +179,13 @@ export const env: ServerEnv = loadServerEnv();
 export const isEmailConfigured: boolean = Boolean(
   env.RESEND_API_KEY && env.INQUIRY_NOTIFICATION_FROM && env.INQUIRY_NOTIFICATION_TO,
 );
+
+/**
+ * The address customer confirmations are sent from.
+ *
+ * Resolved once here rather than at each call site, so the fallback rule exists in exactly
+ * one place. Empty string when email is not configured at all, which the channel checks
+ * for before it ever reaches this value.
+ */
+export const customerConfirmationFrom: string =
+  env.CUSTOMER_CONFIRMATION_FROM ?? env.INQUIRY_NOTIFICATION_FROM ?? "";

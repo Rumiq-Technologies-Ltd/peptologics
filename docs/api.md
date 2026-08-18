@@ -113,8 +113,8 @@ soft 404. See ADR-014.
 ## `POST /api/inquiries`
 
 Creates an inquiry: one `orders` row, one `order_items` row per product, and one `notification_log` row
-for the email channel — all in a single transaction (ADR-004). The notification is dispatched after the
-commit and cannot affect the response.
+per notification channel — all in a single transaction (ADR-004). Both notifications are dispatched
+after the commit and cannot affect the response.
 
 ### Headers
 
@@ -219,8 +219,16 @@ data.
 
 ### Notification behaviour
 
-`notification_log` gets a `pending` row for the email channel inside the order's transaction, then the
-outcome. Email is the only channel (ADR-023):
+`notification_log` gets a `pending` row per channel inside the order's transaction, then the outcome.
+Both channels are email (ADR-023); there are two of them because they have different readers and fail
+independently (ADR-027):
+
+| Channel          | Recipient                  | Reply-to                 | Sender                                                  |
+| ---------------- | -------------------------- | ------------------------ | ------------------------------------------------------- |
+| `email`          | `INQUIRY_NOTIFICATION_TO`  | the customer             | `INQUIRY_NOTIFICATION_FROM`                             |
+| `customer_email` | the address on the inquiry | first internal recipient | `CUSTOMER_CONFIRMATION_FROM`, falling back to the above |
+
+The two run concurrently and each records its own outcome:
 
 | Status    | Meaning                                                                  |
 | --------- | ------------------------------------------------------------------------ |
@@ -230,7 +238,12 @@ outcome. Email is the only channel (ADR-023):
 | `pending` | Dispatch never completed. This is the dead-letter list                   |
 
 A failed or skipped channel still returns `201`. The lead is saved either way, which is the entire point
-of committing before notifying.
+of committing before notifying — and a confirmation that never reached the customer must not tell them
+their inquiry failed when it did not.
+
+A replayed `Idempotency-Key` notifies nobody a second time. The order already exists and was already
+dispatched, so a replay would put a duplicate lead in the inbox and a duplicate confirmation in the
+customer's.
 
 ## `POST /api/revalidate`
 

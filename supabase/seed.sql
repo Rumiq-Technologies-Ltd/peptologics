@@ -18,16 +18,21 @@
 -- lists only the rows that have one.
 -- image_url points at a vial photograph in `public/products/`, named for the slug.
 -- Every row has one; a null would render the placeholder rather than break.
-insert into public.products (
-  slug, name, category, strength_mg, price_cents, is_blend, featured, sort_order, coa_url,
-  image_url
-)
---
 -- Where a compound is stocked in two vial sizes, the sizes sit next to each other in
 -- `sort_order` so the catalog reads as one product offered at two strengths rather than
 -- as two unrelated rows. That is why the numbering was rewritten on 16 Aug 2026 when the
 -- larger Retatrutide, Tesamorelin and MOTS-c vials were added; the relative order of the
 -- original rows is unchanged.
+--
+-- Tesamorelin 5 mg carries no certificate. The scan that was published against it until
+-- 17 Aug 2026 names "Tesamorelin 10mg", lot 0771, on its face; it is the 10 mg
+-- certificate and now sits on the 10 mg row where it belongs. The 5 mg vial gets one back
+-- when the client supplies a scan of its own lot, and until then the product page's
+-- "available on request" wording is the honest answer.
+insert into public.products (
+  slug, name, category, strength_mg, price_cents, is_blend, featured, sort_order, coa_url,
+  image_url
+)
 values
   -- $6.00/mg
   ('retatrutide-10mg',  'Retatrutide',  'peptide',  10,    6000,  false, true,  10,  '/coa/retatrutide-10mg.jpg', '/products/retatrutide-10mg.webp'),
@@ -36,9 +41,9 @@ values
   -- $5.00/mg
   ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  30,  '/coa/bpc-157-10mg.jpg', '/products/bpc-157-10mg.webp'),
   -- $8.00/mg
-  ('tesamorelin-5mg',   'Tesamorelin',  'peptide',  5,     4000,  false, false, 40,  '/coa/tesamorelin-5mg.jpg', '/products/tesamorelin-5mg.webp'),
+  ('tesamorelin-5mg',   'Tesamorelin',  'peptide',  5,     4000,  false, false, 40,  null, '/products/tesamorelin-5mg.webp'),
   -- $7.00/mg
-  ('tesamorelin-10mg',  'Tesamorelin',  'peptide',  10,    7000,  false, false, 50,  null, '/products/tesamorelin-10mg.webp'),
+  ('tesamorelin-10mg',  'Tesamorelin',  'peptide',  10,    7000,  false, false, 50,  '/coa/tesamorelin-10mg.jpg', '/products/tesamorelin-10mg.webp'),
   -- $0.60/mg — copper peptide, arguably 'cosmetic'; category to confirm
   ('ghk-cu-50mg',       'GHK-Cu',       'peptide',  50,    3000,  false, true,  60,  null, '/products/ghk-cu-50mg.webp'),
   -- $6.00/mg

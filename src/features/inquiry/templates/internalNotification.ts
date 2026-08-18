@@ -1,4 +1,5 @@
 import { SITE_NAME } from "@/constants/site";
+import { escapeHtml, type EmailContent } from "@/features/inquiry/templates/emailContent";
 import type { InquiryNotification } from "@/features/inquiry/types/inquiry";
 import { formatCurrencyExact } from "@/utils/formatCurrency";
 import { formatStrength } from "@/utils/formatStrength";
@@ -17,24 +18,9 @@ import { formatStrength } from "@/utils/formatStrength";
  * Every interpolated value is customer input. The text body is inert by nature; the
  * HTML body escapes each value at the point of insertion. There is no template
  * engine here, so escaping cannot be forgotten silently — it is a visible call
- * around every field.
+ * around every field. `escapeHtml` and `EmailContent` are shared with the customer
+ * confirmation template rather than redefined here; see ./emailContent.ts.
  */
-
-/** Escapes the five characters that can break out of HTML text or an attribute. */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-export interface EmailContent {
-  subject: string;
-  text: string;
-  html: string;
-}
 
 export function buildInternalNotificationEmail(notification: InquiryNotification): EmailContent {
   const { customer, items, subtotalCents, discountCents, totalCents, orderNumber } = notification;

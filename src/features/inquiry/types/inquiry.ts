@@ -79,14 +79,22 @@ export interface InquiryNotification {
 }
 
 /**
- * Email is the only channel.
+ * The two things an inquiry triggers, both over email.
  *
- * The union exists rather than being inlined so adding a second channel later is a
- * one-line change here plus an adapter — the notification service, the log table and
- * the repository are all already channel-generic. WhatsApp was removed in favour of
- * email alone; see ADR-023.
+ * `email` is the internal notification — the lead landing in the company inbox. It keeps
+ * its original name because renaming it would mean rewriting historical
+ * `notification_log` rows to say the same thing differently, and the log is a record, not
+ * a model. `customer_email` is the confirmation sent to the person who filled the form
+ * (ADR-027).
+ *
+ * They are separate channels rather than one send with two recipients because they fail
+ * independently and matter differently: a lead nobody was told about is a lost sale, a
+ * confirmation that never arrived is a customer wondering whether the form worked. The
+ * dead-letter list has to be able to say which one happened.
+ *
+ * WhatsApp was removed in favour of email alone; see ADR-023.
  */
-export type NotificationChannel = "email";
+export type NotificationChannel = "email" | "customer_email";
 
 export type NotificationStatus = "sent" | "failed" | "skipped";
 

@@ -167,16 +167,25 @@ const nextConfig: NextConfig = {
    * wrong for one that simply moved. A permanent redirect passes the link equity on and
    * keeps any bookmark or shared link working.
    *
-   * Add a pair here whenever a size change renames a slug; never delete one.
+   * Add a pair here whenever a size change renames a slug. **Before adding a product,
+   * check that its slug is not the `source` of a rule here** — a redirect outranks the
+   * route, so a live product behind one is unreachable: its page is prerendered, its
+   * sitemap entry is advertised, and every request for it 308s somewhere else. That
+   * happened to `tesamorelin-10mg` between 16 and 18 Aug 2026, and the only symptom was a
+   * page nobody could open.
+   *
+   * A rule is removed only when its `source` is a live product again, which is the one
+   * case where redirecting is the wrong answer. Otherwise leave them alone: a stale
+   * redirect costs nothing, and deleting one breaks links that are already in the wild.
    */
   async redirects() {
     return [
-      // Tesamorelin moved from a 10 mg vial to 5 mg, 8 Aug 2026.
-      {
-        source: "/products/tesamorelin-10mg",
-        destination: "/products/tesamorelin-5mg",
-        permanent: true,
-      },
+      /*
+       * Tesamorelin's 10 mg redirect was removed on 18 Aug 2026, when the 10 mg vial
+       * returned to the catalog alongside the 5 mg. The compound has now been sold as
+       * 10 mg, then 5 mg, and now both — which is also why its only Certificate of
+       * Analysis names 10 mg.
+       */
       // Glutathione moved from a 10 mg vial to 1500 mg, 8 Aug 2026.
       {
         source: "/products/glutathione-10mg",

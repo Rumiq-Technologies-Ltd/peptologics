@@ -133,10 +133,13 @@ POST /api/inquiries                          route: 4 checks, then hand over
         ├─ create_inquiry(payload) RPC       atomic: order + N items + 2 pending
         │                                    notification rows, ON CONFLICT DO NOTHING
         └─ NotificationService.dispatch()    AFTER the commit. Cannot rethrow.
-             └─ EmailService (Resend)        → notification_log: sent | failed | skipped
+             ├─ EmailService.sendInquiryNotification  → notification_log 'email'
+             └─ EmailService.sendCustomerConfirmation → notification_log 'customer_email'
+                                                        each: sent | failed | skipped
 ```
 
-Email is the only channel (ADR-023). The dispatcher, the log table and the repository all stay
+Both channels are email (ADR-023): one tells the company, one confirms to the customer (ADR-027). They
+run concurrently and record separately. The dispatcher, the log table and the repository all stay
 channel-generic, so a second channel is an adapter plus one array entry — not a restructure.
 
 Note where the spam filters sit: **inside the service, not the route.** They are business rules, and

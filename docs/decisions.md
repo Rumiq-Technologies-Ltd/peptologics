@@ -641,6 +641,61 @@ one component and one dynamic import behind a props boundary, so removing it is 
 
 ---
 
+## ADR-027 — The customer confirmation is a second logged channel, not a second recipient
+
+**Status** Accepted · post-launch, at the client's request (17 Aug 2026). Resolves open question 13.
+
+A visitor who submits an inquiry now receives an email confirming it arrived and promising contact
+within `INQUIRY_RESPONSE_HOURS` (24). Until now the only message an inquiry produced went to the
+company; the customer got a success page and then silence, and a success page is not something anyone
+can forward, search for later, or show a colleague.
+
+**It is a distinct `notification_log` channel — `customer_email` — rather than a second recipient on
+the existing send.** The cheap implementation is one Resend call with the customer copied in. It was
+rejected for two reasons, and the second is the load-bearing one:
+
+- The messages are not the same message. One is a work order for a representative — full contact
+  details, the shipping address, the customer's notes. The other is a receipt-shaped reassurance for
+  the person who wrote them. Copying the customer on the internal notification would mail them their
+  own address back inside a document written about them.
+- **They fail independently, and `notification_log` is keyed `(order_id, channel)`.** One row cannot
+  hold two verdicts. A single send to both means an operator reading the dead-letter list learns that
+  _something_ did not deliver, not whether the company missed a lead or a customer is sitting
+  unconfirmed. Those need different responses, so they need different rows.
+
+The two intent rows are written together inside `create_inquiry`, for the same reason the first one
+always was: a channel with no `pending` row is a channel that can be silently forgotten, and there
+would then be nothing to say a customer was never confirmed.
+
+Dispatch runs them **concurrently**. They share nothing, and serially they would add a second provider
+round trip plus its retry budget to a request the customer is still waiting on. `Promise.all` is safe
+here only because `runChannel` cannot reject — that guarantee is what stops one channel aborting the
+other, and the tests assert it from both directions.
+
+**Wording.** The client asked for "your order is placed". It says _inquiry received_ instead. This
+application takes no payment and every other surface says so; an email announcing a placed order would
+be the single place the site told a customer they had bought something, and it is the version they
+would keep. The reference number is called a reference, the money is labelled estimated, and a test
+fails the build if the words "your order", "purchase", "receipt", "invoice" or "paid" appear in either
+body.
+
+**Sender.** `CUSTOMER_CONFIRMATION_FROM`, falling back to `INQUIRY_NOTIFICATION_FROM` when unset. Two
+variables because the readers differ: the internal notification can come from anything that delivers,
+while the confirmation should come from an address a customer recognises and can reply to. The fallback
+is what keeps the new variable optional — an environment that never sets it still sends confirmations
+rather than silently skipping them.
+
+**Known limitation, and it is question 12, not this ADR.** Resend's shared `onboarding@resend.dev`
+sender only delivers to the Resend account owner. Until `peptologics.com` is verified with SPF and DKIM,
+every confirmation to a real customer records `failed` — visibly, in the dead-letter list, which is the
+correct behaviour but is not a working feature. The internal notification has always had this problem;
+the difference is that a customer now notices.
+
+**Revisit if** confirmations start being marked as spam, or the client wants the response window
+changed — the latter is one constant.
+
+---
+
 ## Open questions — awaiting the client
 
 Nothing here is invented in code without being listed as `PLACEHOLDER`.
@@ -672,7 +727,7 @@ Nothing here is invented in code without being listed as `PLACEHOLDER`.
 | --- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 12  | Which inbox receives inquiries? Which domain sends?                                                                             | Set, but sending from Resend's sandbox `onboarding@resend.dev`, which delivers **only to the Resend account owner**. `peptologics.com` must be verified in Resend before launch.                                        |
 | 12b | One Supabase project serves development, preview and production. Create a second for non-production, or use Supabase branching? | Shared. Acceptable while there are no real leads; a preview deploy currently writes orders to the database production reads. Points 1 and 2 in `docs/deployment.md` cover both fixes; neither changes application code. |
-| 13  | Does the customer get a confirmation email?                                                                                     | No. Internal notification only.                                                                                                                                                                                         |
+| 13  | ~~Does the customer get a confirmation email?~~                                                                                 | **Resolved 17 Aug 2026.** Yes — sent on submit, promising contact within `INQUIRY_RESPONSE_HOURS` (24). See ADR-027. Depends on question 12: it cannot reach real customers from Resend's sandbox sender.               |
 | 14  | PII retention period and deletion-request process.                                                                              | No retention job. Rows kept indefinitely.                                                                                                                                                                               |
 | 15  | How does the company read inquiries and move `status`?                                                                          | **Supabase Studio. No admin UI is in scope.**                                                                                                                                                                           |
 | 16  | Analytics — Vercel, GA4, Plausible, none?                                                                                       | None installed. Affects the CSP header and the privacy policy.                                                                                                                                                          |

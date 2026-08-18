@@ -88,6 +88,12 @@ neither was visible from inside the application (ADR-025):
 - All three Resend variables are required when `VERCEL_ENV=production`. Email is the only
   notification channel, so without them an inquiry saves, returns `201`, shows the customer a
   reference number — and nobody is ever told about the lead.
+- `CUSTOMER_CONFIRMATION_FROM` is optional and falls back to `INQUIRY_NOTIFICATION_FROM`, so nothing
+  fails the build. It does need real attention before launch anyway: the customer confirmation
+  (ADR-027) goes to an address a stranger typed, and Resend's sandbox `onboarding@resend.dev` sender
+  only delivers to the Resend account owner. Until `peptologics.com` is verified with SPF and DKIM,
+  every confirmation records `failed` in the dead-letter list. Set this to
+  `PeptoLogics <hello@peptologics.com>` once the domain is verified.
 
 `VERCEL_ENV`, not `NODE_ENV`: a preview build also runs with `NODE_ENV=production`, and on a preview
 a `*.vercel.app` URL is correct and Resend credentials are optional.

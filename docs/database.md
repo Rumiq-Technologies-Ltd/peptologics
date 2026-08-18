@@ -112,6 +112,12 @@ One row per order per channel. This table is what makes notification failure sur
 commits first, `create_inquiry` writes a `pending` row per channel, and the notification service
 updates it afterwards. Nothing can throw back into the order transaction.
 
+`channel` is `email` \| `customer_email`. The first is the internal notification to the company; the
+second is the confirmation to the customer who submitted (ADR-027). They are separate rows rather than
+one send to two recipients precisely because this table is keyed `(order_id, channel)` — one row cannot
+record two verdicts, and an operator needs to know _which_ of the two went missing. `whatsapp` remains
+in the CHECK constraint for historical rows only and is unused (ADR-023).
+
 `status` is `pending` \| `sent` \| `failed` \| `skipped`. **`skipped` is a first-class outcome**, not an
 error — it is what a channel with no credentials configured records. Keeping it distinct from `failed`
 is what makes the dead-letter list meaningful before Resend and Meta are set up.
@@ -154,7 +160,9 @@ Returns `{ order_id, order_number, created }`. On a duplicate `idempotency_key` 
 service knows to skip notifications on a replay.
 
 Verified: two calls with the same key produced one order (`PL-001000`), `created: true` then `false`,
-one `order_items` row, two `notification_log` rows both `pending`.
+one `order_items` row, and — since ADR-027 — two `notification_log` rows, `email` and `customer_email`,
+both `pending`. The replay wrote none of them a second time, which is the guarantee that stops a
+double-click putting a duplicate lead in the inbox and a duplicate confirmation in the customer's.
 
 ### `check_rate_limit`
 
@@ -238,19 +246,25 @@ Applied to the linked project with `npm run db:push`, or via the Supabase MCP `a
 
 Files under `supabase/migrations/`, in order:
 
-| File                                 | Contents                                                            |
-| ------------------------------------ | ------------------------------------------------------------------- |
-| `…100000_helpers.sql`                | `set_updated_at()`                                                  |
-| `…100100_products.sql`               | `products` + generated column, indexes, RLS policy                  |
-| `…100200_orders.sql`                 | `order_number_seq`, `orders`, indexes, RLS                          |
-| `…100300_order_items.sql`            | `order_items`, FKs, arithmetic invariant, RLS                       |
-| `…100400_notification_log.sql`       | `notification_log`, dead-letter index, RLS                          |
-| `…100500_rate_limit_hits.sql`        | `rate_limit_hits`, RLS                                              |
-| `…100600_fn_create_inquiry.sql`      | The atomic write                                                    |
-| `…100700_fn_check_rate_limit.sql`    | The atomic counter                                                  |
-| `…100800_grants.sql`                 | anon `SELECT` on products; revoke `TRUNCATE`/`TRIGGER`/`REFERENCES` |
-| `…100900_service_role_grants.sql`    | Write-path DML for `service_role`                                   |
-| `…101000_harden_rls_auto_enable.sql` | Revoke `EXECUTE` on the pre-existing event-trigger function         |
+| File                                                           | Contents                                                            |
+| -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `…100000_helpers.sql`                                          | `set_updated_at()`                                                  |
+| `…100100_products.sql`                                         | `products` + generated column, indexes, RLS policy                  |
+| `…100200_orders.sql`                                           | `order_number_seq`, `orders`, indexes, RLS                          |
+| `…100300_order_items.sql`                                      | `order_items`, FKs, arithmetic invariant, RLS                       |
+| `…100400_notification_log.sql`                                 | `notification_log`, dead-letter index, RLS                          |
+| `…100500_rate_limit_hits.sql`                                  | `rate_limit_hits`, RLS                                              |
+| `…100600_fn_create_inquiry.sql`                                | The atomic write                                                    |
+| `…100700_fn_check_rate_limit.sql`                              | The atomic counter                                                  |
+| `…100800_grants.sql`                                           | anon `SELECT` on products; revoke `TRUNCATE`/`TRIGGER`/`REFERENCES` |
+| `…100900_service_role_grants.sql`                              | Write-path DML for `service_role`                                   |
+| `…101000_harden_rls_auto_enable.sql`                           | Revoke `EXECUTE` on the pre-existing event-trigger function         |
+| `…120000_create_inquiry_email_only.sql` (7 Aug)                | Drops the WhatsApp intent row (ADR-023)                             |
+| `…190140_products_strength_unit.sql` (10 Aug)                  | `products.strength_unit` for supplies sold by volume                |
+| `…140431_orders_coupon_discount.sql` (11 Aug)                  | `orders.coupon_code`, `orders.discount_cents`                       |
+| `…140500_create_inquiry_with_coupon.sql` (11 Aug)              | Stores the coupon and discount the service computed                 |
+| `…120000_notification_log_customer_email_channel.sql` (17 Aug) | Admits `customer_email` (ADR-027)                                   |
+| `…120100_create_inquiry_customer_email.sql` (17 Aug)           | Writes both pending intent rows                                     |
 
 ## Seed data
 

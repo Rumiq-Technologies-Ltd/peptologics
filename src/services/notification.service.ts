@@ -18,11 +18,16 @@ import type { NotificationRepository } from "@/services/notification.repository"
  * if this process dies before dispatch, the pending row remains and the operator can
  * see exactly which leads nobody was told about.
  *
- * **Email is the only channel** (ADR-023). The shape here — a channel that returns an
- * outcome, a loop that records each one — is deliberately unchanged from the two-channel
- * version, because the log table, the repository and the outcome type are all
- * channel-generic. Adding a second channel later means writing an adapter and one more
- * entry in the array below, not restructuring this file.
+ * **Two channels, both over email** (ADR-023, ADR-027): the internal notification that
+ * tells the company a lead arrived, and the confirmation that tells the customer we have
+ * their inquiry. They run concurrently rather than in sequence — they share nothing, and
+ * running them serially would add a second provider round trip, plus its retry budget, to
+ * the latency of a request the customer is still waiting on.
+ *
+ * Concurrency is safe here precisely because of `runChannel`: it cannot reject, so
+ * `Promise.all` cannot either, and neither channel can abort the other. The outcomes are
+ * then recorded one at a time — the writes are cheap, and ordering them keeps a single
+ * failing write from obscuring the other.
  */
 
 export interface NotificationService {
@@ -82,9 +87,10 @@ export function createNotificationService({
 
   return {
     async dispatch(notification): Promise<NotificationOutcome[]> {
-      const outcomes = [
-        await runChannel("email", () => email.sendInquiryNotification(notification)),
-      ];
+      const outcomes = await Promise.all([
+        runChannel("email", () => email.sendInquiryNotification(notification)),
+        runChannel("customer_email", () => email.sendCustomerConfirmation(notification)),
+      ]);
 
       for (const outcome of outcomes) {
         await record(notification.orderId, outcome);

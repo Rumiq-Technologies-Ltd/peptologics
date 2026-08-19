@@ -11,6 +11,7 @@ import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
 import { CartLineList } from "@/features/cart/components/CartLineList";
 import { CouponField } from "@/features/cart/components/CouponField";
+import { couponDisplayCode } from "@/features/cart/utils/coupon";
 import { cartActions, useCartHasHydrated, useCartSummary } from "@/hooks/useCart";
 import type { Product } from "@/features/products/types/product";
 import { formatCurrencyExact } from "@/utils/formatCurrency";
@@ -143,7 +144,9 @@ export function CartView({ catalog }: CartViewProps) {
             <div className="mt-2 flex items-baseline justify-between gap-4">
               <span className="text-success text-sm font-medium">
                 Discount
-                <span className="ml-1 font-mono font-normal">({couponEvaluation.coupon.code})</span>
+                <span className="ml-1 font-mono font-normal">
+                  ({couponDisplayCode(couponEvaluation.coupon)})
+                </span>
               </span>
               <span className="text-success font-mono text-sm font-semibold tabular-nums">
                 −{formatCurrencyExact(couponEvaluation.discountCents)}

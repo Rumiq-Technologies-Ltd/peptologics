@@ -5,7 +5,7 @@ import { CheckCircle2Icon, TagIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { evaluateCoupon } from "@/features/cart/utils/coupon";
+import { couponDisplayCode, evaluateCoupon } from "@/features/cart/utils/coupon";
 import { cartActions, useCartCouponCode } from "@/hooks/useCart";
 import { formatCurrencyExact } from "@/utils/formatCurrency";
 import { cn } from "@/utils/cn";
@@ -70,7 +70,8 @@ export function CouponField({ subtotalCents, className }: CouponFieldProps) {
 
         <div className="min-w-0 flex-1">
           <p className="text-ink-950 text-sm font-semibold">
-            {applied.coupon.code}
+            {/* The promoted form, so a referral code reads the way it was given out. */}
+            {couponDisplayCode(applied.coupon)}
             <span className="text-ink-600 ml-2 font-normal">{applied.coupon.label}</span>
           </p>
           <p className="text-success text-sm font-medium tabular-nums">
@@ -83,7 +84,7 @@ export function CouponField({ subtotalCents, className }: CouponFieldProps) {
           variant="ghost"
           size="sm"
           onClick={handleRemove}
-          aria-label={`Remove coupon ${applied.coupon.code}`}
+          aria-label={`Remove coupon ${couponDisplayCode(applied.coupon)}`}
           className="shrink-0"
         >
           <XIcon aria-hidden="true" />

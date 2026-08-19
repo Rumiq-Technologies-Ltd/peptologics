@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateDiscountCents,
+  COUPONS,
+  couponDisplayCode,
   evaluateCoupon,
   findCoupon,
   normalizeCouponCode,
@@ -66,6 +68,99 @@ describe("calculateDiscountCents", () => {
 
   it("is zero on an empty order", () => {
     expect(calculateDiscountCents(0, coupon)).toBe(0);
+  });
+});
+
+describe("the referral codes", () => {
+  /*
+   * Each entry is the code exactly as the client hands it out, paired with the subtotal
+   * arithmetic it should produce. Typed with the punctuation and casing from the
+   * marketing, because that is what a visitor pastes — if normalisation ever stops
+   * forgiving a space or a dot, these fail rather than the customer.
+   */
+  const REFERRAL_CODES = [
+    { promoted: "TimTim", canonical: "TIMTIM" },
+    { promoted: "MO.BIOHACK", canonical: "MOBIOHACK" },
+    { promoted: "Vincent", canonical: "VINCENT" },
+    { promoted: "MSK", canonical: "MSK" },
+    { promoted: "Zarmeena", canonical: "ZARMEENA" },
+    { promoted: "Tony Black", canonical: "TONYBLACK" },
+  ] as const;
+
+  it.each(REFERRAL_CODES)(
+    "resolves $promoted as typed, and takes 10% off",
+    ({ promoted, canonical }) => {
+      const result = evaluateCoupon(20000, promoted);
+
+      expect(result.coupon?.code).toBe(canonical);
+      expect(result.coupon?.percentOff).toBe(10);
+      expect(result.rejection).toBeNull();
+      // $200 at 10% is exactly $20.
+      expect(result.discountCents).toBe(2000);
+      expect(result.totalCents).toBe(18000);
+    },
+  );
+
+  it.each(REFERRAL_CODES)(
+    "accepts $promoted however it is cased or spaced",
+    ({ promoted, canonical }) => {
+      for (const typed of [
+        promoted,
+        promoted.toLowerCase(),
+        promoted.toUpperCase(),
+        ` ${promoted} `,
+      ]) {
+        expect(findCoupon(typed)?.code).toBe(canonical);
+      }
+    },
+  );
+
+  it("shows a partner their code the way it was given to them", () => {
+    // Normalisation has to strip the dot and the space to match, but the visitor should
+    // never be shown a form they did not recognise.
+    const promotedForms = REFERRAL_CODES.map((entry) => {
+      const coupon = findCoupon(entry.promoted);
+      return coupon ? couponDisplayCode(coupon) : null;
+    });
+
+    expect(promotedForms).toEqual([
+      "TimTim",
+      "MO.BIOHACK",
+      "Vincent",
+      // No `display` set: the canonical code is already the promoted form.
+      "MSK",
+      "Zarmeena",
+      "Tony Black",
+    ]);
+  });
+
+  it("labels every referral code with the same 10% wording", () => {
+    for (const { canonical } of REFERRAL_CODES) {
+      expect(findCoupon(canonical)?.label).toBe("10% off your order");
+    }
+  });
+});
+
+describe("the coupon table itself", () => {
+  it("has no duplicate canonical codes, so a lookup is unambiguous", () => {
+    const codes = COUPONS.map((coupon) => coupon.code);
+
+    expect(new Set(codes).size).toBe(codes.length);
+  });
+
+  it("stores every code already canonical, so each one is reachable by typing it", () => {
+    // An entry written "Tony Black" in the table could never be matched: normalisation
+    // would turn the visitor's input into TONYBLACK and find nothing.
+    for (const coupon of COUPONS) {
+      expect(normalizeCouponCode(coupon.code)).toBe(coupon.code);
+    }
+  });
+
+  it("keeps every percentage inside 1–100", () => {
+    for (const coupon of COUPONS) {
+      expect(coupon.percentOff).toBeGreaterThan(0);
+      expect(coupon.percentOff).toBeLessThanOrEqual(100);
+    }
   });
 });
 

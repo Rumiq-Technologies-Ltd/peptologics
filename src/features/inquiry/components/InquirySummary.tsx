@@ -7,6 +7,7 @@ import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
 import { CartLineList } from "@/features/cart/components/CartLineList";
 import { CouponField } from "@/features/cart/components/CouponField";
+import { couponDisplayCode } from "@/features/cart/utils/coupon";
 import { useCartHasHydrated, useCartSummary } from "@/hooks/useCart";
 import type { Product } from "@/features/products/types/product";
 import { formatCurrencyExact } from "@/utils/formatCurrency";
@@ -94,7 +95,7 @@ export function InquirySummary({ catalog }: InquirySummaryProps) {
                   <span className="text-success text-sm font-medium">
                     Discount
                     <span className="ml-1 font-mono font-normal">
-                      ({couponEvaluation.coupon.code})
+                      ({couponDisplayCode(couponEvaluation.coupon)})
                     </span>
                   </span>
                   <span className="text-success font-mono text-sm font-semibold tabular-nums">

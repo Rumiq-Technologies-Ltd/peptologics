@@ -21,11 +21,26 @@ import type { CartTotals } from "@/features/cart/types/cart";
 export interface Coupon {
   /** Canonical form: upper case, no spaces. Compare against `normalizeCouponCode`. */
   code: string;
+  /**
+   * How the code is written in the marketing that carries it, when that differs from
+   * the canonical form. Display only — never stored, never compared.
+   *
+   * Normalisation strips punctuation and spaces, so a code promoted as `MO.BIOHACK`
+   * canonicalises to `MOBIOHACK`. Matching has to use the canonical key or nobody
+   * could type the code at all, but echoing `MOBIOHACK` back at someone who took it
+   * from an influencer's bio makes them wonder whether they used the right one. This
+   * field is what they see; `code` is what the system uses.
+   */
+  display?: string;
   /** Whole percent off the order subtotal, 1–100. */
   percentOff: number;
   /** Shown beside the applied code, so the visitor can see what they got. */
   label: string;
 }
+
+/** The partner rate. Every referral code below is worth the same 10%. */
+const PARTNER_PERCENT_OFF = 10;
+const PARTNER_LABEL = `${PARTNER_PERCENT_OFF}% off your order`;
 
 /**
  * Every code the site accepts.
@@ -34,9 +49,35 @@ export interface Coupon {
  * expiry, the eligibility and whether the discount is meant to apply before or after
  * shipping — today there is no shipping figure on the site at all, so it applies to
  * the product subtotal and nothing else.
+ *
+ * The referral codes added on 18 Aug 2026 are personal handles rather than campaign
+ * slugs, so two of them carry a `display` form: `MO.BIOHACK` and `Tony Black` reach the
+ * lookup as `MOBIOHACK` and `TONYBLACK` once normalised, and the visitor sees the
+ * version they were given.
+ *
+ * `MSK` is three characters, which is short enough to be guessed by someone trying.
+ * That is a commercial decision rather than a bug — the discount is 10% off an inquiry
+ * that a representative prices by hand before anything is arranged, so a guessed code
+ * costs a conversation, not money. Flagged rather than changed.
  */
 export const COUPONS: readonly Coupon[] = [
   { code: "RESEARCH2026", percentOff: 15, label: "15% off your order" },
+  { code: "TIMTIM", display: "TimTim", percentOff: PARTNER_PERCENT_OFF, label: PARTNER_LABEL },
+  {
+    code: "MOBIOHACK",
+    display: "MO.BIOHACK",
+    percentOff: PARTNER_PERCENT_OFF,
+    label: PARTNER_LABEL,
+  },
+  { code: "VINCENT", display: "Vincent", percentOff: PARTNER_PERCENT_OFF, label: PARTNER_LABEL },
+  { code: "MSK", percentOff: PARTNER_PERCENT_OFF, label: PARTNER_LABEL },
+  { code: "ZARMEENA", display: "Zarmeena", percentOff: PARTNER_PERCENT_OFF, label: PARTNER_LABEL },
+  {
+    code: "TONYBLACK",
+    display: "Tony Black",
+    percentOff: PARTNER_PERCENT_OFF,
+    label: PARTNER_LABEL,
+  },
 ] as const;
 
 /** Longest code we will even look up. Slack against a pasted essay, not a rule. */
@@ -73,6 +114,17 @@ export function normalizeCouponCode(raw: string): string {
     .toUpperCase()
     .replace(/[^A-Z0-9-]/g, "")
     .slice(0, MAX_COUPON_LENGTH);
+}
+
+/**
+ * How a coupon should be written for the visitor: its promoted form when it has one,
+ * otherwise the canonical code.
+ *
+ * A function rather than every caller reaching for `display ?? code`, so a surface that
+ * forgets cannot quietly show the canonical form on its own.
+ */
+export function couponDisplayCode(coupon: Coupon): string {
+  return coupon.display ?? coupon.code;
 }
 
 /** The coupon for a typed code, or null. Case and spacing insensitive. */

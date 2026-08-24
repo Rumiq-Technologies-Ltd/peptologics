@@ -1,20 +1,11 @@
-import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  FileCheck2Icon,
-  FlaskConicalIcon,
-  PackageCheckIcon,
-  ShieldCheckIcon,
-  SnowflakeIcon,
-} from "lucide-react";
-
 import { Section } from "@/components/layout/Section";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { Button } from "@/components/ui/button";
-import { HexFrame } from "@/components/ui/HexFrame";
 import { ProductRowControls } from "@/features/cart/components/ProductRowControls";
 import { HeroSection } from "@/features/home/components/HeroSection";
+import { TrustMarquee } from "@/features/home/components/TrustMarquee";
 import { ProductCard } from "@/features/products/components/ProductCard";
 import { ROUTES } from "@/constants/routes";
 import { SITE_NAME, SITE_TAGLINE } from "@/constants/site";
@@ -30,42 +21,6 @@ export const metadata: Metadata = {
   title: { absolute: `${SITE_NAME} — ${SITE_TAGLINE}` },
   alternates: { canonical: ROUTES.home },
 };
-
-/**
- * Process and logistics statements only — no efficacy, therapeutic or outcome
- * claims anywhere on this page.
- *
- * TODO(client): each of these must be substantiable. "Third-party tested" and
- * "cold-chain handling" in particular are factual assertions about operations.
- * Confirm or soften before launch. Open question 2 in docs/decisions.md.
- */
-const TRUST_SIGNALS = [
-  {
-    icon: FlaskConicalIcon,
-    label: "Third-party tested",
-    detail: "HPLC and mass spectrometry analysis on production lots.",
-  },
-  {
-    icon: FileCheck2Icon,
-    label: "COA on request",
-    detail: "Lot-specific Certificate of Analysis for your order.",
-  },
-  {
-    icon: SnowflakeIcon,
-    label: "Cold-chain handling",
-    detail: "Lyophilized and shipped in temperature-controlled packaging.",
-  },
-  {
-    icon: PackageCheckIcon,
-    label: "Sealed and tracked",
-    detail: "Tamper-evident packaging with tracked dispatch.",
-  },
-  {
-    icon: ShieldCheckIcon,
-    label: "Research use only",
-    detail: "Supplied strictly for in-vitro laboratory research.",
-  },
-] as const;
 
 const PROCESS_STEPS = [
   {
@@ -148,31 +103,20 @@ export default async function HomePage() {
 
       {/* ---------------------------------------------------------- Trust bar */}
       {/*
-        The band itself does not reveal — its only non-item child is an `sr-only`
-        heading, so animating the wrapper would fade in an empty box and then stagger
-        its contents inside it. The signals carry the motion on their own.
+        `bleed` rather than a Container: a row of cards that steps sideways has to run to
+        both edges of the viewport, and stopping it at the content gutter would make it
+        read as a clipped list rather than a continuous one.
+
+        The band does not reveal, and the signals no longer carry the per-item
+        `data-reveal` stagger the static grid used — an item that fades in while it is also
+        moving sideways reads as a glitch. The row's own motion replaces it.
       */}
-      <Section surface="muted" compact aria-labelledby="trust-heading">
+      <Section surface="muted" compact bleed aria-labelledby="trust-heading">
         <h2 id="trust-heading" className="sr-only">
           How we supply
         </h2>
-        <ul className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-5">
-          {TRUST_SIGNALS.map(({ icon: Icon, label, detail }, index) => (
-            /*
-              Each signal arrives 60ms after the one before it, so the row reads
-              left-to-right rather than flashing as one block. `--reveal-index` is set
-              on the item itself, not inherited from the list: driving a child's
-              transform from a parent variable restyles every sibling on each frame.
-            */
-            <li key={label} data-reveal style={{ "--reveal-index": index } as CSSProperties}>
-              <HexFrame>
-                <Icon className="size-5" aria-hidden="true" />
-              </HexFrame>
-              <p className="text-eyebrow text-ink-950 mt-3 uppercase">{label}</p>
-              <p className="text-ink-600 mt-1 text-sm">{detail}</p>
-            </li>
-          ))}
-        </ul>
+
+        <TrustMarquee />
       </Section>
 
       {/* -------------------------------------------------- Featured products */}

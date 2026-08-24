@@ -338,6 +338,20 @@
     will-change: transform;
   }
 
+  /*
+   * Softens both edges of a marquee so cards enter and leave rather than being cut off
+   * at a hard border. Purely decorative — the mask does not affect layout or hit areas.
+   */
+  .marquee-fade {
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--marquee-fade, 6%),
+      #000 calc(100% - var(--marquee-fade, 6%)),
+      transparent 100%
+    );
+  }
+
   @keyframes marquee-slide {
     from {
       transform: translate3d(0, 0, 0);
@@ -363,6 +377,86 @@
     }
 
     .marquee-track > [aria-hidden="true"] {
+      display: none;
+    }
+  }
+
+  /*
+   * The trust bar's stepped row.
+   *
+   * A different mechanism from `.marquee-track` above, and deliberately so. That one
+   * slides a single track at a constant rate, which is right for one line of text. This
+   * one moves each card independently — every card travels exactly one pitch per cycle,
+   * same distance, same duration, same easing, and only the *start time* differs. That
+   * offset is the whole effect: during a step the row shears slightly, then settles
+   * square again. Nothing else animates, no scale, no fade, no rotation.
+   *
+   * Positions are set by GSAP (`TrustMarquee.tsx`), so the cards are absolute and the
+   * viewport carries an explicit height — an absolute child contributes nothing to its
+   * parent's height, so without one the band would collapse to zero.
+   */
+  .stepped-row {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stepped-row-card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--stepped-row-card-width);
+    /*
+     * `will-change` promotes each card to its own compositor layer, so a row of eight
+     * transforms runs off the main thread and cannot be janked by the hero's WebGL work
+     * directly above it. Dropped under reduced motion, where nothing moves and the
+     * layers would be pure cost.
+     */
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  /*
+   * Reduced motion: the row becomes the static grid it replaced.
+   *
+   * GSAP is never started in this case, so without this the cards would sit stacked at
+   * their absolute rest positions with most of them off-frame. Unsetting `position`
+   * hands layout back to CSS, and the grid is the same shape the section used before it
+   * animated — which is the honest still version of a decorative scroll.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .stepped-row {
+      height: auto !important;
+      overflow: visible;
+      mask-image: none;
+    }
+
+    .stepped-row-track {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+
+    @media (width >= 48rem) {
+      .stepped-row-track {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (width >= 64rem) {
+      .stepped-row-track {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+    }
+
+    .stepped-row-card {
+      position: static;
+      width: auto;
+      transform: none !important;
+      will-change: auto;
+    }
+
+    /* Only the first pass survives; the rest exist to fill a moving frame. */
+    .stepped-row-card[data-clone] {
       display: none;
     }
   }

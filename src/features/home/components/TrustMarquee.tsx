@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import gsap from "gsap";
 import {
   FileCheck2Icon,
@@ -98,6 +106,20 @@ const ROW = {
 export function TrustMarquee() {
   const viewportRef = useRef<HTMLDivElement>(null);
 
+  /** The running timeline, so the hover handlers can pause the row mid-step. */
+  const timelineRef = useRef<gsap.core.Timeline | null>(null);
+
+  /**
+   * Whether a mouse is currently over the row.
+   *
+   * A ref rather than state: nothing renders differently while paused, and making it
+   * state would re-render seven cards on every enter and leave for no visual gain. It is
+   * read when the timeline is rebuilt, because a resize under a stationary cursor would
+   * otherwise hand back a fresh, playing timeline and the row would start moving with the
+   * pointer still sitting on it.
+   */
+  const hoveredRef = useRef(false);
+
   /**
    * Server-rendered at the deck size, then grown to fill the measured frame.
    *
@@ -179,9 +201,44 @@ export function TrustMarquee() {
     }
 
     timeline.duration(count * ROW.cycle);
+    timelineRef.current = timeline;
 
-    return () => void timeline.kill();
+    // A rebuild while the pointer is still over the row must not resume it.
+    if (hoveredRef.current) timeline.pause();
+
+    return () => {
+      timeline.kill();
+      timelineRef.current = null;
+    };
   }, [slots, height]);
+
+  /**
+   * Hold the row still while a mouse is over it, and let it go when the mouse leaves.
+   *
+   * Mouse only. A touch tap fires `pointerenter` and, on most mobile browsers, no matching
+   * `pointerleave` until the next tap elsewhere — so without this guard a single tap would
+   * park the row permanently, which is the one failure mode worse than not having the
+   * feature. `pointerType` is the cheapest honest test for a real pointer.
+   *
+   * `pause()` freezes the timeline wherever it is, including part-way through a step, and
+   * `play()` continues from there rather than snapping to the next whole step.
+   */
+  const handleHover = useCallback((hovered: boolean) => {
+    return (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (event.pointerType !== "mouse") return;
+
+      hoveredRef.current = hovered;
+
+      const timeline = timelineRef.current;
+      if (!timeline) return;
+
+      if (hovered) {
+        timeline.pause();
+      } else {
+        timeline.play();
+      }
+    };
+  }, []);
 
   return (
     <>
@@ -201,6 +258,8 @@ export function TrustMarquee() {
       <div
         ref={viewportRef}
         aria-hidden="true"
+        onPointerEnter={handleHover(true)}
+        onPointerLeave={handleHover(false)}
         className="stepped-row marquee-fade"
         style={
           {

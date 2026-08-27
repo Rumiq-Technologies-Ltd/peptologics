@@ -16,9 +16,17 @@ import { expect, test } from "@playwright/test";
 test("blocks the page behind it while leaving the content crawlable", async ({ page }) => {
   const response = await page.goto("/products");
 
-  // The catalog is in the HTML the server sent, gate or no gate.
+  /*
+   * The catalog is in the HTML the server sent, gate or no gate.
+   *
+   * Asserted on a price rather than a product name. Names change — Retatrutide became
+   * RETA-PL3 on 27 Aug 2026 and this line broke with it — but "the catalog rendered
+   * server-side" is the actual claim, and a formatted price proves it without pinning the
+   * test to whatever the client is calling a compound this month.
+   */
   const html = (await response?.text()) ?? "";
-  expect(html).toContain("Retatrutide");
+  expect(html).toMatch(/\$\d+(\.\d{2})?/);
+  expect(html).toContain("/mg");
 
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();

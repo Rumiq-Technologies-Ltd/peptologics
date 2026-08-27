@@ -318,7 +318,7 @@ any destructive migration:
 Run against the production URL, in this order.
 
 - [ ] `curl -sI https://peptologics.com` → 200, and every security header present
-- [ ] `curl -s https://peptologics.com | grep Retatrutide` → product content is in the raw HTML
+- [ ] `curl -s https://peptologics.com | grep RETA-PL3` → product content is in the raw HTML
 - [ ] Home page in a fresh browser profile → the disclaimer gate appears and blocks the page
 - [ ] Accept the gate → the page becomes usable; reload → no flash of the gate
 - [ ] `/api/health` → `database: reachable`, `channels.email: configured`

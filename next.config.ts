@@ -192,6 +192,34 @@ const nextConfig: NextConfig = {
         destination: "/products/glutathione-1500mg",
         permanent: true,
       },
+      /*
+       * 27 Aug 2026. CJC/IPA was listed at 30 mg until the vial renders arrived reading
+       * 10 MG; the strength was corrected, so the slug moved with it.
+       */
+      {
+        source: "/products/cjc-ipa-30mg",
+        destination: "/products/cjc-ipa-10mg",
+        permanent: true,
+      },
+      /*
+       * 27 Aug 2026. Both compounds dropped their smaller vial, so the retired size points
+       * at the one still sold rather than 404ing on a link someone already has.
+       */
+      {
+        source: "/products/retatrutide-10mg",
+        destination: "/products/retatrutide-30mg",
+        permanent: true,
+      },
+      {
+        source: "/products/tesamorelin-5mg",
+        destination: "/products/tesamorelin-10mg",
+        permanent: true,
+      },
+      /*
+       * K-L-O-W deliberately has no redirect. It is discontinued with no equivalent vial,
+       * and pointing it at an unrelated compound would answer a request for one product
+       * with another. A 404 is the honest response.
+       */
     ];
   },
 };

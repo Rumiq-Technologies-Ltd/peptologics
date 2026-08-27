@@ -41,8 +41,8 @@ values
   ('tesamorelin-10mg',  'Tesamorelin',  'peptide',  10,    7500,  false, false, 30,  '/coa/tesamorelin-10mg.jpg', '/products/tesamorelin-10mg.webp'),
   -- $7.00/mg
   ('tesamorelin-20mg',  'Tesamorelin',  'peptide',  20,    14000, false, false, 40,  null, '/products/tesamorelin-20mg.webp'),
-  -- $0.60/mg — copper peptide, arguably 'cosmetic'; category to confirm
-  ('ghk-cu-50mg',       'GHK-Cu',       'peptide',  50,    3000,  false, true,  50,  null, '/products/ghk-cu-50mg.webp'),
+  -- $0.80/mg — copper peptide, arguably 'cosmetic'; category to confirm
+  ('ghk-cu-50mg',       'GHK-Cu',       'peptide',  50,    4000,  false, true,  50,  null, '/products/ghk-cu-50mg.webp'),
   -- $6.00/mg
   ('mots-c-10mg',       'MOTS-c',       'peptide',  10,    6000,  false, false, 60,  '/coa/mots-c-10mg.jpg', '/products/mots-c-10mg.webp'),
   -- $3.75/mg

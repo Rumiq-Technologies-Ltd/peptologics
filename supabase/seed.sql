@@ -31,18 +31,24 @@ insert into public.products (
   image_url
 )
 values
-  -- $5.00/mg. Renamed from Retatrutide on 27 Aug 2026; the slug is unchanged so existing
+  -- $6.00/mg. Renamed from Retatrutide on 27 Aug 2026; the slug is unchanged so existing
   -- links keep working. Its 10 mg sibling was retired the same day — see the archive
   -- statement at the foot of this file — and it inherits the featured slot that vial held.
-  ('retatrutide-30mg',  'RETA-PL3',     'peptide',  30,    15000, false, true,  10,  null, '/products/retatrutide-30mg.webp'),
+  -- Repriced 28 Aug 2026 against the official price menu (PeptoLogics_Price_Menu_Original.pdf).
+  ('retatrutide-30mg',  'RETA-PL3',     'peptide',  30,    18000, false, true,  10,  null, '/products/retatrutide-30mg.webp'),
   -- $5.00/mg
   ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  20,  '/coa/bpc-157-10mg.jpg', '/products/bpc-157-10mg.webp'),
   -- $7.50/mg
   ('tesamorelin-10mg',  'Tesamorelin',  'peptide',  10,    7500,  false, false, 30,  '/coa/tesamorelin-10mg.jpg', '/products/tesamorelin-10mg.webp'),
   -- $7.00/mg
   ('tesamorelin-20mg',  'Tesamorelin',  'peptide',  20,    14000, false, false, 40,  null, '/products/tesamorelin-20mg.webp'),
-  -- $0.80/mg — copper peptide, arguably 'cosmetic'; category to confirm
-  ('ghk-cu-50mg',       'GHK-Cu',       'peptide',  50,    4000,  false, true,  50,  null, '/products/ghk-cu-50mg.webp'),
+  -- $0.65/mg — copper peptide, arguably 'cosmetic'; category to confirm. Listed at 50 mg
+  -- until 28 Aug 2026, when the official price menu (PeptoLogics_Price_Menu_Original.pdf)
+  -- showed 100 mg / $65; the slug moved with it, redirected in next.config.ts. No vial
+  -- render exists yet for the 100 mg fill, so image_url is null rather than showing the
+  -- 50 mg photograph on a product that no longer matches it — same reasoning as the
+  -- Tesamorelin certificate mismatch documented above.
+  ('ghk-cu-100mg',      'GHK-Cu',       'peptide',  100,   6500,  false, true,  50,  null, null),
   -- $6.00/mg
   ('mots-c-10mg',       'MOTS-c',       'peptide',  10,    6000,  false, false, 60,  '/coa/mots-c-10mg.jpg', '/products/mots-c-10mg.webp'),
   -- $3.75/mg
@@ -51,23 +57,25 @@ values
   ('kpv-10mg',          'KPV',          'peptide',  10,    5000,  false, false, 80,  null, '/products/kpv-10mg.webp'),
   -- $0.0333/mg, displays as $0.03
   ('glutathione-1500mg','Glutathione',  'peptide',  1500,  5000,  false, false, 90,  null, '/products/glutathione-1500mg.webp'),
-  -- $6.00/mg
-  ('ss-31-10mg',        'SS-31',        'peptide',  10,    6000,  false, false, 100, '/coa/ss-31-10mg.jpg', '/products/ss-31-10mg.webp'),
+  -- $7.00/mg. Repriced 28 Aug 2026 against the official price menu.
+  ('ss-31-10mg',        'SS-31',        'peptide',  10,    7000,  false, false, 100, '/coa/ss-31-10mg.jpg', '/products/ss-31-10mg.webp'),
   -- $0.11/mg
   ('nad-plus-500mg',    'NAD+',         'peptide',  500,   5500,  false, true,  110, '/coa/nad-plus-500mg.jpg', '/products/nad-plus-500mg.webp'),
   -- $0.08/mg
   ('nad-plus-1000mg',   'NAD+',         'peptide',  1000,  8000,  false, false, 120, null, '/products/nad-plus-1000mg.webp'),
-  -- $6.00/mg. Listed at 30 mg until 27 Aug 2026, when the vial renders arrived reading
+  -- $8.00/mg. Listed at 30 mg until 27 Aug 2026, when the vial renders arrived reading
   -- 10 MG; the strength was corrected and the slug moved with it, redirected in
   -- next.config.ts. Category stays 'blend', but is_blend is false so the cost-per-mg
   -- figure is shown: the client asked for it on 8 Aug 2026. Wolverine follows the same rule.
-  ('cjc-ipa-10mg',      'CJC/IPA',      'blend',    10,    6000,  false, false, 130, null, '/products/cjc-ipa-10mg.webp'),
-  -- $4.50/mg
-  ('wolverine-20mg',    'Wolverine',    'blend',    20,    9000,  false, false, 140, '/coa/wolverine-20mg.jpg', '/products/wolverine-20mg.webp'),
-  -- $3.3333/mg, displays as $3.33. Renamed from Tirzepatide on 27 Aug 2026; slug unchanged.
-  ('tirzepatide-30mg',  'TIRZ-PL2',     'peptide',  30,    10000, false, true,  150, '/coa/tirzepatide-30mg.jpg', '/products/tirzepatide-30mg.webp'),
-  -- $4.50/mg
-  ('ipamorelin-10mg',   'Ipamorelin',   'peptide',  10,    4500,  false, false, 160, null, '/products/ipamorelin-10mg.webp')
+  -- Repriced 28 Aug 2026 against the official price menu.
+  ('cjc-ipa-10mg',      'CJC/IPA',      'blend',    10,    8000,  false, false, 130, null, '/products/cjc-ipa-10mg.webp'),
+  -- $5.00/mg. Repriced 28 Aug 2026 against the official price menu.
+  ('wolverine-20mg',    'Wolverine',    'blend',    20,    10000, false, false, 140, '/coa/wolverine-20mg.jpg', '/products/wolverine-20mg.webp'),
+  -- $5.00/mg. Renamed from Tirzepatide on 27 Aug 2026; slug unchanged. Repriced 28 Aug 2026
+  -- against the official price menu.
+  ('tirzepatide-30mg',  'TIRZ-PL2',     'peptide',  30,    15000, false, true,  150, '/coa/tirzepatide-30mg.jpg', '/products/tirzepatide-30mg.webp'),
+  -- $5.00/mg. Repriced 28 Aug 2026 against the official price menu.
+  ('ipamorelin-10mg',   'Ipamorelin',   'peptide',  10,    5000,  false, false, 160, null, '/products/ipamorelin-10mg.webp')
 on conflict (slug) do update set
   name        = excluded.name,
   category    = excluded.category,
@@ -92,9 +100,10 @@ insert into public.products (
   sort_order, coa_url, image_url
 )
 values
-  ('bacteriostatic-water-3ml', 'Bacteriostatic Water', 'supply', 3, 'ml', 600,
+  -- Both repriced 28 Aug 2026 against the official price menu.
+  ('bacteriostatic-water-3ml', 'Bacteriostatic Water', 'supply', 3, 'ml', 800,
    false, false, 170, null, '/products/bacteriostatic-water-3ml.webp'),
-  ('bacteriostatic-water-10ml', 'Bacteriostatic Water', 'supply', 10, 'ml', 1200,
+  ('bacteriostatic-water-10ml', 'Bacteriostatic Water', 'supply', 10, 'ml', 1500,
    false, false, 180, null, '/products/bacteriostatic-water-10ml.webp')
 on conflict (slug) do update set
   name          = excluded.name,

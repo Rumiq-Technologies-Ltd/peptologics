@@ -44,11 +44,9 @@ values
   ('tesamorelin-20mg',  'Tesamorelin',  'peptide',  20,    14000, false, false, 40,  null, '/products/tesamorelin-20mg.webp'),
   -- $0.65/mg — copper peptide, arguably 'cosmetic'; category to confirm. Listed at 50 mg
   -- until 28 Aug 2026, when the official price menu (PeptoLogics_Price_Menu_Original.pdf)
-  -- showed 100 mg / $65; the slug moved with it, redirected in next.config.ts. No vial
-  -- render exists yet for the 100 mg fill, so image_url is null rather than showing the
-  -- 50 mg photograph on a product that no longer matches it — same reasoning as the
-  -- Tesamorelin certificate mismatch documented above.
-  ('ghk-cu-100mg',      'GHK-Cu',       'peptide',  100,   6500,  false, true,  50,  null, null),
+  -- showed 100 mg / $65; the slug moved with it, redirected in next.config.ts. The 100 mg
+  -- vial render arrived 1 Sep 2026.
+  ('ghk-cu-100mg',      'GHK-Cu',       'peptide',  100,   6500,  false, true,  50,  null, '/products/ghk-cu-100mg.webp'),
   -- $6.00/mg
   ('mots-c-10mg',       'MOTS-c',       'peptide',  10,    6000,  false, false, 60,  '/coa/mots-c-10mg.jpg', '/products/mots-c-10mg.webp'),
   -- $3.75/mg
@@ -57,8 +55,10 @@ values
   ('kpv-10mg',          'KPV',          'peptide',  10,    5000,  false, false, 80,  null, '/products/kpv-10mg.webp'),
   -- $0.0333/mg, displays as $0.03
   ('glutathione-1500mg','Glutathione',  'peptide',  1500,  5000,  false, false, 90,  null, '/products/glutathione-1500mg.webp'),
-  -- $7.00/mg. Repriced 28 Aug 2026 against the official price menu.
-  ('ss-31-10mg',        'SS-31',        'peptide',  10,    7000,  false, false, 100, '/coa/ss-31-10mg.jpg', '/products/ss-31-10mg.webp'),
+  -- $7.00/mg. Repriced 28 Aug 2026 against the official price menu. Renamed SS-31 ->
+  -- PL-31SS on 1 Sep 2026 to match the new vial label; slug and certificate are unchanged
+  -- since both still describe the same 10 mg lot regardless of what the label calls it.
+  ('ss-31-10mg',        'PL-31SS',      'peptide',  10,    7000,  false, false, 100, '/coa/ss-31-10mg.jpg', '/products/ss-31-10mg.webp'),
   -- $0.11/mg
   ('nad-plus-500mg',    'NAD+',         'peptide',  500,   5500,  false, true,  110, '/coa/nad-plus-500mg.jpg', '/products/nad-plus-500mg.webp'),
   -- $0.08/mg

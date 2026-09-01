@@ -216,6 +216,15 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       /*
+       * 28 Aug 2026. The official price menu lists GHK-Cu at 100 mg, not the 50 mg the
+       * catalog had carried; repriced against that menu and the slug moved with it.
+       */
+      {
+        source: "/products/ghk-cu-50mg",
+        destination: "/products/ghk-cu-100mg",
+        permanent: true,
+      },
+      /*
        * K-L-O-W deliberately has no redirect. It is discontinued with no equivalent vial,
        * and pointing it at an unrelated compound would answer a request for one product
        * with another. A 404 is the honest response.

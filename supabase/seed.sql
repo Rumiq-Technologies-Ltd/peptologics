@@ -35,24 +35,26 @@ values
   -- links keep working. Its 10 mg sibling was retired the same day — see the archive
   -- statement at the foot of this file — and it inherits the featured slot that vial held.
   -- Repriced 28 Aug 2026 against the official price menu (PeptoLogics_Price_Menu_Original.pdf).
-  ('retatrutide-30mg',  'RETA-PL3',     'peptide',  30,    18000, false, true,  10,  null, '/products/retatrutide-30mg.webp'),
-  -- $5.00/mg
-  ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  20,  '/coa/bpc-157-10mg.jpg', '/products/bpc-157-10mg.webp'),
-  -- $7.50/mg
-  ('tesamorelin-10mg',  'Tesamorelin',  'peptide',  10,    7500,  false, false, 30,  '/coa/tesamorelin-10mg.jpg', '/products/tesamorelin-10mg.webp'),
+  -- Certificate added 17 Sep 2026 (Bioviridian lot PLRT3-260101-060).
+  ('retatrutide-30mg',  'RETA-PL3',     'peptide',  30,    18000, false, true,  10,  '/coa/retatrutide-30mg.webp', '/products/retatrutide-30mg.webp'),
+  -- $5.00/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot BPC10-260101-057).
+  ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  20,  '/coa/bpc-157-10mg.webp', '/products/bpc-157-10mg.webp'),
+  -- $7.50/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot Tesa10-260101-054).
+  ('tesamorelin-10mg',  'Tesamorelin',  'peptide',  10,    7500,  false, false, 30,  '/coa/tesamorelin-10mg.webp', '/products/tesamorelin-10mg.webp'),
   -- $7.00/mg
   ('tesamorelin-20mg',  'Tesamorelin',  'peptide',  20,    14000, false, false, 40,  null, '/products/tesamorelin-20mg.webp'),
   -- $0.65/mg — copper peptide, arguably 'cosmetic'; category to confirm. Listed at 50 mg
   -- until 28 Aug 2026, when the official price menu (PeptoLogics_Price_Menu_Original.pdf)
   -- showed 100 mg / $65; the slug moved with it, redirected in next.config.ts. The 100 mg
   -- vial render arrived 1 Sep 2026.
-  ('ghk-cu-100mg',      'GHK-Cu',       'peptide',  100,   6500,  false, true,  50,  null, '/products/ghk-cu-100mg.webp'),
+  -- Certificate added 17 Sep 2026 (Bioviridian lot GHK100-260101-060).
+  ('ghk-cu-100mg',      'GHK-Cu',       'peptide',  100,   6500,  false, true,  50,  '/coa/ghk-cu-100mg.webp', '/products/ghk-cu-100mg.webp'),
   -- $6.00/mg
   ('mots-c-10mg',       'MOTS-c',       'peptide',  10,    6000,  false, false, 60,  '/coa/mots-c-10mg.jpg', '/products/mots-c-10mg.webp'),
-  -- $3.75/mg
-  ('mots-c-40mg',       'MOTS-c',       'peptide',  40,    15000, false, false, 70,  '/coa/mots-c-40mg.jpg', '/products/mots-c-40mg.webp'),
-  -- $5.00/mg
-  ('kpv-10mg',          'KPV',          'peptide',  10,    5000,  false, false, 80,  null, '/products/kpv-10mg.webp'),
+  -- $3.75/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot MS40-260101-058).
+  ('mots-c-40mg',       'MOTS-c',       'peptide',  40,    15000, false, false, 70,  '/coa/mots-c-40mg.webp', '/products/mots-c-40mg.webp'),
+  -- $5.00/mg. Certificate added 17 Sep 2026 (Bioviridian lot KPV10-260101-055).
+  ('kpv-10mg',          'KPV',          'peptide',  10,    5000,  false, false, 80,  '/coa/kpv-10mg.webp', '/products/kpv-10mg.webp'),
   -- $0.0333/mg, displays as $0.03
   ('glutathione-1500mg','Glutathione',  'peptide',  1500,  5000,  false, false, 90,  null, '/products/glutathione-1500mg.webp'),
   -- $7.00/mg. Repriced 28 Aug 2026 against the official price menu. Renamed SS-31 ->
@@ -70,12 +72,15 @@ values
   -- Repriced 28 Aug 2026 against the official price menu.
   ('cjc-ipa-10mg',      'CJC/IPA',      'blend',    10,    8000,  false, false, 130, null, '/products/cjc-ipa-10mg.webp'),
   -- $5.00/mg. Repriced 28 Aug 2026 against the official price menu.
-  ('wolverine-20mg',    'Wolverine',    'blend',    20,    10000, false, false, 140, '/coa/wolverine-20mg.jpg', '/products/wolverine-20mg.webp'),
+  -- Certificate refreshed 17 Sep 2026 (Bioviridian lot WOLV20-260101-058).
+  ('wolverine-20mg',    'Wolverine',    'blend',    20,    10000, false, false, 140, '/coa/wolverine-20mg.webp', '/products/wolverine-20mg.webp'),
   -- $5.00/mg. Renamed from Tirzepatide on 27 Aug 2026; slug unchanged. Repriced 28 Aug 2026
-  -- against the official price menu.
-  ('tirzepatide-30mg',  'TIRZ-PL2',     'peptide',  30,    15000, false, true,  150, '/coa/tirzepatide-30mg.jpg', '/products/tirzepatide-30mg.webp'),
-  -- $5.00/mg. Repriced 28 Aug 2026 against the official price menu.
-  ('ipamorelin-10mg',   'Ipamorelin',   'peptide',  10,    5000,  false, false, 160, null, '/products/ipamorelin-10mg.webp')
+  -- against the official price menu. Certificate refreshed 17 Sep 2026 (Bioviridian lot
+  -- PLTZ2-260101-052).
+  ('tirzepatide-30mg',  'TIRZ-PL2',     'peptide',  30,    15000, false, true,  150, '/coa/tirzepatide-30mg.webp', '/products/tirzepatide-30mg.webp'),
+  -- $5.00/mg. Repriced 28 Aug 2026 against the official price menu. Certificate added
+  -- 17 Sep 2026 (Bioviridian lot IPA10-260101-060).
+  ('ipamorelin-10mg',   'Ipamorelin',   'peptide',  10,    5000,  false, false, 160, '/coa/ipamorelin-10mg.webp', '/products/ipamorelin-10mg.webp')
 on conflict (slug) do update set
   name        = excluded.name,
   category    = excluded.category,

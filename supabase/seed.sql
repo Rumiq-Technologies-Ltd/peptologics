@@ -31,10 +31,13 @@ insert into public.products (
   image_url
 )
 values
+  -- $7.50/mg. Retired 27 Aug 2026 and brought back 21 Sep 2026 at the client's request.
+  -- Its certificate — "3/RETA 10mg", net content 11.87 mg — is genuinely a 10 mg lot and
+  -- returns with it. The redirect to the 30 mg vial was removed from next.config.ts.
+  ('retatrutide-10mg',  'RETA-PL3',     'peptide',  10,    7500,  false, false, 5,   '/coa/retatrutide-10mg.jpg', '/products/retatrutide-10mg.webp'),
   -- $6.00/mg. Renamed from Retatrutide on 27 Aug 2026; the slug is unchanged so existing
-  -- links keep working. Its 10 mg sibling was retired the same day — see the archive
-  -- statement at the foot of this file — and it inherits the featured slot that vial held.
-  -- Repriced 28 Aug 2026 against the official price menu (PeptoLogics_Price_Menu_Original.pdf).
+  -- links keep working. Repriced 28 Aug 2026 against the official price menu
+  -- (PeptoLogics_Price_Menu_Original.pdf).
   -- Certificate added 17 Sep 2026 (Bioviridian lot PLRT3-260101-060).
   ('retatrutide-30mg',  'RETA-PL3',     'peptide',  30,    18000, false, true,  10,  '/coa/retatrutide-30mg.webp', '/products/retatrutide-30mg.webp'),
   -- $5.00/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot BPC10-260101-057).
@@ -136,10 +139,11 @@ on conflict (slug) do update set
 -- list would stay live in any database that already has it.
 --
 -- - K-L-O-W: discontinued 27 Aug 2026. No equivalent vial, so no redirect (next.config.ts).
--- - RETA-PL3 10 mg and Tesamorelin 5 mg: both compounds dropped their smaller vial on
---   27 Aug 2026. Each redirects to the size still sold. The RETA-PL3 10 mg certificate is
---   genuinely a 10 mg lot — "3/RETA 10mg", net content 11.87 mg — so it retires with the
---   product rather than moving onto the 30 mg, which now has none.
+-- - Tesamorelin 5 mg: dropped 27 Aug 2026 when the compound retired its smaller vial, and
+--   redirected to the 10 mg still sold.
+--
+-- RETA-PL3 10 mg was archived here alongside them on 27 Aug 2026 and returned to the
+-- catalog on 21 Sep 2026, so it is listed in the insert above rather than archived here.
 update public.products
    set status = 'archived', deleted_at = coalesce(deleted_at, now())
- where slug in ('k-l-o-w-80mg', 'retatrutide-10mg', 'tesamorelin-5mg');
+ where slug in ('k-l-o-w-80mg', 'tesamorelin-5mg');

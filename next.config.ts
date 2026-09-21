@@ -202,14 +202,12 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       /*
-       * 27 Aug 2026. Both compounds dropped their smaller vial, so the retired size points
-       * at the one still sold rather than 404ing on a link someone already has.
+       * 27 Aug 2026. Tesamorelin dropped its smaller vial, so the retired size points at
+       * the one still sold rather than 404ing on a link someone already has.
+       *
+       * RETA-PL3 10 mg had the same redirect until 21 Sep 2026, when the vial returned to
+       * the catalog. A permanent redirect off its own slug would now hide the product.
        */
-      {
-        source: "/products/retatrutide-10mg",
-        destination: "/products/retatrutide-30mg",
-        permanent: true,
-      },
       {
         source: "/products/tesamorelin-5mg",
         destination: "/products/tesamorelin-10mg",

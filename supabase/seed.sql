@@ -13,6 +13,10 @@
 -- here — Postgres derives it. The expected values, all of which are exactly
 -- price / strength, are noted per row so a future edit can be sanity-checked.
 
+-- PL3 (both vials) and PL2 carry no coa_url as of 27 Sep 2026: the client asked for their
+-- certificates to come off the site for now. The scans are still in `public/coa/`, so
+-- restoring one is a matter of putting its path back on the row — nothing was deleted.
+--
 -- coa_url points at a published certificate in `public/coa/`, named for the slug. Null
 -- for a compound whose certificate the client has not supplied yet; the lab-testing page
 -- lists only the rows that have one.
@@ -41,14 +45,14 @@ insert into public.products (
 )
 values
   -- $7.50/mg. Retired 27 Aug 2026 and brought back 21 Sep 2026 at the client's request.
-  -- Its certificate — "3/RETA 10mg", net content 11.87 mg — is genuinely a 10 mg lot and
-  -- returns with it. The redirect to the 30 mg vial was removed from next.config.ts.
-  ('retatrutide-10mg',  'PL3',          'peptide',  10,    7500,  false, false, 5,   '/coa/retatrutide-10mg.jpg', '/products/retatrutide-10mg.webp'),
+  -- The redirect to the 30 mg vial was removed from next.config.ts.
+  -- Certificate withheld 27 Sep 2026 — see the note above this statement.
+  ('retatrutide-10mg',  'PL3',          'peptide',  10,    7500,  false, false, 5,   null, '/products/retatrutide-10mg.webp'),
   -- $6.00/mg. Renamed from Retatrutide on 27 Aug 2026; the slug is unchanged so existing
   -- links keep working. Repriced 28 Aug 2026 against the official price menu
   -- (PeptoLogics_Price_Menu_Original.pdf).
-  -- Certificate added 17 Sep 2026 (Bioviridian lot PLRT3-260101-060).
-  ('retatrutide-30mg',  'PL3',          'peptide',  30,    18000, false, true,  10,  '/coa/retatrutide-30mg.webp', '/products/retatrutide-30mg.webp'),
+  -- Certificate withheld 27 Sep 2026 — see the note above this statement.
+  ('retatrutide-30mg',  'PL3',          'peptide',  30,    18000, false, true,  10,  null, '/products/retatrutide-30mg.webp'),
   -- $5.00/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot BPC10-260101-057).
   ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  20,  '/coa/bpc-157-10mg.webp', '/products/bpc-157-10mg.webp'),
   -- $7.50/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot Tesa10-260101-054).
@@ -85,9 +89,9 @@ values
   -- Certificate refreshed 17 Sep 2026 (Bioviridian lot WOLV20-260101-058).
   ('wolverine-20mg',    'Wolverine',    'blend',    20,    10000, false, false, 140, '/coa/wolverine-20mg.webp', '/products/wolverine-20mg.webp'),
   -- $5.00/mg. Renamed from Tirzepatide on 27 Aug 2026; slug unchanged. Repriced 28 Aug 2026
-  -- against the official price menu. Certificate refreshed 17 Sep 2026 (Bioviridian lot
-  -- PLTZ2-260101-052).
-  ('tirzepatide-30mg',  'PL2',          'peptide',  30,    15000, false, true,  150, '/coa/tirzepatide-30mg.webp', '/products/tirzepatide-30mg.webp'),
+  -- against the official price menu.
+  -- Certificate withheld 27 Sep 2026 — see the note above this statement.
+  ('tirzepatide-30mg',  'PL2',          'peptide',  30,    15000, false, true,  150, null, '/products/tirzepatide-30mg.webp'),
   -- $5.00/mg. Repriced 28 Aug 2026 against the official price menu. Certificate added
   -- 17 Sep 2026 (Bioviridian lot IPA10-260101-060).
   ('ipamorelin-10mg',   'IPA 10',       'peptide',  10,    5000,  false, false, 160, '/coa/ipamorelin-10mg.webp', '/products/ipamorelin-10mg.webp')

@@ -186,10 +186,15 @@ const nextConfig: NextConfig = {
        * 10 mg, then 5 mg, and now both — which is also why its only Certificate of
        * Analysis names 10 mg.
        */
-      // Glutathione moved from a 10 mg vial to 1500 mg, 8 Aug 2026.
+      // Glutathione moved from 10 mg to 1500 mg, then to 600 mg on 1 Oct 2026.
       {
         source: "/products/glutathione-10mg",
-        destination: "/products/glutathione-1500mg",
+        destination: "/products/glutathione-600mg",
+        permanent: true,
+      },
+      {
+        source: "/products/glutathione-1500mg",
+        destination: "/products/glutathione-600mg",
         permanent: true,
       },
       /*

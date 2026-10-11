@@ -189,7 +189,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         */}
         <ScrollReveal />
 
-        <Toaster position="bottom-right" />
+        {/* Top, not bottom: a message on a phone would otherwise cover the sticky order bar. */}
+        <Toaster position="top-center" />
       </body>
     </html>
   );

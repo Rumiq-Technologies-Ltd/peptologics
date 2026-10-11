@@ -1,5 +1,6 @@
 import { TruckIcon } from "lucide-react";
 
+import { MarqueePauseButton } from "@/components/motion/MarqueePauseButton";
 import { SHIPPING_PROMOTION } from "@/constants/site";
 
 /**
@@ -56,7 +57,7 @@ function PromotionRun() {
  */
 export function ComplianceStrip() {
   return (
-    <div className="bg-brand-600 relative overflow-hidden text-white">
+    <div className="bg-brand-600 relative overflow-hidden text-white" data-marquee>
       {/*
         A soft light sweep across the band. Purely decorative, and behind the text
         rather than over it, so it can never reduce contrast on the message.
@@ -91,6 +92,12 @@ export function ComplianceStrip() {
           </div>
         </div>
       </div>
+
+      {/*
+        Outside the aria-hidden track, so it stays reachable by keyboard. It sits on a solid
+        band of the same blue, so the message passing beneath it is simply covered there.
+      */}
+      <MarqueePauseButton className="absolute top-1/2 right-3 z-10 -translate-y-1/2" />
     </div>
   );
 }

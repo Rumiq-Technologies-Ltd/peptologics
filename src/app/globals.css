@@ -176,7 +176,11 @@
   --color-destructive-foreground: white;
 
   --color-border: var(--color-ink-200);
-  --color-input: var(--color-ink-300);
+  /*
+   * Field borders are the only cue that a box is a field, so they need 3:1 against the
+   * white surface (WCAG 1.4.11). ink-300 measured about 1.7:1; ink-500 is about 4.6:1.
+   */
+  --color-input: var(--color-ink-500);
   /* The focus ring uses the brighter accent, matching the base layer rule. */
   --color-ring: var(--color-brand-600);
 
@@ -339,6 +343,15 @@
   }
 
   /*
+   * A visitor's pause, from the control beside the strip (WCAG 2.2.2). The control marks the
+   * strip rather than owning the animation, so the loop keeps its place and resumes exactly
+   * where it stopped.
+   */
+  [data-marquee][data-paused] .marquee-track {
+    animation-play-state: paused;
+  }
+
+  /*
    * Softens both edges of a marquee so cards enter and leave rather than being cut off
    * at a hard border. Purely decorative — the mask does not affect layout or hit areas.
    */
@@ -398,6 +411,12 @@
   .stepped-row {
     position: relative;
     overflow: hidden;
+    /*
+     * Reserves the card height before the script measures the frame. Without it the band is
+     * zero-height until hydration, then jumps by a full card: a layout shift on every visit.
+     * Sized to fit a card's icon, label and detail; the measured height replaces it after that.
+     */
+    min-height: 9rem;
   }
 
   .stepped-row-card {
@@ -515,6 +534,46 @@ html[data-motion="on"] [data-reveal] {
 html[data-motion="on"] [data-reveal][data-revealed] {
   opacity: 1;
   transform: none;
+}
+
+/*
+ * The connector between the process steps is drawn once, left to right, as its section
+ * arrives. It only moves when the motion flag is set. Without the flag it is simply drawn,
+ * so a visitor who asked for less motion never sees a missing line.
+ */
+.process-rail {
+  transform-origin: left center;
+}
+
+html[data-motion="on"] [data-reveal] .process-rail {
+  transition: transform 1.2s var(--ease-out-brand) 0.3s;
+}
+
+html[data-motion="on"] [data-reveal]:not([data-revealed]) .process-rail {
+  transform: scaleX(0);
+}
+
+/*
+ * The inquiry confirmation is drawn once: the ring, then the tick. It exists only while
+ * motion is allowed, so a reduced-motion visitor gets the finished mark straight away.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .confirm-ring,
+  .confirm-tick {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: confirm-draw 700ms var(--ease-out-brand) forwards;
+  }
+
+  .confirm-tick {
+    animation-delay: 450ms;
+  }
+}
+
+@keyframes confirm-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 /*

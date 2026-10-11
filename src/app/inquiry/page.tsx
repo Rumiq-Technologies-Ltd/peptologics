@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ShieldCheckIcon } from "lucide-react";
 
 import { Section } from "@/components/layout/Section";
-import { Button } from "@/components/ui/button";
-import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
 import { COMPLIANCE_NOTICE_LONG } from "@/constants/site";
 import { InquiryForm } from "@/features/inquiry/components/InquiryForm";
@@ -40,21 +37,10 @@ export const metadata: Metadata = {
 export default async function InquiryPage() {
   const result = await getContainer().products.listActive();
 
+  // Thrown rather than rendered, for the reason given on the catalog page: a rendered failure
+  // would be cached for the hour and replace the last good form.
   if (!result.success) {
-    return (
-      <Section>
-        <h1 className="text-display text-ink-950 font-bold">Request a quotation</h1>
-        <div className="border-ink-200 mt-10 rounded-xl border bg-white p-8">
-          <p className="text-ink-950 font-semibold">{MESSAGES.products.loadFailed}</p>
-          <p className="text-ink-600 mt-1 text-sm">
-            Your selection is saved on this device. Please try again in a moment.
-          </p>
-          <Button asChild variant="outline" className="mt-6">
-            <Link href={ROUTES.cart}>Back to your inquiry list</Link>
-          </Button>
-        </div>
-      </Section>
-    );
+    throw new Error(result.message);
   }
 
   return (

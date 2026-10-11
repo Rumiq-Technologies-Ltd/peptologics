@@ -142,7 +142,7 @@ after the commit and cannot affect the response.
   },
   "items": [{ "productId": "uuid", "quantity": 2 }],
   "honeypot": "",
-  "formStartedAt": 1754500000000,
+  "formElapsedMs": 42000,
   "ruoAcknowledgedAt": "2026-08-07T10:15:00.000Z"
 }
 ```
@@ -154,21 +154,21 @@ Zod and cannot influence what is stored. Verified: a payload claiming `1` cent f
 
 ### Validation
 
-| Field                | Rule                                                                         |
-| -------------------- | ---------------------------------------------------------------------------- |
-| `customer.name`      | required, 1–200 chars after sanitising                                       |
-| `customer.email`     | required, valid address, 5–254 chars, lowercased on the way in               |
-| `customer.phone`     | required, 7–32 chars; digits, `+`, and common separators kept                |
-| `customer.address`   | required, 1–300 chars                                                        |
-| `customer.apartment` | optional, ≤ 120 chars; empty becomes absent                                  |
-| `customer.city`      | required, 1–120 chars                                                        |
-| `customer.state`     | required, 2–100 chars                                                        |
-| `customer.zipCode`   | required, 3–20 chars                                                         |
-| `customer.notes`     | optional, ≤ 2000 chars; line breaks preserved, blank runs collapsed          |
-| `items`              | 1–25 entries, each `productId` a UUID and unique, `quantity` an integer 1–99 |
-| `honeypot`           | optional; **must be empty** — see below                                      |
-| `formStartedAt`      | optional epoch ms; absent or under 3s before now is treated as automated     |
-| `ruoAcknowledgedAt`  | optional ISO 8601 datetime; stored on the order                              |
+| Field                | Rule                                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `customer.name`      | required, 1–200 chars after sanitising                                                                                         |
+| `customer.email`     | required, valid address, 5–254 chars, lowercased on the way in                                                                 |
+| `customer.phone`     | required, 7–32 chars; digits, `+`, and common separators kept                                                                  |
+| `customer.address`   | required, 1–300 chars                                                                                                          |
+| `customer.apartment` | optional, ≤ 120 chars; empty becomes absent                                                                                    |
+| `customer.city`      | required, 1–120 chars                                                                                                          |
+| `customer.state`     | required, 2–100 chars                                                                                                          |
+| `customer.zipCode`   | required, 3–20 chars                                                                                                           |
+| `customer.notes`     | optional, ≤ 2000 chars; line breaks preserved, blank runs collapsed                                                            |
+| `items`              | 1–25 entries, each `productId` a UUID and unique, `quantity` an integer 1–99                                                   |
+| `honeypot`           | optional; **must be empty** — see below                                                                                        |
+| `formElapsedMs`      | optional whole ms the form was open before send, measured in the browser; absent or under 3s is treated as automated (ADR-028) |
+| `ruoAcknowledgedAt`  | optional ISO 8601 datetime; stored on the order                                                                                |
 
 Every text field is trimmed and stripped of control, zero-width and exotic-space characters, then
 re-measured — so 200 zero-width characters do not pass as a name. The bounds mirror the CHECK
@@ -208,12 +208,13 @@ less than they asked for is worse than asking them to review the list.
 ### Rate limiting
 
 Five submissions per 15-minute fixed window, keyed on a salted SHA-256 of the client IP — the raw
-address is never stored. Counted after the spam filters and before pricing, so a bot costs nothing and a
+address is never stored. The IP is the right-most `x-forwarded-for` entry, the one our edge appended,
+never the left-most, which the visitor controls (ADR-028). Counted after the spam filters and before pricing, so a bot costs nothing and a
 replayed key still counts. If the counter itself is unreachable the check fails **open** (ADR-022).
 
 ### Spam handling
 
-A filled honeypot, a missing `formStartedAt`, or a dwell under 3 seconds returns `201` with
+A filled honeypot, a missing `formElapsedMs`, or a dwell under 3 seconds returns `201` with
 `orderNumber: null`, persists nothing, and sends nothing. Each is logged with its reason and no customer
 data.
 

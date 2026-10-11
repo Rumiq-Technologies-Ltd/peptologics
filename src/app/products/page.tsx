@@ -43,15 +43,12 @@ export const metadata: Metadata = {
 export default async function ProductsPage() {
   const result = await getContainer().products.listActive();
 
-  // The service returns a failure rather than throwing, so a database outage
-  // renders a friendly page instead of hitting the error boundary.
+  // Thrown, not rendered. A rendered failure is a successful response to Next, so under
+  // `revalidate` it would replace the last good catalog and be served for the whole hour.
+  // A thrown error keeps the previous page, and the error boundary shows only when there is
+  // no previous page to keep (Next's ISR guide, on errors during revalidation).
   if (!result.success) {
-    return (
-      <Section>
-        <h1 className="text-h2 text-ink-950 font-bold">Research Peptides</h1>
-        <p className="text-ink-600 mt-4">{result.message}</p>
-      </Section>
-    );
+    throw new Error(result.message);
   }
 
   const products = result.data;

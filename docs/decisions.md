@@ -428,7 +428,7 @@ clickability; that is the smaller loss.
 
 ## ADR-021 — A suppressed submission gets an ordinary success
 
-**Status** Accepted · Phase 5
+**Status** Accepted · Phase 5. The dwell measurement is amended by ADR-028: it is now an elapsed time, not a timestamp.
 
 Two signals mark a submission as automated: a filled honeypot field, and a dwell time under
 `MIN_FORM_DWELL_SECONDS` (3s) between form mount and post. Either one means nothing is persisted and
@@ -693,6 +693,85 @@ the difference is that a customer now notices.
 
 **Revisit if** confirmations start being marked as spam, or the client wants the response window
 changed — the latter is one constant.
+
+---
+
+## ADR-028 — Dwell time is an elapsed duration, and the client IP is the right-most forwarded entry
+
+**Status** Accepted · Post-launch hardening
+
+**The dwell time.** ADR-021 measured the time on the form as `Date.now()` on the device minus a timestamp
+the form stamped at mount, and compared it with the server's clock. A device whose clock runs ahead of
+the server's by more than the visitor spent on the form produces a negative dwell. That reads as a bot,
+so the inquiry was suppressed: the visitor was told it was received, nothing was stored, nothing was
+emailed, and the cart was cleared. ADR-021 recorded this as an accepted false positive. On review it is a
+silent loss of a real lead, and the fix costs nothing: the form now measures the elapsed time from mount to
+send with `performance.now()`, sends it as `formElapsedMs`, and the server compares only that number. No
+two clocks need to agree. Forgery is no easier than before, since the field was always client-supplied.
+
+**The rate-limit key.** `getClientIp` took the left-most `x-forwarded-for` entry. Each proxy appends the
+address it received, so the left-most entries are whatever the visitor sent, and a visitor could present a
+fresh address on every request and so open a fresh bucket each time. The key is now the right-most entry,
+the one our own edge appended. This assumes a single proxy, Vercel, between the visitor and the function.
+A CDN placed in front would make every visitor share one bucket, and this rule would need revisiting then.
+
+**The honeypot.** It was named `company-website`. Browsers autofill fields whose names read like address
+fields, so a visitor whose profile carried an organisation could have the hidden field filled, and a real
+inquiry would be dropped. It is now `leave-blank-field`, which no address heuristic matches.
+
+Consequences accepted deliberately:
+
+- The contract changed for any client that posted `formStartedAt`. Only our own form does, and it ships
+  with the server. An old client that still sends the epoch field has no `formElapsedMs`, so it is treated
+  as a failed dwell check, which is the same safe direction as before.
+- The elapsed time is still forgeable. A bot that claims a long dwell passes, as ADR-021 already said.
+
+---
+
+## ADR-029 — A failed catalog read throws, so the last good page is kept
+
+**Status** Accepted · Post-launch hardening
+
+The catalog, inquiry, cart and home pages are statically rendered and revalidated hourly. When the catalog
+read failed, they returned a failure view. Under `revalidate`, a rendered response counts as success, so a
+single transient database error replaced the last good page and was served for up to an hour. Next's
+incremental-static-regeneration guide describes the reverse: when a revalidation throws, the previous page
+stays in place and the next request retries.
+
+Those pages now throw the service's failure. The route's error boundary shows the failure only when there is
+no earlier page to keep, which is the first render after a deploy. A build that runs while the database is
+unreachable fails instead of publishing a failure view. Vercel keeps the previous deployment live, so visitors
+still get the last good site.
+
+`app/global-error.tsx` now covers a failure in the root layout itself. It carries its own document and inline
+styles, because it replaces the layout that would otherwise supply them.
+
+---
+
+## ADR-030 — Moving content has a visitor pause, and new motion stays below the fold
+
+**Status** Accepted · Post-launch
+
+WCAG 2.2.2 (level A) requires a way to pause, stop or hide moving content that starts by itself and runs for
+more than five seconds. The announcement strip, the trust row and the hero's 3D model all moved with no
+control. Reduced-motion visitors were already covered by the global rule; everyone else was not.
+
+Each moving element now has a pause control, which is the visitor's own and lasts for that visit only: the
+strip marks itself and CSS pauses the track; the trust row pauses its timeline, and a visitor's pause is kept
+apart from the hover pause so leaving the row cannot restart it; the hero's model stops its render loop. The
+controls are hidden under reduced motion, where those elements are already still.
+
+The new motion is limited to what does not compete with reading or the call to action: scroll reveals below
+the fold, the process connector drawn once as its section arrives, a one-time confirmation drawing on the
+inquiry success page, and hover and focus states. No new motion autoplays above the fold. The strip and the
+hero model did autoplay there before this decision, which is why they now have controls. The hero's text is
+deliberately not animated, because the headline is the largest contentful paint. The scroll effects reuse the
+existing reveal observer and CSS, so no dependency was added.
+
+**Conflict to resolve.** `docs/brand-guidelines.md` §4 and §7 discourage decorative motion above the fold and
+during reading. The motion added here is below the fold and visitor-controlled, which those sections permit in
+spirit, but §7 still reads as a ban. The brand document should be amended by its owner, not left to contradict
+the code.
 
 ---
 

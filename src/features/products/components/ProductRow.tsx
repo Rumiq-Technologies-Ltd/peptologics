@@ -48,13 +48,18 @@ export interface ProductRowProps {
   className?: string;
 }
 
-/** Fixed so the column stays aligned whether it holds "Add" or a three-button stepper. */
-const CONTROL_COLUMN_CLASSES = "flex w-28 shrink-0 justify-end sm:w-32";
+/*
+ * Fixed from `sm` so the column stays aligned whether it holds "Add" or a three-button
+ * stepper. Below `sm` it takes a line of its own, right-aligned: a stepper needs more width
+ * than a phone leaves beside a name and a price, and squeezing it in pushed the row wider
+ * than the screen.
+ */
+const CONTROL_COLUMN_CLASSES = "flex w-full justify-end sm:w-32 sm:shrink-0";
 
 export function ProductRow({ product, controls, className }: ProductRowProps) {
   return (
     <li className={cn("group", className)}>
-      <div className="hover:bg-ink-50/70 flex items-center gap-3 rounded-md px-1 py-3 transition-colors sm:gap-6 sm:py-4">
+      <div className="hover:bg-ink-50/70 flex flex-wrap items-center gap-x-3 gap-y-3 rounded-md px-1 py-3 transition-colors sm:flex-nowrap sm:gap-6 sm:py-4">
         {/*
           Fixed 3rem/3.5rem well. Small enough that the row stays a row and eighteen
           of them still fit a screen, large enough that the vial and its label colour

@@ -23,6 +23,7 @@ import {
   type InquiryCustomerInput,
 } from "@/lib/validations/inquiry.schema";
 import type { ApiResponse } from "@/types/api";
+import { createUuid } from "@/utils/createUuid";
 
 /**
  * The inquiry form.
@@ -52,6 +53,9 @@ export interface InquiryFormProps {
 /** Field paths the server may return, mapped onto the form's own names. */
 const SERVER_FIELD_PREFIX = "customer.";
 
+/** The honeypot's DOM id and name. See the note at the field for why it is not "company". */
+const HONEYPOT_FIELD = "leave-blank-field";
+
 export function InquiryForm({ catalog }: InquiryFormProps) {
   const router = useRouter();
   const { lines, totals } = useCartSummary(catalog);
@@ -61,16 +65,17 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
   /**
-   * Mount time, for the server's dwell-time check. Bots post instantly; people cannot.
+   * Mount time on the monotonic clock. Bots post instantly; people cannot.
    *
-   * Stamped in an effect rather than in the ref's initialiser: `Date.now()` during
-   * render is impure, and the React compiler's purity rule is right to reject it.
-   * After-mount is also the more accurate reading of "when the visitor saw the form".
+   * The server receives the time spent on the form as an elapsed duration, never as a
+   * timestamp, so a device whose clock is wrong cannot make a person look like a bot
+   * (ADR-028). Stamped in an effect rather than during render, where reading the clock is
+   * impure, and the React compiler's purity rule is right to reject it.
    */
-  const formStartedAt = useRef<number | null>(null);
+  const mountedAt = useRef<number | null>(null);
 
   useEffect(() => {
-    formStartedAt.current = Date.now();
+    mountedAt.current = performance.now();
   }, []);
 
   /**
@@ -133,7 +138,7 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
       return;
     }
 
-    idempotencyKey.current ??= crypto.randomUUID();
+    idempotencyKey.current ??= createUuid();
 
     try {
       const response = await fetch("/api/inquiries", {
@@ -149,9 +154,12 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
             quantity: line.quantity,
           })),
           honeypot: honeypotRef.current?.value ?? "",
-          // Null only if the effect has not run, which cannot happen by the time a
-          // human has filled the form. Omitted rather than faked if it ever is.
-          formStartedAt: formStartedAt.current ?? undefined,
+          // Omitted, not faked, if the mount effect never ran. The server treats an absent
+          // measurement as a failed dwell check, so a missing value is never a free pass.
+          formElapsedMs:
+            mountedAt.current === null
+              ? undefined
+              : Math.round(performance.now() - mountedAt.current),
           ruoAcknowledgedAt: getAcknowledgementTimestamp(),
           /*
            * The code, not the discount. The server re-evaluates it against its own
@@ -236,6 +244,11 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
         ) : null}
       </div>
 
+      {/* Stated once, before the first field, so a screen reader hears it before the form. */}
+      <p className="text-ink-600 text-sm">
+        Every field is required unless it is marked (optional).
+      </p>
+
       <fieldset className="flex flex-col gap-5" disabled={isSubmitting}>
         <legend className="text-ink-950 text-h3 mb-2 font-semibold">Your details</legend>
 
@@ -308,16 +321,20 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
         The honeypot. Off-screen rather than `display: none` — some bots skip hidden
         inputs, and this one is meant to be found. `aria-hidden` and `tabIndex={-1}`
         keep it away from anyone using a keyboard or a screen reader.
+
+        The name matters as much as the position. Browsers autofill a field whose name
+        reads like an address field, and a real visitor whose profile was autofilled would
+        have a genuine inquiry dropped. `leave-blank-field` matches no address heuristic.
       */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute left-[-9999px] h-0 w-0 overflow-hidden"
       >
-        <label htmlFor="company-website">Company website</label>
+        <label htmlFor={HONEYPOT_FIELD}>Leave this field blank</label>
         <input
           ref={honeypotRef}
-          id="company-website"
-          name="company-website"
+          id={HONEYPOT_FIELD}
+          name={HONEYPOT_FIELD}
           type="text"
           tabIndex={-1}
           autoComplete="off"

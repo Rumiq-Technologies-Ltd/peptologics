@@ -342,3 +342,30 @@ The launch is done; these are what remain.
       written down rather than papered over with retries)
 - [ ] Re-run Lighthouse on the live home page once this deploys — the 95 mobile target is the number
       that decides whether the model stays
+- [x] **Security and reliability pass.** Next.js 16.3.0 → 16.4.0, which clears the critical advisories
+      (including unauthenticated RCE through the AVIF image path) and the `sharp` advisory; six transitive
+      patch updates clear the remaining production advisories. The production audit reports none. Dev-only
+      lint-tooling advisories remain, and they never reach a visitor. The inquiry dwell time is
+      an elapsed duration, so a device whose clock is wrong no longer loses a lead (ADR-028). The honeypot is
+      renamed so browser autofill cannot trigger it. The rate-limit key is the platform's right-most forwarded
+      address, not the visitor's. Product image and certificate links admit only site paths and https. The revalidate endpoint no longer fails on a `null` body. Robots disallow everything outside production. ADR-029 and
+      ADR-030 record the ISR and motion decisions.
+- [x] **Accessibility and layout.** Pause controls for the announcement strip, the trust row and the hero
+      model (ADR-030). The toaster moved to the top, clear of the mobile order bar. The mobile menu has a
+      description and a 44px trigger. Focus rings are full strength, field borders reach 3:1, error references
+      reach 4.5:1, and close buttons have 44px targets. Internal legal links use `next/link`. The add control's
+      accessible name contains its visible text. Required fields are stated on the inquiry form. The catalog
+      rows fit a 375px screen, with the quantity control on its own line.
+- [x] **Visuals and motion.** The process steps carry icons and a connector drawn as the
+      section arrives. The analytical-standards band shows a real published certificate. The inquiry
+      confirmation draws its check mark once. Every new motion respects reduced motion.
+- [ ] **Client: amend `docs/brand-guidelines.md` §7.** The motion added here conflicts with its wording
+      (ADR-030). Decide whether §7 should permit below-the-fold, visitor-controlled motion.
+- [ ] **Client: product copy and claims.** The shipping banner promises free ground shipping over $200, which
+      the client has not confirmed (`SHIPPING_PROMOTION`). The age-21 rule is not marked as legal text. The
+      privacy policy says the research-use acknowledgement is not sent to us, but the inquiry sends it. Several
+      vial renders print "Purity ≥ 99%" and one says "for injection". The product page says a certificate is
+      "available on request" even where one is published. These need the client's decision before launch.
+- [ ] **Client: withdrawn certificates and internal files are public.** The scans for withdrawn compounds
+      and the competitor reference images still sit in `public/`, so they are reachable by URL. Moving them
+      needs approval.

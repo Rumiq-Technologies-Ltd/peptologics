@@ -7,7 +7,7 @@ import { Section } from "@/components/layout/Section";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { ProductRowControls } from "@/features/cart/components/ProductRowControls";
 import { ProductImage } from "@/features/products/components/ProductImage";
-import { hasComparableCostPerMg } from "@/features/products/utils/product.display";
+import { hasComparableCostPerMg, productForm } from "@/features/products/utils/product.display";
 import { COMPLIANCE_NOTICE_LONG, SITE_NAME } from "@/constants/site";
 import { ROUTES } from "@/constants/routes";
 import { buildBreadcrumbSchema, buildProductSchema } from "@/lib/seo/structuredData";
@@ -59,7 +59,7 @@ export async function generateMetadata(props: PageProps<"/products/[slug]">): Pr
   // Built from the specification rather than marketing copy, because product
   // descriptions do not exist yet and must not be invented. Every claim here is a
   // fact from the catalog row.
-  const presentation = product.strengthUnit === "ml" ? "a sterile solution" : "lyophilized powder";
+  const { phrase: presentation } = productForm(product);
 
   const description =
     product.description ??
@@ -96,7 +96,7 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
 
   const showsCostPerMg = hasComparableCostPerMg(product);
   const isLiquid = product.strengthUnit === "ml";
-  const presentationLabel = isLiquid ? "sterile solution" : "lyophilized powder";
+  const { phrase: presentationLabel } = productForm(product);
 
   const specifications = [
     {
@@ -121,7 +121,7 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
     },
     {
       label: "Form",
-      value: isLiquid ? "Sterile solution" : "Lyophilized powder",
+      value: productForm(product).label,
       mono: false,
     },
     { label: "Intended use", value: "In-vitro laboratory research only", mono: false },

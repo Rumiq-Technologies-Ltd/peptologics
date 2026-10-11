@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
+import { PauseIcon, PlayIcon } from "lucide-react";
 
 import {
   getAcknowledgementSnapshot,
@@ -24,6 +25,10 @@ import { cn } from "@/utils/cn";
  * 3. **Disclaimer accepted.** On a first visit the gate covers the page and marks
  *    `#site-root` inert (ADR-009). Animating behind a modal the visitor cannot dismiss
  *    yet is the least useful work the site could possibly do.
+ *
+ * A fourth, the visitor's own pause, sits beside them. A moving element that starts by
+ * itself has to be stoppable (WCAG 2.2.2), so the model gets a control, not just a
+ * reduced-motion default.
  */
 
 /**
@@ -61,6 +66,7 @@ export function HeroVisual({ className }: HeroVisualProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isOnScreen, setIsOnScreen] = useState(false);
   const [isTabVisible, setIsTabVisible] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
   /*
    * The gate's acknowledgement, read through the same external store the gate itself
@@ -98,39 +104,57 @@ export function HeroVisual({ className }: HeroVisualProps) {
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      /*
-       * Decorative: the heading and lead already say everything the model conveys, so
-       * there is nothing here for a screen reader to miss. Marked on this wrapper rather
-       * than on `<Canvas>` — R3F does not forward unknown props to the canvas element,
-       * which was verified in the DOM rather than assumed.
-       */
-      aria-hidden="true"
-      className={cn(
+    <div className={cn("relative w-full max-w-[32rem] lg:max-w-none", className)}>
+      <div
+        ref={containerRef}
         /*
-         * A fixed aspect box. The canvas fills it absolutely, so its height is decided
-         * before any JavaScript loads and the section cannot resize when it does.
+         * Decorative: the heading and lead already say everything the model conveys, so
+         * there is nothing here for a screen reader to miss. Marked on this wrapper rather
+         * than on `<Canvas>` — R3F does not forward unknown props to the canvas element,
+         * which was verified in the DOM rather than assumed.
          */
-        "relative aspect-square w-full max-w-[32rem] lg:max-w-none",
-        /*
-         * VERTICAL POSITION — this is the knob.
-         *
-         * The grid centres the visual against the copy, which sits a little low against
-         * the headline. `-translate-y-8` lifts it 2rem. Raise the number to move the model
-         * up (`-translate-y-12` = 3rem), lower it to move down, and drop the minus sign to
-         * push it below centre (`translate-y-8`).
-         *
-         * A transform rather than a margin on purpose: it moves only the painted pixels,
-         * so the box the grid reserved — and therefore the layout — does not change.
-         * Applied from `lg` up, where the visual sits beside the copy; on smaller screens
-         * it stacks underneath and centring is already right.
-         */
-        "lg:-translate-y-14",
-        className,
-      )}
-    >
-      <AminoAcidScene active={isOnScreen && isTabVisible && hasAcknowledged} />
+        aria-hidden="true"
+        className={cn(
+          /*
+           * A fixed aspect box. The canvas fills it absolutely, so its height is decided
+           * before any JavaScript loads and the section cannot resize when it does.
+           */
+          "relative aspect-square w-full",
+          /*
+           * VERTICAL POSITION — this is the knob.
+           *
+           * The grid centres the visual against the copy, which sits a little low against
+           * the headline. `-translate-y-8` lifts it 2rem. Raise the number to move the model
+           * up (`-translate-y-12` = 3rem), lower it to move down, and drop the minus sign to
+           * push it below centre (`translate-y-8`).
+           *
+           * A transform rather than a margin on purpose: it moves only the painted pixels,
+           * so the box the grid reserved — and therefore the layout — does not change.
+           * Applied from `lg` up, where the visual sits beside the copy; on smaller screens
+           * it stacks underneath and centring is already right.
+           */
+          "lg:-translate-y-14",
+        )}
+      >
+        <AminoAcidScene active={isOnScreen && isTabVisible && hasAcknowledged && !isPaused} />
+      </div>
+
+      {/*
+        The visitor's own stop and start. Hidden under reduced motion, where the model is
+        already a still pose. Outside the aria-hidden box, so a keyboard can reach it.
+      */}
+      <button
+        type="button"
+        onClick={() => setIsPaused((paused) => !paused)}
+        className="text-ink-700 hover:text-ink-950 focus-visible:outline-brand-600 absolute right-0 bottom-0 inline-flex min-h-11 items-center gap-2 rounded-full bg-white/90 px-3 text-sm font-medium shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:hidden"
+      >
+        {isPaused ? (
+          <PlayIcon className="size-4" aria-hidden="true" />
+        ) : (
+          <PauseIcon className="size-4" aria-hidden="true" />
+        )}
+        {isPaused ? "Play animation" : "Pause animation"}
+      </button>
     </div>
   );
 }

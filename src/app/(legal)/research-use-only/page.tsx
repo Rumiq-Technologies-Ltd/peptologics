@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { ROUTES } from "@/constants/routes";
 import { MINIMUM_AGE, SITE_NAME } from "@/constants/site";
@@ -106,8 +107,8 @@ export default function ResearchUseOnlyPage() {
       <h2>Acknowledgement</h2>
       <p>
         Access to this website is conditional on acknowledging this policy. If you do not accept it,
-        you must not use this website. See also our <a href={ROUTES.terms}>Terms of Use</a> and{" "}
-        <a href={ROUTES.privacy}>Privacy Policy</a>.
+        you must not use this website. See also our <Link href={ROUTES.terms}>Terms of Use</Link>{" "}
+        and <Link href={ROUTES.privacy}>Privacy Policy</Link>.
       </p>
     </article>
   );

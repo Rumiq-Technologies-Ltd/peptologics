@@ -4,7 +4,8 @@ import { MESSAGES } from "@/constants/messages";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/errors";
 import { jsonCreated, jsonFail, jsonFromServiceFailure } from "@/lib/http/responses";
 import { logger } from "@/lib/logger";
-import { getClientIp, hashIp, isSameOrigin } from "@/lib/security/request";
+import { getClientIp } from "@/lib/security/clientIp";
+import { hashIp, isSameOrigin } from "@/lib/security/request";
 import { inquirySchema, toFieldErrors } from "@/lib/validations/inquiry.schema";
 import { getContainer } from "@/services/container";
 

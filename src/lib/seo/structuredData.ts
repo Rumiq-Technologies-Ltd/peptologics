@@ -1,6 +1,7 @@
 import { COMPLIANCE_NOTICE_LONG, SITE_DESCRIPTION, SITE_NAME } from "@/constants/site";
 import { ROUTES } from "@/constants/routes";
 import type { Product } from "@/features/products/types/product";
+import { productForm } from "@/features/products/utils/product.display";
 import { siteUrl } from "@/lib/env.client";
 import { formatStrength } from "@/utils/formatStrength";
 
@@ -84,13 +85,15 @@ export function buildProductSchema(product: Product): JsonLdNode {
     category: "Research reagent",
     description:
       product.description ??
-      `${product.name}, ${strength} per vial, supplied as lyophilized powder for laboratory research use only. Not for human or animal consumption.`,
+      `${product.name}, ${strength} per vial, supplied as ${productForm(product).phrase} for laboratory research use only. Not for human or animal consumption.`,
     brand: { "@type": "Brand", name: SITE_NAME },
     manufacturer: { "@id": absolute("/#organization") },
-    ...(product.imageUrl ? { image: product.imageUrl } : {}),
+    // Absolute, as the file's own rule requires: image URLs in Product markup must resolve
+    // outside the site. `absolute` passes through a URL that is already absolute.
+    ...(product.imageUrl ? { image: absolute(product.imageUrl) } : {}),
     additionalProperty: [
       { "@type": "PropertyValue", name: "Vial size", value: strength },
-      { "@type": "PropertyValue", name: "Form", value: "Lyophilized powder" },
+      { "@type": "PropertyValue", name: "Form", value: productForm(product).label },
       {
         "@type": "PropertyValue",
         name: "Intended use",

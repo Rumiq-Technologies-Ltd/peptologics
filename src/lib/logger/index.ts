@@ -9,8 +9,9 @@
  * winston bring transports and worker threads that are real serverless bundling
  * pain for no gain at this size.
  *
- * Never pass raw PII or secrets. Use the redaction helpers in
- * `@/lib/security/redact` for anything derived from user input.
+ * Never pass raw PII or secrets. Log identifiers and counts (an order ID, an item count),
+ * never what a visitor typed. There is no redaction helper: a log line outlives the request
+ * it describes, so the safe choice is to leave the value out rather than scrub it.
  */
 
 export type LogLevel = "debug" | "info" | "warn" | "error";

@@ -44,7 +44,7 @@ export default function GlobalRouteError({
         </div>
 
         {error.digest ? (
-          <p className="text-ink-400 mt-10 font-mono text-xs">
+          <p className="text-ink-600 mt-10 font-mono text-xs">
             Reference: {error.digest}
             <span className="sr-only">
               Quote this reference if you contact us about this error.

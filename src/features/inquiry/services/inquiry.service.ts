@@ -116,18 +116,16 @@ export function createInquiryService({
     }
 
     /*
-     * Our own form always sends `formStartedAt`, so an absent field means the caller
-     * is not our form. Treated as a failed dwell check rather than waved through:
-     * omitting a field must not be an easier bypass than forging it.
+     * Our own form always sends `formElapsedMs`, so an absent field means the caller is
+     * not our form. Treated as a failed dwell check rather than waved through: omitting a
+     * field must not be an easier bypass than forging it.
      */
-    if (input.formStartedAt === undefined) {
+    if (input.formElapsedMs === undefined) {
       return { suppressed: true, reason: "dwell_missing" };
     }
 
-    const dwellSeconds = (Date.now() - input.formStartedAt) / 1000;
-
-    // A negative dwell means a forged or clock-skewed timestamp.
-    if (dwellSeconds < MIN_FORM_DWELL_SECONDS) {
+    // An elapsed time, so the server's clock never enters the decision (ADR-028).
+    if (input.formElapsedMs < MIN_FORM_DWELL_SECONDS * 1000) {
       return { suppressed: true, reason: "dwell_too_short" };
     }
 

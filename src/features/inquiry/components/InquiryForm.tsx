@@ -23,6 +23,7 @@ import {
   type InquiryCustomerInput,
 } from "@/lib/validations/inquiry.schema";
 import type { ApiResponse } from "@/types/api";
+import { createUuid } from "@/utils/createUuid";
 
 /**
  * The inquiry form.
@@ -51,6 +52,9 @@ export interface InquiryFormProps {
 
 /** Field paths the server may return, mapped onto the form's own names. */
 const SERVER_FIELD_PREFIX = "customer.";
+
+/** The honeypot's DOM id and name. See the note at the field for why it is not "company". */
+const HONEYPOT_FIELD = "leave-blank-field";
 
 export function InquiryForm({ catalog }: InquiryFormProps) {
   const router = useRouter();
@@ -134,7 +138,7 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
       return;
     }
 
-    idempotencyKey.current ??= crypto.randomUUID();
+    idempotencyKey.current ??= createUuid();
 
     try {
       const response = await fetch("/api/inquiries", {
@@ -317,11 +321,15 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
         aria-hidden="true"
         className="pointer-events-none absolute left-[-9999px] h-0 w-0 overflow-hidden"
       >
-        <label htmlFor="company-website">Company website</label>
+
+        The name matters as much as the position. Browsers autofill a field whose name
+        reads like an address field, and a real visitor whose profile was autofilled would
+        have a genuine inquiry dropped. `leave-blank-field` matches no address heuristic.
+        <label htmlFor={HONEYPOT_FIELD}>Leave this field blank</label>
         <input
           ref={honeypotRef}
-          id="company-website"
-          name="company-website"
+          id={HONEYPOT_FIELD}
+          name={HONEYPOT_FIELD}
           type="text"
           tabIndex={-1}
           autoComplete="off"

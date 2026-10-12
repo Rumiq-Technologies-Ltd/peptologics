@@ -135,7 +135,7 @@ test("double-clicking send produces one request, not two", async ({ page }) => {
 test("the honeypot is present, empty, and unreachable by keyboard", async ({ page }) => {
   await page.goto("/inquiry");
 
-  const honeypot = page.locator("#company-website");
+  const honeypot = page.locator("#leave-blank-field");
   await expect(honeypot).toHaveCount(1);
   await expect(honeypot).toHaveValue("");
   await expect(honeypot).toHaveAttribute("tabindex", "-1");
@@ -149,7 +149,7 @@ test("the honeypot is present, empty, and unreachable by keyboard", async ({ pag
   for (let i = 0; i < 12; i += 1) {
     await page.keyboard.press("Tab");
     const focusedId = await page.evaluate(() => document.activeElement?.id ?? "");
-    expect(focusedId).not.toBe("company-website");
+    expect(focusedId).not.toBe("leave-blank-field");
   }
 });
 

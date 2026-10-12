@@ -26,10 +26,12 @@ registrar, not by Vercel (see [DNS](#dns)).
 >
 > Recorded as an open question in [decisions.md](./decisions.md).
 
-Preview deployments must never be indexed. They are covered already: `robots.ts` and every page's
-metadata derive from `NEXT_PUBLIC_SITE_URL`, and Vercel sets `x-robots-tag: noindex` on preview
-deployments by default. **Do not** set `NEXT_PUBLIC_SITE_URL` to the production domain in the Preview
-environment — that would advertise the production sitemap from a staging build.
+Preview deployments must never be indexed. `robots.ts` disallows every path unless `VERCEL_ENV` is
+`production`, so a preview or local build tells crawlers to stay out, and it advertises no sitemap.
+Every page's metadata derives from `NEXT_PUBLIC_SITE_URL`, and Vercel sets `x-robots-tag: noindex` on
+preview deployments by default. **Do not** set `NEXT_PUBLIC_SITE_URL` to the production domain in the
+Preview environment — canonicals and structured data would then name the production host from a staging
+build.
 
 ## Pre-deploy gate
 
@@ -325,8 +327,8 @@ Run against the production URL, in this order.
 - [ ] Catalog lists 12 products with prices matching the client's list
 - [ ] A product page returns 200; an invented slug returns a real **404**
 - [ ] Submit one real test inquiry → order row created, email received, then delete the test row
-- [ ] `/sitemap.xml` lists 12 product URLs; `/robots.txt` disallows cart, inquiry and `/api/`
-- [ ] `/cart`, `/inquiry`, `/inquiry/success`, `/not-eligible` all send `noindex`
+- [ ] `/sitemap.xml` lists the product URLs; `/robots.txt` allows the site, disallows `/api/`, and names the sitemap
+- [ ] `/cart`, `/inquiry`, `/inquiry/success`, `/not-eligible` all send `noindex` (they are no longer disallowed, so a crawler can see the directive)
 - [ ] **Lighthouse ≥ 95** on Performance, Accessibility, Best Practices, SEO
 - [ ] **Rich Results Test** passes on a product page and on the home page's FAQ
 - [ ] Vercel logs clean — no unexpected errors after the first traffic

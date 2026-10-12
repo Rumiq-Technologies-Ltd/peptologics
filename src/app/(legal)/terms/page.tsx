@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { ROUTES } from "@/constants/routes";
 import { MINIMUM_AGE, SITE_NAME } from "@/constants/site";
@@ -38,7 +39,8 @@ export default function TermsPage() {
       <p>
         Every product listed is supplied for in-vitro laboratory research use only. Products are not
         for human or animal consumption and are not approved for therapeutic use. Our full{" "}
-        <a href={ROUTES.researchUseOnly}>Research-Use-Only Policy</a> forms part of these terms.
+        <Link href={ROUTES.researchUseOnly}>Research-Use-Only Policy</Link> forms part of these
+        terms.
       </p>
       <p>
         You agree not to resell, redistribute, or supply any product for human or animal use, and
@@ -72,8 +74,8 @@ export default function TermsPage() {
       <h2>6. Shipping, returns and cancellations</h2>
       <p>
         Shipping arrangements are confirmed in your quotation. Given the nature of these materials,
-        returns are limited. See <a href={ROUTES.shipping}>Shipping &amp; Payment</a> for current
-        details.
+        returns are limited. See <Link href={ROUTES.shipping}>Shipping &amp; Payment</Link> for
+        current details.
       </p>
       {/* TODO(client): a returns window and shipping timescales are needed here.
           Open questions 18 in docs/decisions.md. */}
@@ -104,7 +106,7 @@ export default function TermsPage() {
       <h2>10. Contact</h2>
       <p>
         Questions about these terms can be sent through our{" "}
-        <a href={ROUTES.contact}>contact page</a>.
+        <Link href={ROUTES.contact}>contact page</Link>.
       </p>
     </article>
   );

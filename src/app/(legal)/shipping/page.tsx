@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { ROUTES } from "@/constants/routes";
 import { SITE_NAME } from "@/constants/site";
@@ -90,13 +91,13 @@ export default function ShippingPage() {
         Given the nature of these materials, returns are limited: once a vial has left our control
         we cannot verify its storage conditions, so we cannot resupply it to anyone else. This is a
         product-integrity constraint rather than a commercial one. See our{" "}
-        <a href={ROUTES.terms}>Terms of Use</a>.
+        <Link href={ROUTES.terms}>Terms of Use</Link>.
       </p>
 
       <h2>Questions</h2>
       <p>
         Ask before you order rather than after — a representative would far rather answer a question
-        up front. Reach us through the <a href={ROUTES.contact}>contact page</a>.
+        up front. Reach us through the <Link href={ROUTES.contact}>contact page</Link>.
       </p>
     </article>
   );

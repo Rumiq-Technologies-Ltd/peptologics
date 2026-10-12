@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { ROUTES } from "@/constants/routes";
 import { SITE_NAME } from "@/constants/site";
@@ -98,7 +99,7 @@ export default function PrivacyPage() {
       <h2>Your choices</h2>
       <p>
         You can ask us what we hold about you, ask us to correct it, or ask us to delete it. Contact
-        us through the <a href={ROUTES.contact}>contact page</a> and we will respond.
+        us through the <Link href={ROUTES.contact}>contact page</Link> and we will respond.
       </p>
 
       <h2>Security</h2>

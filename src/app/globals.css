@@ -402,6 +402,12 @@
   .stepped-row {
     position: relative;
     overflow: hidden;
+    /*
+     * Reserves the card height before the script measures the frame. Without it the band is
+     * zero-height until hydration, then jumps by a full card: a layout shift on every visit.
+     * Sized to fit a card's icon, label and detail; the measured height replaces it after that.
+     */
+    min-height: 9rem;
   }
 
   .stepped-row-card {

@@ -244,6 +244,11 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
         ) : null}
       </div>
 
+      {/* Stated once, before the first field, so a screen reader hears it before the form. */}
+      <p className="text-ink-600 text-sm">
+        Every field is required unless it is marked (optional).
+      </p>
+
       <fieldset className="flex flex-col gap-5" disabled={isSubmitting}>
         <legend className="text-ink-950 text-h3 mb-2 font-semibold">Your details</legend>
 

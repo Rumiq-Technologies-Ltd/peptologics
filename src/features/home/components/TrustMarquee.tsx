@@ -14,6 +14,8 @@ import {
   FileCheck2Icon,
   FlaskConicalIcon,
   PackageCheckIcon,
+  PauseIcon,
+  PlayIcon,
   ShieldCheckIcon,
   SnowflakeIcon,
 } from "lucide-react";
@@ -121,6 +123,14 @@ export function TrustMarquee() {
   const hoveredRef = useRef(false);
 
   /**
+   * Whether the visitor has stopped the row with its own control (WCAG 2.2.2). Kept apart
+   * from hover, so leaving the row cannot restart a row the visitor chose to stop. The state
+   * exists only so the control's label follows the ref.
+   */
+  const userPausedRef = useRef(false);
+  const [isUserPaused, setIsUserPaused] = useState(false);
+
+  /**
    * Server-rendered at the deck size, then grown to fill the measured frame.
    *
    * It has to start at exactly `TRUST_SIGNALS.length` rather than at a guess: the server
@@ -203,8 +213,9 @@ export function TrustMarquee() {
     timeline.duration(count * ROW.cycle);
     timelineRef.current = timeline;
 
-    // A rebuild while the pointer is still over the row must not resume it.
-    if (hoveredRef.current) timeline.pause();
+    // A rebuild while the pointer is over the row, or after the visitor stopped it, must not
+    // resume it.
+    if (hoveredRef.current || userPausedRef.current) timeline.pause();
 
     return () => {
       timeline.kill();
@@ -234,11 +245,24 @@ export function TrustMarquee() {
 
       if (hovered) {
         timeline.pause();
-      } else {
+      } else if (!userPausedRef.current) {
         timeline.play();
       }
     };
   }, []);
+
+  /** The visitor's own pause. Resuming plays at once: they asked for it. */
+  function toggleUserPause(): void {
+    const next = !userPausedRef.current;
+    userPausedRef.current = next;
+    setIsUserPaused(next);
+
+    const timeline = timelineRef.current;
+    if (!timeline) return;
+
+    if (next) timeline.pause();
+    else timeline.play();
+  }
 
   return (
     <>
@@ -290,6 +314,25 @@ export function TrustMarquee() {
             );
           })}
         </div>
+      </div>
+
+      {/*
+        The visitor's own stop and start (WCAG 2.2.2). Hidden under reduced motion, where the
+        row is already still. Kept outside the aria-hidden row so a keyboard can reach it.
+      */}
+      <div className="mt-4 flex justify-end motion-reduce:hidden">
+        <button
+          type="button"
+          onClick={toggleUserPause}
+          className="text-ink-700 hover:text-ink-950 focus-visible:outline-brand-600 inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          {isUserPaused ? (
+            <PlayIcon className="size-4" aria-hidden="true" />
+          ) : (
+            <PauseIcon className="size-4" aria-hidden="true" />
+          )}
+          {isUserPaused ? "Play signals" : "Pause signals"}
+        </button>
       </div>
     </>
   );

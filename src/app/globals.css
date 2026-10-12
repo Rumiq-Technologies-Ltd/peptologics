@@ -343,6 +343,15 @@
   }
 
   /*
+   * A visitor's pause, from the control beside the strip (WCAG 2.2.2). The control marks the
+   * strip rather than owning the animation, so the loop keeps its place and resumes exactly
+   * where it stopped.
+   */
+  [data-marquee][data-paused] .marquee-track {
+    animation-play-state: paused;
+  }
+
+  /*
    * Softens both edges of a marquee so cards enter and leave rather than being cut off
    * at a hard border. Purely decorative — the mask does not affect layout or hit areas.
    */

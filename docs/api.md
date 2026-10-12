@@ -208,7 +208,8 @@ less than they asked for is worse than asking them to review the list.
 ### Rate limiting
 
 Five submissions per 15-minute fixed window, keyed on a salted SHA-256 of the client IP — the raw
-address is never stored. Counted after the spam filters and before pricing, so a bot costs nothing and a
+address is never stored. The IP is the right-most `x-forwarded-for` entry, the one our edge appended,
+never the left-most, which the visitor controls (ADR-028). Counted after the spam filters and before pricing, so a bot costs nothing and a
 replayed key still counts. If the counter itself is unreachable the check fails **open** (ADR-022).
 
 ### Spam handling

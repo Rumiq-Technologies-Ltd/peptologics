@@ -28,20 +28,6 @@ export function isSameOrigin(request: Request): boolean {
 }
 
 /**
- * Best-effort client IP. Vercel sets `x-forwarded-for`; the left-most entry is
- * the original client. Only ever used after hashing.
- */
-export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
-  }
-
-  return request.headers.get("x-real-ip")?.trim() ?? "unknown";
-}
-
-/**
  * Salted SHA-256 of an IP address.
  *
  * The rate-limit table needs a stable per-client key, not an identity. Hashing

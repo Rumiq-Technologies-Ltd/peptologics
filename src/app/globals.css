@@ -537,6 +537,46 @@ html[data-motion="on"] [data-reveal][data-revealed] {
 }
 
 /*
+ * The connector between the process steps is drawn once, left to right, as its section
+ * arrives. It only moves when the motion flag is set. Without the flag it is simply drawn,
+ * so a visitor who asked for less motion never sees a missing line.
+ */
+.process-rail {
+  transform-origin: left center;
+}
+
+html[data-motion="on"] [data-reveal] .process-rail {
+  transition: transform 1.2s var(--ease-out-brand) 0.3s;
+}
+
+html[data-motion="on"] [data-reveal]:not([data-revealed]) .process-rail {
+  transform: scaleX(0);
+}
+
+/*
+ * The inquiry confirmation is drawn once: the ring, then the tick. It exists only while
+ * motion is allowed, so a reduced-motion visitor gets the finished mark straight away.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .confirm-ring,
+  .confirm-tick {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: confirm-draw 700ms var(--ease-out-brand) forwards;
+  }
+
+  .confirm-tick {
+    animation-delay: 450ms;
+  }
+}
+
+@keyframes confirm-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
  * Respect a reduced-motion preference globally rather than per-component, so a
  * new animation cannot forget to opt in.
  */

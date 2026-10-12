@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckCircle2Icon, MailIcon } from "lucide-react";
+import { MailIcon } from "lucide-react";
 
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,42 @@ const NEXT_STEPS = [
   },
 ] as const;
 
+/**
+ * The confirmation mark. Its ring and tick are drawn once, in CSS (`.confirm-ring` and
+ * `.confirm-tick`), and only for visitors who have not asked for less motion. Everyone else
+ * sees the finished mark, which is also what the markup shows without the stylesheet.
+ */
+function ConfirmationMark() {
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      className="text-success size-12"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle
+        className="confirm-ring"
+        cx="24"
+        cy="24"
+        r="22"
+        stroke="currentColor"
+        strokeWidth="2"
+        pathLength={1}
+      />
+      <path
+        className="confirm-tick"
+        d="M14 25 L21 32 L34 17"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        pathLength={1}
+      />
+    </svg>
+  );
+}
+
 export default async function InquirySuccessPage(props: PageProps<"/inquiry/success">) {
   const params = await props.searchParams;
   const rawReference = Array.isArray(params.ref) ? params.ref[0] : params.ref;
@@ -58,7 +94,7 @@ export default async function InquirySuccessPage(props: PageProps<"/inquiry/succ
   return (
     <Section>
       <div className="mx-auto max-w-2xl">
-        <CheckCircle2Icon className="text-success size-10" aria-hidden="true" />
+        <ConfirmationMark />
 
         <h1 className="text-display text-ink-950 mt-6 font-bold">{MESSAGES.inquiry.success}</h1>
 

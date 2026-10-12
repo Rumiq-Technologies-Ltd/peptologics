@@ -1,8 +1,12 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import { FileCheck2Icon, ListChecksIcon, PackageCheckIcon, SendIcon } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { Button } from "@/components/ui/button";
+import { HexFrame } from "@/components/ui/HexFrame";
 import { ProductRowControls } from "@/features/cart/components/ProductRowControls";
 import { HeroSection } from "@/features/home/components/HeroSection";
 import { TrustMarquee } from "@/features/home/components/TrustMarquee";
@@ -25,20 +29,24 @@ export const metadata: Metadata = {
 const PROCESS_STEPS = [
   {
     title: "Build your list",
+    icon: ListChecksIcon,
     detail:
       "Select compounds and vial sizes. Pricing shown is indicative list pricing, with cost per milligram so you can compare across sizes.",
   },
   {
     title: "Submit an inquiry",
+    icon: SendIcon,
     detail:
       "Send us your list with your contact and shipping details. No payment is taken on this website.",
   },
   {
     title: "Receive a quotation",
+    icon: FileCheck2Icon,
     detail: "A representative confirms availability, lot documentation and final pricing by email.",
   },
   {
     title: "Dispatch",
+    icon: PackageCheckIcon,
     detail: "Once you approve the quotation, your order is packed and dispatched with tracking.",
   },
 ] as const;
@@ -190,53 +198,96 @@ export default async function HomePage() {
           From inquiry to dispatch in four steps
         </h2>
 
-        <ol className="mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {PROCESS_STEPS.map((step, index) => (
-            <li key={step.title}>
-              <p className="text-h3 text-ink-300 font-mono font-semibold" aria-hidden="true">
-                {String(index + 1).padStart(2, "0")}
-              </p>
-              <h3 className="text-ink-950 mt-2 font-semibold">{step.title}</h3>
-              <p className="text-ink-600 mt-2 text-sm">{step.detail}</p>
-            </li>
-          ))}
-        </ol>
+        <div className="relative mt-10">
+          {/*
+            The connector between the four steps. It is drawn left to right as the section
+            arrives (`.process-rail` in globals.css), and only from `lg`, where the steps sit in
+            one row. Each hexagon sits at the left edge of its column and is 2.5rem wide, so its
+            centre is 1.25rem in from that edge. The rail therefore starts 1.25rem from the left
+            and ends at the last hexagon's centre, which is a column (a quarter of the width, less
+            the 2rem gaps) less 1.25rem from the right edge.
+          */}
+          <div
+            aria-hidden="true"
+            className="process-rail bg-brand-200 absolute top-5 right-[calc(25%_-_2.75rem)] left-5 hidden h-px lg:block"
+          />
+
+          <ol className="relative grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {PROCESS_STEPS.map((step, index) => (
+              <li key={step.title} data-reveal style={{ "--reveal-index": index } as CSSProperties}>
+                {/* Filled with the band's own colour, so the connector passes behind the node. */}
+                <HexFrame className="bg-ink-50">
+                  <step.icon className="size-5" aria-hidden="true" />
+                </HexFrame>
+                <p className="text-eyebrow text-brand-800 mt-4 uppercase">Step {index + 1}</p>
+                <h3 className="text-ink-950 mt-2 font-semibold">{step.title}</h3>
+                <p className="text-ink-600 mt-2 text-sm">{step.detail}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
       </Section>
 
       {/* ----------------------------------------- Analytical standards (dark) */}
       <Section surface="dark" lattice reveal aria-labelledby="standards-heading">
-        <p className="text-eyebrow text-brand-300 uppercase">Analytical standards</p>
-        <h2 id="standards-heading" className="text-h2 mt-3 max-w-3xl font-bold text-white">
-          Lot documentation, available on request
-        </h2>
+        <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-16">
+          <div>
+            <p className="text-eyebrow text-brand-300 uppercase">Analytical standards</p>
+            <h2 id="standards-heading" className="text-h2 mt-3 max-w-3xl font-bold text-white">
+              Lot documentation, available on request
+            </h2>
 
-        <p className="text-ink-300 mt-5 max-w-2xl">
-          Production lots are analyzed by high-performance liquid chromatography for purity and by
-          mass spectrometry for identity. Results are recorded on a lot-specific Certificate of
-          Analysis.
-        </p>
+            <p className="text-ink-300 mt-5 max-w-2xl">
+              Production lots are analyzed by high-performance liquid chromatography for purity and
+              by mass spectrometry for identity. Results are recorded on a lot-specific Certificate
+              of Analysis.
+            </p>
 
-        {/*
+            {/*
           Non-numeric deliberately. A figure like "≥99% purity" is a substantiable
           claim the client must be able to evidence; these state what is done, not
           what result is guaranteed. Open question 2.
         */}
-        <dl className="mt-10 grid gap-6 sm:grid-cols-3">
-          {[
-            { figure: "HPLC + MS", label: "Standard analytical panel" },
-            { figure: "Per lot", label: "Certificate of Analysis" },
-            { figure: "Lyophilized", label: "Supplied as sealed powder" },
-          ].map((stat) => (
-            <div key={stat.label} className="rounded-lg border border-white/15 bg-white/[0.06] p-5">
-              <dt className="text-h3 font-mono font-semibold text-white">{stat.figure}</dt>
-              <dd className="text-ink-300 mt-1 text-sm">{stat.label}</dd>
-            </div>
-          ))}
-        </dl>
+            <dl className="mt-10 grid gap-6 sm:grid-cols-3">
+              {[
+                { figure: "HPLC + MS", label: "Standard analytical panel" },
+                { figure: "Per lot", label: "Certificate of Analysis" },
+                { figure: "Lyophilized", label: "Supplied as sealed powder" },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-lg border border-white/15 bg-white/[0.06] p-5"
+                >
+                  <dt className="text-h3 font-mono font-semibold text-white">{stat.figure}</dt>
+                  <dd className="text-ink-300 mt-1 text-sm">{stat.label}</dd>
+                </div>
+              ))}
+            </dl>
 
-        <Button asChild variant="secondary" className="mt-8">
-          <Link href={ROUTES.labTesting}>About our testing</Link>
-        </Button>
+            <Button asChild variant="secondary" className="mt-8">
+              <Link href={ROUTES.labTesting}>About our testing</Link>
+            </Button>
+          </div>
+
+          {/*
+          A real, published certificate, not an illustration: the document the sentence above
+          describes. Tilted for the card, straightened on hover, and the tilt is static, so it
+          moves nothing for reduced-motion users.
+        */}
+          <figure className="mx-auto w-full max-w-xs lg:max-w-none">
+            <Image
+              src="/coa/bpc-157-10mg.webp"
+              alt="Certificate of Analysis for BPC-157 10 mg"
+              width={1275}
+              height={1650}
+              sizes="(min-width: 1024px) 20rem, 18rem"
+              className="shadow-overlay -rotate-2 rounded-md ring-1 ring-white/15 hover:rotate-0 motion-safe:transition-transform motion-safe:duration-500"
+            />
+            <figcaption className="text-ink-300 mt-3 text-xs">
+              A published Certificate of Analysis, from the lab-testing library.
+            </figcaption>
+          </figure>
+        </div>
       </Section>
 
       {/* ---------------------------------------------------------------- FAQ */}

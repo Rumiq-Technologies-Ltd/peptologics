@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { Section } from "@/components/layout/Section";
-import { Button } from "@/components/ui/button";
-import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
 import { CartView } from "@/features/cart/components/CartView";
 import { getContainer } from "@/services/container";
@@ -38,6 +35,12 @@ export const metadata: Metadata = {
 export default async function CartPage() {
   const result = await getContainer().products.listActive();
 
+  // Thrown rather than rendered, for the reason given on the catalog page. The saved list
+  // lives on the device, so the error boundary's retry brings it back without loss.
+  if (!result.success) {
+    throw new Error(result.message);
+  }
+
   return (
     <Section>
       <h1 className="text-display text-ink-950 font-bold">Your inquiry list</h1>
@@ -47,25 +50,7 @@ export default async function CartPage() {
         documentation and final pricing — nothing is charged here.
       </p>
 
-      {result.success ? (
-        <CartView catalog={result.data} />
-      ) : (
-        /*
-          Without the catalog, a saved list cannot be resolved — and showing "your
-          list is empty" would be a lie that invites the visitor to rebuild it. Say
-          what actually happened instead.
-        */
-        <div className="border-ink-200 mt-10 rounded-xl border bg-white p-8">
-          <p className="text-ink-950 font-semibold">{MESSAGES.products.loadFailed}</p>
-          <p className="text-ink-600 mt-1 text-sm">
-            Your selection is saved on this device and will reappear once the catalog loads.
-          </p>
-
-          <Button asChild variant="outline" className="mt-6">
-            <Link href={ROUTES.products}>Back to the catalog</Link>
-          </Button>
-        </div>
-      )}
+      <CartView catalog={result.data} />
     </Section>
   );
 }

@@ -88,7 +88,14 @@ const FAQS = [
 
 export default async function HomePage() {
   const featured = await getContainer().products.listFeatured();
-  const products = featured.success ? featured.data : [];
+
+  // Thrown rather than replaced with an empty list. An empty featured strip would be cached
+  // for the hour, and the last good home page would be lost (Next's ISR guide).
+  if (!featured.success) {
+    throw new Error(featured.message);
+  }
+
+  const products = featured.data;
 
   return (
     <>

@@ -40,7 +40,7 @@ export default function ProductsError({
         </div>
 
         {error.digest ? (
-          <p className="text-ink-400 mt-10 font-mono text-xs">Reference: {error.digest}</p>
+          <p className="text-ink-600 mt-10 font-mono text-xs">Reference: {error.digest}</p>
         ) : null}
       </div>
     </Section>

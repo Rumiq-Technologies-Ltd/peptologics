@@ -176,7 +176,11 @@
   --color-destructive-foreground: white;
 
   --color-border: var(--color-ink-200);
-  --color-input: var(--color-ink-300);
+  /*
+   * Field borders are the only cue that a box is a field, so they need 3:1 against the
+   * white surface (WCAG 1.4.11). ink-300 measured about 1.7:1; ink-500 is about 4.6:1.
+   */
+  --color-input: var(--color-ink-500);
   /* The focus ring uses the brighter accent, matching the base layer rule. */
   --color-ring: var(--color-brand-600);
 

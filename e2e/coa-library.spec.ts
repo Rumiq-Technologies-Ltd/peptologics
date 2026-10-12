@@ -36,9 +36,11 @@ test("lists a row per documented compound and opens its certificate in a dialog"
   // The scan itself, and the escape hatch for zooming or printing it.
   const scan = dialog.getByRole("img", { name: /Certificate of Analysis for / });
   await expect(scan).toBeVisible();
+  // The scans are a mix of formats (the seed refreshed several to .webp), so the assertion
+  // is that the link points into the certificate folder, not at one extension.
   await expect(dialog.getByRole("link", { name: "Open full size" })).toHaveAttribute(
     "href",
-    /^\/coa\/.+\.jpg$/,
+    /^\/coa\/.+\.(jpe?g|png|webp)$/,
   );
 });
 

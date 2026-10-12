@@ -321,15 +321,15 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
         The honeypot. Off-screen rather than `display: none` — some bots skip hidden
         inputs, and this one is meant to be found. `aria-hidden` and `tabIndex={-1}`
         keep it away from anyone using a keyboard or a screen reader.
+
+        The name matters as much as the position. Browsers autofill a field whose name
+        reads like an address field, and a real visitor whose profile was autofilled would
+        have a genuine inquiry dropped. `leave-blank-field` matches no address heuristic.
       */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute left-[-9999px] h-0 w-0 overflow-hidden"
       >
-
-        The name matters as much as the position. Browsers autofill a field whose name
-        reads like an address field, and a real visitor whose profile was autofilled would
-        have a genuine inquiry dropped. `leave-blank-field` matches no address heuristic.
         <label htmlFor={HONEYPOT_FIELD}>Leave this field blank</label>
         <input
           ref={honeypotRef}

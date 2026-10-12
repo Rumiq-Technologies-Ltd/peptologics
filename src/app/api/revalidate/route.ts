@@ -56,8 +56,10 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     // An empty body is valid and means "the whole catalog", so a parse failure is not
-    // an error in itself.
-    body = (await request.json()) as RevalidateBody;
+    // an error in itself. A JSON `null` is parsed without error but has no fields to read,
+    // so it is treated like an empty body rather than throwing on the first property read.
+    const parsed: unknown = await request.json();
+    body = parsed !== null && typeof parsed === "object" ? (parsed as RevalidateBody) : {};
   } catch {
     body = {};
   }

@@ -748,6 +748,33 @@ styles, because it replaces the layout that would otherwise supply them.
 
 ---
 
+## ADR-030 — Moving content has a visitor pause, and new motion stays below the fold
+
+**Status** Accepted · Post-launch
+
+WCAG 2.2.2 (level A) requires a way to pause, stop or hide moving content that starts by itself and runs for
+more than five seconds. The announcement strip, the trust row and the hero's 3D model all moved with no
+control. Reduced-motion visitors were already covered by the global rule; everyone else was not.
+
+Each moving element now has a pause control, which is the visitor's own and lasts for that visit only: the
+strip marks itself and CSS pauses the track; the trust row pauses its timeline, and a visitor's pause is kept
+apart from the hover pause so leaving the row cannot restart it; the hero's model stops its render loop. The
+controls are hidden under reduced motion, where those elements are already still.
+
+The new motion is limited to what does not compete with reading or the call to action: scroll reveals below
+the fold, the process connector drawn once as its section arrives, a one-time confirmation drawing on the
+inquiry success page, and hover and focus states. No new motion autoplays above the fold. The strip and the
+hero model did autoplay there before this decision, which is why they now have controls. The hero's text is
+deliberately not animated, because the headline is the largest contentful paint. The scroll effects reuse the
+existing reveal observer and CSS, so no dependency was added.
+
+**Conflict to resolve.** `docs/brand-guidelines.md` §4 and §7 discourage decorative motion above the fold and
+during reading. The motion added here is below the fold and visitor-controlled, which those sections permit in
+spirit, but §7 still reads as a ban. The brand document should be amended by its owner, not left to contradict
+the code.
+
+---
+
 ## Open questions — awaiting the client
 
 Nothing here is invented in code without being listed as `PLACEHOLDER`.

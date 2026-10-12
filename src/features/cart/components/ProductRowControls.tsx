@@ -83,7 +83,16 @@ export function ProductRowControls({
            * in, so the visitor would see their addition vanish.
            */
           disabled={!hasHydrated}
-          aria-label={`Add ${productName} to inquiry list`}
+          /*
+           * A screen reader's name must contain what is printed (WCAG 2.5.3). The full-width
+           * label reads "Add to inquiry list", so the name leads with that phrase; the compact
+           * "Add" is contained in the name below as it stands.
+           */
+          aria-label={
+            isFullWidth
+              ? `Add to inquiry list: ${productName}`
+              : `Add ${productName} to inquiry list`
+          }
           onClick={handleAdd}
         >
           <PlusIcon aria-hidden="true" />

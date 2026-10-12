@@ -428,7 +428,7 @@ clickability; that is the smaller loss.
 
 ## ADR-021 — A suppressed submission gets an ordinary success
 
-**Status** Accepted · Phase 5
+**Status** Accepted · Phase 5. The dwell measurement is amended by ADR-028: it is now an elapsed time, not a timestamp.
 
 Two signals mark a submission as automated: a filled honeypot field, and a dwell time under
 `MIN_FORM_DWELL_SECONDS` (3s) between form mount and post. Either one means nothing is persisted and
@@ -693,6 +693,38 @@ the difference is that a customer now notices.
 
 **Revisit if** confirmations start being marked as spam, or the client wants the response window
 changed — the latter is one constant.
+
+---
+
+## ADR-028 — Dwell time is an elapsed duration, and the client IP is the right-most forwarded entry
+
+**Status** Accepted · Post-launch hardening
+
+**The dwell time.** ADR-021 measured the time on the form as `Date.now()` on the device minus a timestamp
+the form stamped at mount, and compared it with the server's clock. A device whose clock runs ahead of
+the server's by more than the visitor spent on the form produces a negative dwell. That reads as a bot,
+so the inquiry was suppressed: the visitor was told it was received, nothing was stored, nothing was
+emailed, and the cart was cleared. ADR-021 recorded this as an accepted false positive. On review it is a
+silent loss of a real lead, and the fix costs nothing: the form now measures the elapsed time from mount to
+send with `performance.now()`, sends it as `formElapsedMs`, and the server compares only that number. No
+two clocks need to agree. Forgery is no easier than before, since the field was always client-supplied.
+
+**The rate-limit key.** `getClientIp` took the left-most `x-forwarded-for` entry. Each proxy appends the
+address it received, so the left-most entries are whatever the visitor sent, and a visitor could present a
+fresh address on every request and so open a fresh bucket each time. The key is now the right-most entry,
+the one our own edge appended. This assumes a single proxy, Vercel, between the visitor and the function.
+A CDN placed in front would make every visitor share one bucket, and this rule would need revisiting then.
+
+**The honeypot.** It was named `company-website`. Browsers autofill fields whose names read like address
+fields, so a visitor whose profile carried an organisation could have the hidden field filled, and a real
+inquiry would be dropped. It is now `leave-blank-field`, which no address heuristic matches.
+
+Consequences accepted deliberately:
+
+- The contract changed for any client that posted `formStartedAt`. Only our own form does, and it ships
+  with the server. An old client that still sends the epoch field has no `formElapsedMs`, so it is treated
+  as a failed dwell check, which is the same safe direction as before.
+- The elapsed time is still forgeable. A bot that claims a long dwell passes, as ADR-021 already said.
 
 ---
 

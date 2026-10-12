@@ -161,7 +161,7 @@ export const inquiryItemSchema = z.object({
 /**
  * The complete request body for `POST /api/inquiries`.
  *
- * `honeypot` and `formStartedAt` are anti-spam signals rather than customer data, and
+ * `honeypot` and `formElapsedMs` are anti-spam signals rather than customer data, and
  * neither is validated strictly here on purpose: a schema that rejected a filled
  * honeypot would tell a bot exactly which field trapped it. The service decides what
  * to do with them, and its answer to a bot is an ordinary success.
@@ -185,13 +185,18 @@ export const inquirySchema = z.object({
   honeypot: z.string().max(200).optional(),
 
   /**
-   * Epoch milliseconds when the form mounted, for the dwell-time check.
+   * Milliseconds the form was on screen before it was sent, measured in the browser from
+   * mount to submit (ADR-028).
    *
-   * Client-supplied and therefore forgeable — a bot that sets it to five seconds ago
-   * passes. It is a cheap filter against the far more common case, a script that posts
-   * the instant it parses the form, and it is not the only defence.
+   * An elapsed time rather than a timestamp: a timestamp would be compared with this
+   * server's clock, and a device running minutes ahead would read as an instant post and
+   * have its lead dropped without a word. An elapsed time needs no two clocks to agree.
+   *
+   * Client-supplied and therefore forgeable — a bot that claims five seconds passes. It is
+   * a cheap filter against the far more common case, a script that posts the instant it
+   * parses the form, and it is not the only defence.
    */
-  formStartedAt: z.number().int().positive().optional(),
+  formElapsedMs: z.number().int().nonnegative().optional(),
 
   /** When the visitor accepted the Research-Use-Only gate, if the record survived. */
   ruoAcknowledgedAt: z.iso.datetime().optional(),

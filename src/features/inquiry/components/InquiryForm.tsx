@@ -61,16 +61,17 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
   /**
-   * Mount time, for the server's dwell-time check. Bots post instantly; people cannot.
+   * Mount time on the monotonic clock. Bots post instantly; people cannot.
    *
-   * Stamped in an effect rather than in the ref's initialiser: `Date.now()` during
-   * render is impure, and the React compiler's purity rule is right to reject it.
-   * After-mount is also the more accurate reading of "when the visitor saw the form".
+   * The server receives the time spent on the form as an elapsed duration, never as a
+   * timestamp, so a device whose clock is wrong cannot make a person look like a bot
+   * (ADR-028). Stamped in an effect rather than during render, where reading the clock is
+   * impure, and the React compiler's purity rule is right to reject it.
    */
-  const formStartedAt = useRef<number | null>(null);
+  const mountedAt = useRef<number | null>(null);
 
   useEffect(() => {
-    formStartedAt.current = Date.now();
+    mountedAt.current = performance.now();
   }, []);
 
   /**
@@ -149,9 +150,12 @@ export function InquiryForm({ catalog }: InquiryFormProps) {
             quantity: line.quantity,
           })),
           honeypot: honeypotRef.current?.value ?? "",
-          // Null only if the effect has not run, which cannot happen by the time a
-          // human has filled the form. Omitted rather than faked if it ever is.
-          formStartedAt: formStartedAt.current ?? undefined,
+          // Omitted, not faked, if the mount effect never ran. The server treats an absent
+          // measurement as a failed dwell check, so a missing value is never a free pass.
+          formElapsedMs:
+            mountedAt.current === null
+              ? undefined
+              : Math.round(performance.now() - mountedAt.current),
           ruoAcknowledgedAt: getAcknowledgementTimestamp(),
           /*
            * The code, not the discount. The server re-evaluates it against its own

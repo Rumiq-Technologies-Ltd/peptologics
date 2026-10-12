@@ -108,8 +108,8 @@ test("the submitted payload carries quantities and no prices", async ({ page }) 
   expect(serialised).not.toMatch(/price/i);
   expect(serialised).not.toMatch(/subtotal/i);
 
-  // The dwell stamp and the acknowledgement travel with it.
-  expect(typeof submission?.body.formStartedAt).toBe("number");
+  // The dwell measurement and the acknowledgement travel with it.
+  expect(typeof submission?.body.formElapsedMs).toBe("number");
   expect(submission?.body.ruoAcknowledgedAt).toBeTruthy();
 });
 

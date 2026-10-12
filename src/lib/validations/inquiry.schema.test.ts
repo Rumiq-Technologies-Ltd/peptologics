@@ -22,7 +22,7 @@ function validBody(overrides: Record<string, unknown> = {}) {
   return {
     customer: makeCustomer(),
     items: [{ productId: PRODUCT_ID, quantity: 2 }],
-    formStartedAt: 1_754_500_000_000,
+    formElapsedMs: 12_000,
     ...overrides,
   };
 }
@@ -174,9 +174,15 @@ describe("inquirySchema — anti-spam fields", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts a body with no dwell timestamp, leaving the decision to the service", () => {
-    const result = inquirySchema.safeParse(validBody({ formStartedAt: undefined }));
+  it("accepts a body with no dwell measurement, leaving the decision to the service", () => {
+    const result = inquirySchema.safeParse(validBody({ formElapsedMs: undefined }));
     expect(result.success).toBe(true);
+  });
+
+  it("rejects a dwell measurement that is negative or fractional", () => {
+    // An elapsed time is a whole, non-negative number of milliseconds (ADR-028).
+    expect(inquirySchema.safeParse(validBody({ formElapsedMs: -1 })).success).toBe(false);
+    expect(inquirySchema.safeParse(validBody({ formElapsedMs: 1.5 })).success).toBe(false);
   });
 
   it("rejects a non-ISO acknowledgement timestamp", () => {

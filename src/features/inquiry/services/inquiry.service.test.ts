@@ -24,16 +24,14 @@ import { makeCustomer, makeProduct } from "@/test/factories";
 
 const retatrutide = makeProduct({ name: "Retatrutide", priceCents: 6000, strengthMg: 10 });
 
-/** Long enough ago to pass the dwell check. */
-function dwellPassing(): number {
-  return Date.now() - (MIN_FORM_DWELL_SECONDS + 5) * 1000;
-}
+/** Comfortably past the dwell check: a person spent this long on the form. */
+const DWELL_PASSING_MS = (MIN_FORM_DWELL_SECONDS + 5) * 1000;
 
 function makeInput(overrides: Partial<InquiryInput> = {}): InquiryInput {
   return {
     customer: makeCustomer() as InquiryInput["customer"],
     items: [{ productId: retatrutide.id, quantity: 2 }],
-    formStartedAt: dwellPassing(),
+    formElapsedMs: DWELL_PASSING_MS,
     // Present and undefined rather than absent: the schema output type has this key,
     // so omitting it would make the fixture a different shape from a real payload.
     couponCode: undefined,
@@ -139,9 +137,9 @@ describe("price authority", () => {
 describe("spam suppression", () => {
   it.each([
     ["a filled honeypot", { honeypot: "https://spam.example" }],
-    ["an instant submission", { formStartedAt: Date.now() }],
-    ["a missing dwell timestamp", { formStartedAt: undefined }],
-    ["a future-dated dwell timestamp", { formStartedAt: Date.now() + 60_000 }],
+    ["an instant submission", { formElapsedMs: 0 }],
+    ["a dwell just under the minimum", { formElapsedMs: MIN_FORM_DWELL_SECONDS * 1000 - 1 }],
+    ["a missing dwell measurement", { formElapsedMs: undefined }],
   ])("answers %s with an ordinary success and persists nothing", async (_label, overrides) => {
     const { service, create, dispatch, checkInquiry } = makeHarness();
 
@@ -164,6 +162,25 @@ describe("spam suppression", () => {
 
     expect(result.success && result.data.orderNumber).toBe("PL-001000");
     expect(create).toHaveBeenCalledOnce();
+  });
+
+  it("never drops a real lead because the device clock is wrong (ADR-028)", async () => {
+    // The old check compared a timestamp with this server's clock, so a device running
+    // minutes ahead looked like an instant post and its lead vanished. The dwell is now
+    // an elapsed time, so the clock is irrelevant. Pin it with a clock far in the future.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2040-01-01T00:00:00Z"));
+
+    try {
+      const { service, create } = makeHarness();
+
+      const result = await service.submit(makeInput({ formElapsedMs: 30_000 }), context);
+
+      expect(result.success && result.data.orderNumber).toBe("PL-001000");
+      expect(create).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

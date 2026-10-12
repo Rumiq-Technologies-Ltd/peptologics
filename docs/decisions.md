@@ -743,6 +743,9 @@ no earlier page to keep, which is the first render after a deploy. A build that 
 unreachable fails instead of publishing a failure view. Vercel keeps the previous deployment live, so visitors
 still get the last good site.
 
+`app/global-error.tsx` now covers a failure in the root layout itself. It carries its own document and inline
+styles, because it replaces the layout that would otherwise supply them.
+
 ---
 
 ## Open questions — awaiting the client

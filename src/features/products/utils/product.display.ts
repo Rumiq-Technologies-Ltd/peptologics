@@ -32,3 +32,16 @@ export function hasComparableCostPerMg(product: Product): boolean {
 export function formatPresentation(product: Product): string {
   return product.strengthUnit === "ml" ? "solution" : "lyophilized";
 }
+
+/**
+ * How the vial's contents are supplied, in the words the product page, its metadata and its
+ * structured data all use. A volume product is a sterile solution; a peptide is a lyophilized
+ * powder. One definition, so a search engine's copy of a vial cannot disagree with the page.
+ *
+ * `phrase` reads inside a sentence ("supplied as …"); `label` is the specification value.
+ */
+export function productForm(product: Product): { phrase: string; label: string } {
+  return product.strengthUnit === "ml"
+    ? { phrase: "a sterile solution", label: "Sterile solution" }
+    : { phrase: "lyophilized powder", label: "Lyophilized powder" };
+}

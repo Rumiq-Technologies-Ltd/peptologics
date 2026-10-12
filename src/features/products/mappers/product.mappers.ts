@@ -74,6 +74,30 @@ function toEnum<T extends string>(value: string, allowed: readonly T[], fallback
   return (allowed as readonly string[]).includes(value) ? (value as T) : fallback;
 }
 
+/**
+ * Admits a catalog file link only if it cannot leave the site's own scheme.
+ *
+ * `image_url` and `coa_url` end up in `src` and `href` attributes, so a `javascript:` or
+ * `data:` value would run in a visitor's browser. Only our own tooling writes these columns
+ * today, but the check costs nothing and does not depend on that staying true. Site paths
+ * and https URLs pass; anything else becomes "no file", which the page already handles.
+ *
+ * A path must start with exactly one slash. `//host` is protocol-relative and `/\host` is
+ * read by browsers as `//host`, so both are refused.
+ */
+export function toAssetPath(value: string | null): string | null {
+  if (value === null) return null;
+
+  const trimmed = value.trim();
+  if (/^\/[^/\\]/.test(trimmed)) return trimmed;
+
+  try {
+    return new URL(trimmed).protocol === "https:" ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function toProduct(row: ProductRow): Product {
   const strengthMg = toNumber(row.strength_mg, 0);
 
@@ -92,8 +116,8 @@ export function toProduct(row: ProductRow): Product {
     isBlend: row.is_blend,
     featured: row.featured,
     sortOrder: row.sort_order,
-    imageUrl: row.image_url,
-    coaUrl: row.coa_url,
+    imageUrl: toAssetPath(row.image_url),
+    coaUrl: toAssetPath(row.coa_url),
     status: toEnum(row.status, PRODUCT_STATUSES, "archived"),
   };
 }

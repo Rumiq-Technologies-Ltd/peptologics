@@ -6,7 +6,14 @@ import { usePathname } from "next/navigation";
 import { MenuIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { PRIMARY_NAV, ROUTES } from "@/constants/routes";
 import { cn } from "@/utils/cn";
@@ -29,7 +36,8 @@ export function MobileNav() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild className="lg:hidden">
-        <Button variant="ghost" size="icon" aria-label="Open menu">
+        {/* 44px, the project's minimum touch target, not the 36px icon size. */}
+        <Button variant="ghost" size="icon" aria-label="Open menu" className="size-11">
           <MenuIcon className="size-5" />
         </Button>
       </SheetTrigger>
@@ -39,6 +47,8 @@ export function MobileNav() {
           <SheetTitle className="text-left">
             <BrandLogo size={32} />
           </SheetTitle>
+          {/* Radix expects a description on every dialog; this one is for screen readers. */}
+          <SheetDescription className="sr-only">Site navigation</SheetDescription>
         </SheetHeader>
 
         <nav aria-label="Primary" className="px-4 py-2">

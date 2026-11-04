@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { SkipLink } from "@/components/shared/SkipLink";
+import { WebVitalsReporter } from "@/components/shared/WebVitalsReporter";
 import { Toaster } from "@/components/ui/sonner";
 import { COMPLIANCE_NOTICE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/constants/site";
 import { CartHydrator } from "@/features/cart/components/CartHydrator";
@@ -191,6 +192,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 
         {/* Top, not bottom: a message on a phone would otherwise cover the sticky order bar. */}
         <Toaster position="top-center" />
+        <WebVitalsReporter />
       </body>
     </html>
   );

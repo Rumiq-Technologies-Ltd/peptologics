@@ -35,6 +35,8 @@ slow ones for the journeys nobody would notice breaking.
 | `e2e/inquiry-journey.spec.ts`  | Browse → add → cart → form → success, payload shape, double-submit, honeypot            |
 | `e2e/coa-library.spec.ts`      | Certificate rows, the dialog, focus restoration, and that each scan actually resolves   |
 | `e2e/hero-3d.spec.ts`          | WebGL context, canvas sizing and dpr cap, pixels drawn, CLS, reduced-motion stillness   |
+| `webVitals.schema.test.ts`     | Which speed reports `/api/vitals` accepts, and the impossible values it refuses         |
+| `e2e/slow-device.spec.ts`      | Phone profile, 4× CPU and Slow 4G: LCP under 4 s, adding works, vitals beacon sent      |
 
 Coverage on the code these suites are meant to cover sits at ~97% of statements. That
 number is a by-product, not the goal — the goal is that every rule which decides what a

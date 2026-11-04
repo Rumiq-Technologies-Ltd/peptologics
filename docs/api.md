@@ -53,6 +53,7 @@ SQL, table names and internal paths never appear in a response.
 | `GET`  | `/api/products`   | Active catalog.                                                   | none                                       |
 | `POST` | `/api/inquiries`  | Create an inquiry.                                                | none, but same-origin + rate limited       |
 | `POST` | `/api/revalidate` | Purge the catalog cache after a price change.                     | `Authorization: Bearer $REVALIDATE_SECRET` |
+| `POST` | `/api/vitals`     | Record one real-user speed measurement (ADR-031).                 | none, but same-origin                      |
 
 Detail — request shape, validation rules, every error response — is documented per endpoint below.
 
@@ -276,6 +277,35 @@ how a site ends up quoting two different prices for the same product.
 
 Adding a **new** product needs a redeploy, not a purge: `/products/[slug]` sets `dynamicParams = false`,
 so a slug absent at build time 404s until `generateStaticParams` runs again (ADR-014).
+
+---
+
+## `POST /api/vitals`
+
+Receives one Core Web Vitals measurement from a real visitor's browser, sent by
+`WebVitalsReporter` with `navigator.sendBeacon`. Each valid report becomes one `web_vital`
+log line; there is no database write.
+
+**Request body** (JSON, at most 2 KB) — validated by `webVitalSchema`:
+
+| Field            | Rule                                                     |
+| ---------------- | -------------------------------------------------------- |
+| `name`           | `CLS`, `FCP`, `INP`, `LCP` or `TTFB`                     |
+| `value`          | Finite, ≥ 0; ≤ 60 000 ms, or ≤ 10 for CLS                |
+| `rating`         | `good`, `needs-improvement` or `poor`                    |
+| `id`             | web-vitals' page-load ID, 1–64 characters                |
+| `navigationType` | Optional, ≤ 32 characters                                |
+| `pathname`       | Starts with `/`, ≤ 200 characters. Never a query string. |
+
+**Response** — always `204 No Content`, whether the report was accepted, malformed or
+cross-origin. A beacon never reads the response, so detail would only help a prober.
+
+**Log line** — `{"level":"info","event":"web_vital","metric":"LCP","value":1830,"rating":"good","pageLoadId":"…","navigationType":"navigate","pathname":"/products"}`.
+Filter on `event = web_vital` in the host's log search; group by `metric` and `pathname`
+and look at the 75th percentile, which is the figure Google ranks on.
+
+Not rate limited: the worst abuse can do is add log lines, and a limiter would cost a
+database round trip per beacon from every real visitor.
 
 ---
 

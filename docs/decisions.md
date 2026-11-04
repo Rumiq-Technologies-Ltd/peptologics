@@ -775,6 +775,31 @@ the code.
 
 ---
 
+## ADR-031 — Real-user speed goes to our own endpoint and the host's logs
+
+**Status** Accepted · Post-launch
+
+Lighthouse and the Playwright specs measure the site on a fast machine; neither says how fast it is for the
+people who actually visit. The browser already measures that, so each visitor's LCP, INP, CLS, FCP and TTFB
+are now sent to `POST /api/vitals` and written as structured `web_vital` log lines.
+
+Two hosted alternatives were rejected. Vercel Speed Insights gives a dashboard but works only on Vercel, and
+the host is not settled — the site is being trialled on AWS Amplify. CloudWatch RUM is the reverse: Amplify
+only, and it needs AWS origins added to the CSP. Next's built-in `useReportWebVitals` plus a 50-line route
+works on any host, adds no dependency and no third-party script, and leaves `connect-src 'self'` untouched.
+The cost is that there is no ready-made dashboard: the numbers are read through the host's log search.
+
+Reports carry the page path and nothing else about the visitor — no query string, user agent or IP. The
+endpoint answers 204 to everything and is not rate limited, because a flood can only add log lines.
+
+Revisit if traffic grows enough for log volume to matter (sample in the reporter), or once the host is
+settled and its own monitoring product is worth the trade.
+
+A slow-device spec (`e2e/slow-device.spec.ts`) was added at the same time: a phone profile with the CPU
+slowed 4× and the network on "Slow 4G", checking LCP stays under 4 s and the add-to-list journey still works.
+
+---
+
 ## Open questions — awaiting the client
 
 Nothing here is invented in code without being listed as `PLACEHOLDER`.

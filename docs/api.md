@@ -124,7 +124,7 @@ after the commit and cannot affect the response.
 | `Content-Type`    | yes      | `application/json`                                                    |
 | `Idempotency-Key` | yes      | UUID, generated once per form mount. A replay returns the same order. |
 
-`Origin`, when present, must match `NEXT_PUBLIC_SITE_URL`, otherwise the request is refused with `403`.
+`Origin`, when present, must match `NEXT_PUBLIC_SITE_URL` — or its `www.` twin, since the site answers on both hosts — with the same scheme and port, otherwise the request is refused with `403`. A request with no `Origin` header is allowed; the other defences (validation, rate limit, idempotency) do not depend on it.
 
 ### Request body
 

@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import { env } from "@/lib/env";
+import { isAllowedOrigin } from "@/lib/security/origin";
 
 /**
  * Request-level security helpers for public endpoints.
@@ -12,6 +13,9 @@ import { env } from "@/lib/env";
  * Rejects cross-origin POSTs. The inquiry endpoint is only ever called by our
  * own form, so an Origin that is not ours is either a misconfigured client or an
  * abuse attempt. This is cheap defence-in-depth, not a substitute for validation.
+ *
+ * The rule for what counts as "ours" lives in `origin.ts`, where it can be tested without
+ * booting the env module.
  */
 export function isSameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
@@ -20,11 +24,7 @@ export function isSameOrigin(request: Request): boolean {
   // rather than breaking legitimate submissions.
   if (!origin) return true;
 
-  try {
-    return new URL(origin).origin === new URL(env.NEXT_PUBLIC_SITE_URL).origin;
-  } catch {
-    return false;
-  }
+  return isAllowedOrigin(origin, env.NEXT_PUBLIC_SITE_URL);
 }
 
 /**

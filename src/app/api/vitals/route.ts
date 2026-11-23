@@ -7,7 +7,7 @@ import { webVitalSchema } from "@/lib/validations/webVitals.schema";
  *
  * The browser sends LCP, INP, CLS, FCP and TTFB as each becomes final. Each one is
  * written as a structured `web_vital` log line, which the host's log search can
- * filter and chart — on Vercel or Amplify alike, with no third-party script and no
+ * filter and chart — on any host, with no third-party script and no
  * change to the CSP.
  *
  * Always answers 204 with no body, valid or not. The sender is `sendBeacon`, which

@@ -550,7 +550,7 @@ beyond our own form.
 
 ## ADR-025 — Production refuses to build with a fake site URL or no email channel
 
-**Status** Accepted · Phase 9, after the first production deploy
+**Status** Accepted · Phase 9, after the first production deploy. Amended by ADR-032: the checks are keyed on `APP_ENV`, not `VERCEL_ENV`, and the fake host is `*.amplifyapp.com`.
 
 Both of these failed silently on the live site, and neither was visible from inside the
 application:
@@ -698,7 +698,7 @@ changed — the latter is one constant.
 
 ## ADR-028 — Dwell time is an elapsed duration, and the client IP is the right-most forwarded entry
 
-**Status** Accepted · Post-launch hardening
+**Status** Accepted · Post-launch hardening. The single-proxy assumption behind the client-IP rule is amended by ADR-032: it is unverified behind Amplify.
 
 **The dwell time.** ADR-021 measured the time on the form as `Date.now()` on the device minus a timestamp
 the form stamped at mount, and compared it with the server's clock. A device whose clock runs ahead of
@@ -798,6 +798,38 @@ settled and its own monitoring product is worth the trade.
 A slow-device spec (`e2e/slow-device.spec.ts`) was added at the same time: a phone profile with the CPU
 slowed 4× and the network on "Slow 4G", checking LCP stays under 4 s and the add-to-list journey still works.
 
+---
+
+## ADR-032 — `APP_ENV` replaces `VERCEL_ENV`
+
+**Status** Accepted · Migration hotfix
+
+The site runs on AWS Amplify, not Vercel. `VERCEL_ENV` is set only by Vercel, so on Amplify it
+was always undefined, and everything keyed on it silently took the "not production" branch:
+
+1. `robots.txt` served `Disallow: /` on the live site, keeping it out of search engines.
+2. The two launch-critical build checks from ADR-025 (real site URL, all email variables) never ran.
+
+**Decision.** A variable we own, `APP_ENV` (`development` | `staging` | `production`, optional),
+set per Amplify branch: `main` is `production`, `staging` is `staging`, and it is unset on a
+developer's machine. Only `production` opens `robots.txt` and enables the ADR-025 checks. The fake
+host those checks reject is now `*.amplifyapp.com`.
+
+**Why not `NODE_ENV`.** A staging build also runs with `NODE_ENV=production`, so it cannot
+separate staging from production. That reasoning from ADR-025 still holds.
+
+**Amends** ADR-025 (keyed on `VERCEL_ENV`, rejected `*.vercel.app`) and ADR-028 (the client-IP rule
+assumed one proxy).
+
+**Client IP, unverified.** Behind Amplify, requests pass through CloudFront and then its compute
+layer, so the right-most `x-forwarded-for` entry may be a CloudFront address shared by every
+visitor, putting everyone in one rate-limit bucket. This cannot be checked locally. The rule is
+unchanged. Setting `RATE_LIMIT_DIAGNOSTIC=true` makes `POST /api/inquiries` log a
+`client_ip_diagnostic` line holding only the entry count and the names of the forwarding headers
+present, never an address. The log is temporary and is removed once read.
+
+**Cost** One more variable to set per Amplify branch. Forgetting it on `main` closes `robots.txt`
+again, which is why the production checks fail the build rather than warn.
 ---
 
 ## Open questions — awaiting the client

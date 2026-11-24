@@ -726,6 +726,25 @@ Consequences accepted deliberately:
   as a failed dwell check, which is the same safe direction as before.
 - The elapsed time is still forgeable. A bot that claims a long dwell passes, as ADR-021 already said.
 
+**Amended 2026-11-24 — the client IP behind Amplify.** The diagnostic from ADR-032 was read on the live
+site. Two requests to `POST /api/inquiries` from one machine, sending no `x-forwarded-for` of their own,
+each logged `xffEntryCount: 2` and the headers `x-forwarded-for`, `cloudfront-viewer-address` and
+`x-amzn-trace-id`. So `x-forwarded-for` arrives as `<visitor>, <CloudFront edge>`, and the right-most rule
+above keyed on the edge address, not the visitor: every visitor served by one edge shared a bucket. The
+rule is now:
+
+1. Use `cloudfront-viewer-address` (`IP:port`, port after the last colon, IPv6 unbracketed) when its
+   address part is a valid IPv4 or IPv6 address. CloudFront sets this header itself and overwrites a
+   client-sent value, so it cannot be spoofed while the app is reachable only through CloudFront, as
+   Amplify Hosting is.
+2. Otherwise use the second-from-right `x-forwarded-for` entry when there are two or more, which is the
+   address CloudFront recorded for the visitor. With a single entry, use it. Then `x-real-ip`, then
+   `unknown`.
+
+Both steps assume the app is reachable only through CloudFront and that exactly one proxy sits behind it.
+A change to that path, or direct access to the compute layer, means the rule must be revisited. The
+temporary `RATE_LIMIT_DIAGNOSTIC` variable and its logging were removed.
+
 ---
 
 ## ADR-029 — A failed catalog read throws, so the last good page is kept
@@ -827,6 +846,8 @@ visitor, putting everyone in one rate-limit bucket. This cannot be checked local
 unchanged. Setting `RATE_LIMIT_DIAGNOSTIC=true` makes `POST /api/inquiries` log a
 `client_ip_diagnostic` line holding only the entry count and the names of the forwarding headers
 present, never an address. The log is temporary and is removed once read.
+
+**Update 2026-11-24.** The diagnostic was read and removed; see the ADR-028 amendment.
 
 **Cost** One more variable to set per Amplify branch. Forgetting it on `main` closes `robots.txt`
 again, which is why the production checks fail the build rather than warn.

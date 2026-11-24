@@ -1,28 +1,55 @@
+import { isIP } from "node:net";
+
 /**
  * The client address used as a rate-limit key.
  *
  * Pure, and deliberately free of the env module, so the rule that picks the address can
- * be unit-tested on its own.
+ * be unit-tested on its own. It imports only `isIP`, and every caller runs on the Node
+ * runtime.
  *
- * Each proxy appends the address it received to `x-forwarded-for`. The **right-most**
- * entry is therefore the one our own edge recorded. The left-most entries are whatever the
- * visitor chose to send, and reading them would let a visitor present a fresh address,
- * and so a fresh rate-limit bucket, on every request (ADR-028).
+ * Behind Amplify Hosting a request passes through CloudFront and then the compute layer.
+ * A live diagnostic on 2026-11-24 (two requests from one machine, no `x-forwarded-for` sent)
+ * showed `x-forwarded-for` arriving as `<visitor>, <CloudFront edge>` (two entries), plus a
+ * `cloudfront-viewer-address` header. The old right-most rule therefore keyed on the edge,
+ * and every visitor behind one edge shared a bucket (ADR-028, amended).
  *
- * UNVERIFIED on Amplify. The rule assumed one proxy between the visitor and the function.
- * Amplify puts CloudFront and its own compute layer in the path, so the right-most entry
- * may be a CloudFront address shared by every visitor, which would put them all in one
- * rate-limit bucket. It has not been checked against a real request; the
- * `RATE_LIMIT_DIAGNOSTIC` log on POST /api/inquiries exists to settle it. Do not change
- * the rule until that result has been read.
+ * The order is:
+ * 1. `cloudfront-viewer-address`, formatted `IP:port`. CloudFront sets it and overwrites any
+ *    client-sent value, so it cannot be spoofed while the app is reachable only through
+ *    CloudFront. For IPv6 the port still follows the last colon and there are no brackets.
+ * 2. The second-from-right `x-forwarded-for` entry, which is the visitor as CloudFront
+ *    recorded it. Entries further left are client-supplied and are never read. A single
+ *    entry is used as it is.
+ * 3. `x-real-ip`, then `"unknown"`.
+ *
+ * If the app were ever reachable without CloudFront, the viewer-address header and the
+ * two-hop assumption would both stop holding, and this rule would need revisiting.
  */
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
+  const viewerAddress = parseViewerAddress(request.headers.get("cloudfront-viewer-address"));
+  if (viewerAddress) return viewerAddress;
 
-  if (forwarded) {
-    const last = forwarded.split(",").at(-1)?.trim();
-    if (last) return last;
+  const forwarded = request.headers
+    .get("x-forwarded-for")
+    ?.split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  if (forwarded?.length) {
+    return forwarded.length >= 2 ? forwarded[forwarded.length - 2] : forwarded[0];
   }
 
   return request.headers.get("x-real-ip")?.trim() || "unknown";
+}
+
+/** Strips the port from CloudFront's `IP:port` value; returns null unless an IP remains. */
+function parseViewerAddress(value: string | null): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  const portSeparator = trimmed.lastIndexOf(":");
+  if (portSeparator === -1) return null;
+
+  const address = trimmed.slice(0, portSeparator);
+  return isIP(address) ? address : null;
 }

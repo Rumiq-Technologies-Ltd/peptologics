@@ -1,12 +1,10 @@
 import { z } from "zod";
 
 import { MESSAGES } from "@/constants/messages";
-import { env } from "@/lib/env";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/errors";
 import { jsonCreated, jsonFail, jsonFromServiceFailure } from "@/lib/http/responses";
 import { logger } from "@/lib/logger";
 import { getClientIp } from "@/lib/security/clientIp";
-import { describeForwardingHeaders } from "@/lib/security/forwardingDiagnostic";
 import { hashIp, isSameOrigin } from "@/lib/security/request";
 import { inquirySchema, toFieldErrors } from "@/lib/validations/inquiry.schema";
 import { getContainer } from "@/services/container";
@@ -32,15 +30,6 @@ export async function POST(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) {
     logger.warn("inquiry_cross_origin_rejected");
     return jsonFail("This request was not accepted.", { status: 403, code: "FORBIDDEN" });
-  }
-
-  /*
-   * Temporary: records the shape of the forwarding headers (counts and names, never values)
-   * so the client-IP rule can be checked behind Amplify. Log only; it never feeds the
-   * rate limiter. Remove once the result has been read.
-   */
-  if (env.RATE_LIMIT_DIAGNOSTIC === "true") {
-    logger.info("client_ip_diagnostic", { ...describeForwardingHeaders(request.headers) });
   }
 
   const idempotencyKey = idempotencyKeySchema.safeParse(request.headers.get("idempotency-key"));

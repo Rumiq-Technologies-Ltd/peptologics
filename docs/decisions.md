@@ -135,7 +135,7 @@ chain if the client accepts it.
 
 ## ADR-008 — `cacheComponents` stays off until after launch
 
-**Status** Accepted · **revisited after launch and confirmed: it stays off permanently, unless the
+**Status** Accepted · _the `X-Vercel-Cache` measurement below was taken on Vercel; the site now runs on Amplify (ADR-033)_ · **revisited after launch and confirmed: it stays off permanently, unless the
 site gains per-visitor content.** The reasoning below was written before there was a production
 deployment to measure. Measured, it held: every route on the live domain serves
 `X-Vercel-Cache: PRERENDER`, so there is no per-request work for Cache Components to improve, and the
@@ -550,7 +550,7 @@ beyond our own form.
 
 ## ADR-025 — Production refuses to build with a fake site URL or no email channel
 
-**Status** Accepted · Phase 9, after the first production deploy. Amended by ADR-032: the checks are keyed on `APP_ENV`, not `VERCEL_ENV`, and the fake host is `*.amplifyapp.com`.
+**Status** Accepted · Phase 9, after the first production deploy. Amended by ADR-032: the checks are keyed on `APP_ENV`, not `VERCEL_ENV`, and the fake host is `*.amplifyapp.com`. The Vercel wording below is historical; **superseded by ADR-033** as to the host.
 
 Both of these failed silently on the live site, and neither was visible from inside the
 application:
@@ -712,7 +712,7 @@ two clocks need to agree. Forgery is no easier than before, since the field was 
 **The rate-limit key.** `getClientIp` took the left-most `x-forwarded-for` entry. Each proxy appends the
 address it received, so the left-most entries are whatever the visitor sent, and a visitor could present a
 fresh address on every request and so open a fresh bucket each time. The key is now the right-most entry,
-the one our own edge appended. This assumes a single proxy, Vercel, between the visitor and the function.
+the one our own edge appended. This assumes a single proxy, Vercel, between the visitor and the function. _(Historical: **superseded by ADR-033**; behind Amplify's CloudFront the rule is amended, see the ADR-028 amendment.)_
 A CDN placed in front would make every visitor share one bucket, and this rule would need revisiting then.
 
 **The honeypot.** It was named `company-website`. Browsers autofill fields whose names read like address
@@ -759,7 +759,7 @@ stays in place and the next request retries.
 
 Those pages now throw the service's failure. The route's error boundary shows the failure only when there is
 no earlier page to keep, which is the first render after a deploy. A build that runs while the database is
-unreachable fails instead of publishing a failure view. Vercel keeps the previous deployment live, so visitors
+unreachable fails instead of publishing a failure view. On Vercel (superseded by ADR-033; Amplify likewise keeps the last successful build live), the previous deployment stays live, so visitors
 still get the last good site.
 
 `app/global-error.tsx` now covers a failure in the root layout itself. It carries its own document and inline
@@ -802,7 +802,7 @@ Lighthouse and the Playwright specs measure the site on a fast machine; neither 
 people who actually visit. The browser already measures that, so each visitor's LCP, INP, CLS, FCP and TTFB
 are now sent to `POST /api/vitals` and written as structured `web_vital` log lines.
 
-Two hosted alternatives were rejected. Vercel Speed Insights gives a dashboard but works only on Vercel, and
+_(Host now settled: AWS Amplify, ADR-033.)_ Two hosted alternatives were rejected. Vercel Speed Insights gives a dashboard but works only on Vercel, and
 the host is not settled — the site is being trialled on AWS Amplify. CloudWatch RUM is the reverse: Amplify
 only, and it needs AWS origins added to the CSP. Next's built-in `useReportWebVitals` plus a 50-line route
 works on any host, adds no dependency and no third-party script, and leaves `connect-src 'self'` untouched.
@@ -880,17 +880,17 @@ Nothing here is invented in code without being listed as `PLACEHOLDER`.
 
 ### Blocks operations
 
-| #   | Question                                                                                                                        | Current default                                                                                                                                                                                                         |
-| --- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 12  | Which inbox receives inquiries? Which domain sends?                                                                             | Set, but sending from Resend's sandbox `onboarding@resend.dev`, which delivers **only to the Resend account owner**. `peptologics.com` must be verified in Resend before launch.                                        |
-| 12b | One Supabase project serves development, preview and production. Create a second for non-production, or use Supabase branching? | Shared. Acceptable while there are no real leads; a preview deploy currently writes orders to the database production reads. Points 1 and 2 in `docs/deployment.md` cover both fixes; neither changes application code. |
-| 13  | ~~Does the customer get a confirmation email?~~                                                                                 | **Resolved 17 Aug 2026.** Yes — sent on submit, promising contact within `INQUIRY_RESPONSE_HOURS` (24). See ADR-027. Depends on question 12: it cannot reach real customers from Resend's sandbox sender.               |
-| 14  | PII retention period and deletion-request process.                                                                              | No retention job. Rows kept indefinitely.                                                                                                                                                                               |
-| 15  | How does the company read inquiries and move `status`?                                                                          | **Supabase Studio. No admin UI is in scope.**                                                                                                                                                                           |
-| 16  | Analytics — Vercel, GA4, Plausible, none?                                                                                       | None installed. Affects the CSP header and the privacy policy.                                                                                                                                                          |
-| 17  | Shipping geography — US only?                                                                                                   | `country` defaults `'US'`; `state` free text; phone validation permissive so international numbers are not rejected.                                                                                                    |
-| 18  | Returns policy and shipping times for the FAQ and Terms.                                                                        | Placeholder text, marked.                                                                                                                                                                                               |
-| 19  | Order number format.                                                                                                            | `PL-001000` — invented.                                                                                                                                                                                                 |
+| #   | Question                                                                                                                                                                                                                               | Current default                                                                                                                                                                                                         |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 12  | Which inbox receives inquiries? Which domain sends?                                                                                                                                                                                    | Set, but sending from Resend's sandbox `onboarding@resend.dev`, which delivers **only to the Resend account owner**. `peptologics.com` must be verified in Resend before launch.                                        |
+| 12b | _(Superseded by ADR-033 and ADR-035: the DynamoDB move gives dev, staging and prod their own tables.)_ One Supabase project serves development, preview and production. Create a second for non-production, or use Supabase branching? | Shared. Acceptable while there are no real leads; a preview deploy currently writes orders to the database production reads. Points 1 and 2 in `docs/deployment.md` cover both fixes; neither changes application code. |
+| 13  | ~~Does the customer get a confirmation email?~~                                                                                                                                                                                        | **Resolved 17 Aug 2026.** Yes — sent on submit, promising contact within `INQUIRY_RESPONSE_HOURS` (24). See ADR-027. Depends on question 12: it cannot reach real customers from Resend's sandbox sender.               |
+| 14  | PII retention period and deletion-request process.                                                                                                                                                                                     | No retention job. Rows kept indefinitely.                                                                                                                                                                               |
+| 15  | How does the company read inquiries and move `status`?                                                                                                                                                                                 | **Supabase Studio. No admin UI is in scope.**                                                                                                                                                                           |
+| 16  | Analytics — Vercel (no longer applicable, ADR-033), GA4, Plausible, none?                                                                                                                                                              | None installed. Affects the CSP header and the privacy policy.                                                                                                                                                          |
+| 17  | Shipping geography — US only?                                                                                                                                                                                                          | `country` defaults `'US'`; `state` free text; phone validation permissive so international numbers are not rejected.                                                                                                    |
+| 18  | Returns policy and shipping times for the FAQ and Terms.                                                                                                                                                                               | Placeholder text, marked.                                                                                                                                                                                               |
+| 19  | Order number format.                                                                                                                                                                                                                   | `PL-001000` — invented.                                                                                                                                                                                                 |
 
 ### Commercial, not engineering
 
@@ -898,3 +898,51 @@ Retatrutide and Tirzepatide are restricted by most payment processors and by Goo
 policies. This does not affect the build — there are no payments, which is precisely why the
 lead-generation model works — but it will constrain any future payment integration and any paid
 acquisition plan.
+
+---
+
+## ADR-033 — The host is AWS Amplify in `us-east-1`
+
+**Status** Accepted · AWS migration. **Supersedes** the Vercel-specific parts of ADR-008 (cache measurement), ADR-025 (host checks), ADR-028 (single-proxy assumption), ADR-029 (previous-deployment wording) and ADR-031 (host "not settled").
+
+**Context.** The site runs on **AWS Amplify Hosting** (`WEB_COMPUTE`, Next.js SSR), app `peptologics`, id `d1zqn3kd1eopzq`, region `eu-north-1`, building `main`. Vercel is no longer used, yet the code and documentation described a Vercel setup. The AWS account is shared with other projects, so only peptologics resources are in scope. The owner chose one account with strict IAM (D1).
+
+**Decision.**
+
+1. Amplify is the only host. Every Vercel statement in the docs is history or removed.
+2. The app moves to **`us-east-1`** (**planned**). Amazon SES and DynamoDB (ADR-035, ADR-037) are to live in the same region.
+3. **Two** branch sites: `staging` and `main` (**planned** for staging). There is **no `dev` branch and no dev site** (D12); developers test on their own machines against the dev table.
+4. Environment flag: `APP_ENV` (ADR-032). Previews are replaced by Amplify branch deploys.
+5. Environment variables live in Amplify and are written into `.env.production` at build time. Today, secrets stay there. Planned: DynamoDB and SES are reached through the app's IAM role with no access keys; whether other secrets move to SSM is undecided.
+6. Rollback is a redeploy of the last good build in Amplify, or a revert PR for code (see `docs/deployment.md`).
+
+**Consequences.**
+
+- Amplify rejects variable names starting with `AWS_`, and its build spec passes only variables with approved prefixes to the server runtime. A new variable with another prefix silently never reaches the live site; the control chat must add the prefix.
+- The region move means a new app, new branch settings, a new domain association and recreating the Amplify redirect rules, including `www` → apex (301), which exists because the origin check once refused every `www` request.
+- The domain's DNS is in Route 53 and mailboxes are on Namecheap Private Email, so the move must not touch `MX` or the root SPF record.
+- Hosting-specific measurements recorded earlier (`X-Vercel-Cache`) are history and are not re-measured here.
+- The dead Vercel GitHub App still posts a failing check on every PR until an organisation owner removes it.
+
+---
+
+## ADR-034 — Changes reach production through `staging`
+
+**Status** Accepted · AWS migration, implemented by the Git workstream (PRs #52 and #53).
+
+**Context.** There was one long-lived branch in practice, `main`, and a stale `dev`. With Vercel previews gone and no dev site (D12), changes need a place to be checked on a real deployment before production.
+
+**Decision.**
+
+- Two long-lived branches: `main` (production) and `staging`. **`staging` is the default branch.** `dev` is retired (tag `archive/dev`); `fix/security-patches` is archived as tag `archive/fix-security-patches`.
+- **Feature flow:** `feature/*` or `fix/*` from `staging`, tested locally against the dev table, PR into `staging`, `ci` green, **squash** merge.
+- **Promotion:** PR `staging` → `main`, `ci` green, **merge commit**, never squash, so the branches share history.
+- **Hotfix:** `hotfix/*` from `main`, PR into `main`, squash, then back-merge `main` into `staging` with a merge-commit PR.
+- **Protection:** rulesets `main-protection` and `staging-protection` forbid deletion and force-push and require a PR and the `ci` check. **0 approvals** are required, because the owner is the only approver and GitHub does not let an author approve their own PR (D8). `main-protection` is not required to be up to date, so a promotion never needs a back-merge first; `staging-protection` is.
+- **CI** (`.github/workflows/ci.yml`) runs on PRs into both branches: `npm ci`, `npx next typegen`, typecheck, lint, format check, tests. A guard fails any PR into `main` whose source is not `staging` or `hotfix/*`. Actions are pinned to commit SHAs.
+
+**Consequences.**
+
+- No build step in CI yet, because the build reads the live database. One is to be added after the DynamoDB workstream (ADR-035, planned).
+- The Amplify `staging` site is planned (ADR-033); until it exists, staging is a branch only.
+- Squash on feature PRs keeps `staging` linear; merge commits on promotion keep `main` and `staging` in step. Using the wrong method is the usual cause of a promotion that then conflicts.

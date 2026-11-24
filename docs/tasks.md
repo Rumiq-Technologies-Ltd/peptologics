@@ -212,7 +212,7 @@ Commit `feat: add metadata, structured data, sitemap and OG images`
 - [x] `POST /api/revalidate` — constant-time bearer comparison, always purges `/` and `/products`, optional `slug`
 - [x] `next.config.ts`: `images.remotePatterns` derived from `SUPABASE_URL`, AVIF/WebP, `poweredByHeader: false`
 - [x] Verify: sitemap has 21 URLs including all 12 products with `lastmod`, and none of the noindex routes; robots.txt matches; `Product` JSON-LD parses and contains no `offers` key; OG images, icon and apple-icon all return `200 image/png` and were rendered and eyeballed; revalidate returns 401 / 401 / 200 / 405 / 422 across no-token, wrong-token, valid-token, GET and bad-slug
-- [!] **Lighthouse not run** — no Chrome-driving CLI in this environment. Run it against the Vercel preview in Phase 9, before the production promotion
+- [!] **Lighthouse not run** — no Chrome-driving CLI in this environment. Run it against the live site (the Vercel preview is gone), before the production promotion
 - [!] Rich Results Test needs a public URL, so it also waits for the preview deployment
 
 ---
@@ -248,7 +248,7 @@ Commit `test: add unit and e2e coverage for the inquiry path`
 ## Phase 9 — Deployment
 
 Branch `chore/deployment`
-Commit `chore: configure vercel deployment and production environment`
+Commit `chore: configure vercel deployment and production environment` _(Vercel is obsolete: the site runs on AWS Amplify, ADR-033)_
 
 - [x] Security headers in `next.config.ts`: CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`; `X-Powered-By` suppressed
 - [x] CSP keeps `'unsafe-inline'` on `script-src`, deliberately and with the reasoning in the config: a nonce is per-request, which makes every page dynamic and discards the static prerendering, and the gate's pre-paint script cannot wait for React to attach one. Hash-based fails on per-page JSON-LD
@@ -256,9 +256,9 @@ Commit `chore: configure vercel deployment and production environment`
 - [x] Verified CSP does not break anything: fresh-profile browser shows the gate, 2 JSON-LD blocks, 12 hydrated rows, **zero console violations**; all 11 Playwright specs pass against the CSP build (the gate specs exercise the pre-paint script)
 - [x] Production Supabase migrations applied — all 12 present on `pmbatptoffscqtnfmhbz`, including `create_inquiry_email_only`
 - [x] Found: the remote migration ledger was written by the MCP tooling, so its versions do not match the local filenames. A plain `supabase db push` would try to re-create existing tables. Reconciliation procedure (`migration repair --status applied`) documented before it bites
-- [x] `docs/deployment.md` rewritten: env matrix per Vercel environment, first-time setup, exact DNS records, Resend zone records, headers, migrations, rollback (deployment / env var / database, each separately), and a 14-item post-deploy checklist
+- [x] _(obsolete, rewritten for Amplify in the docs migration task)_ `docs/deployment.md` rewritten: env matrix per Vercel environment, first-time setup, exact DNS records, Resend zone records, headers, migrations, rollback (deployment / env var / database, each separately), and a 14-item post-deploy checklist
 - [x] Fixed an E2E strict-mode ambiguity found in passing: two "Browse the catalog" links exist once the summary panel hydrates
-- [!] **Client: Vercel project not created yet.** No Vercel CLI or account access in this environment — the dashboard steps, the env matrix and the DNS records are in `docs/deployment.md`, ready to follow
+- [ ] ~~**Client: Vercel project not created yet.**~~ **Obsolete:** Vercel is not used. **Original text:** No Vercel CLI or account access in this environment — the dashboard steps, the env matrix and the DNS records are in `docs/deployment.md`, ready to follow
 - [!] **Client: Resend domain not verified.** The sender is still the sandbox `onboarding@resend.dev`, which delivers only to the Resend account owner. **Launch blocker** — real inquiries would reach nobody else
 - [!] Client: `NEXT_PUBLIC_CONTACT_EMAIL` still unset, so the footer and contact page hide the email CTA
 - [!] One Supabase project serves development, preview and production. Acceptable now, not once real leads arrive — see the note at the top of `docs/deployment.md`
@@ -271,7 +271,7 @@ Commit `chore: configure vercel deployment and production environment`
 Decided after launch, on the client's call, with production measured rather than guessed
 (ADR-008 revisited and confirmed):
 
-- Every route on the live site serves `X-Vercel-Cache: PRERENDER` — static HTML from the CDN. There
+- Every route on the live site served `X-Vercel-Cache: PRERENDER` (measured on Vercel, historical) — static HTML from the CDN. There
   is no per-request work left for Cache Components to make faster.
 - What it actually buys is streaming per-request personalisation into a static shell. This site has
   no authentication, no personalisation, and a cart that lives in the visitor's own browser. There
@@ -294,8 +294,8 @@ or personalised content. The original tasks are kept below so the work is not re
 
 The launch is done; these are what remain.
 
-- [!] **Client, urgent:** set `NEXT_PUBLIC_SITE_URL` and the three Resend variables in Vercel
-  production, then redeploy. Until then the live site notifies nobody about a lead and every
+- [!] **Client, urgent:** set `NEXT_PUBLIC_SITE_URL` and the three Resend variables in Amplify
+  production (originally written for Vercel), then redeploy. Until then the live site notifies nobody about a lead and every
   canonical names the `*.vercel.app` host (ADR-025 guards both against recurrence, but cannot fix
   a deployment that already shipped)
 - [ ] Lighthouse ≥ 95 on all four categories, against the live domain
@@ -369,3 +369,22 @@ The launch is done; these are what remain.
 - [ ] **Client: withdrawn certificates and internal files are public.** The scans for withdrawn compounds
       and the competitor reference images still sit in `public/`, so they are reachable by URL. Moving them
       needs approval.
+
+---
+
+## AWS migration (Vercel → Amplify, Supabase → DynamoDB, Resend → SES)
+
+Vercel is no longer used; see ADR-033 and ADR-034. Workstreams are tracked in
+[handoffs/00-README.md](./handoffs/00-README.md).
+
+- [x] Chat 01: `APP_ENV` replaces `VERCEL_ENV`; robots and indexing fixed (ADR-032, PR #48)
+- [x] Chat 02: Next.js 16.4.6 and Zod 4.6.6 security patches (PR #49)
+- [x] Chat 03: rate-limit key uses the visitor address behind CloudFront (PR #50)
+- [x] Chat 04 (Git workstream): `staging` branch, rulesets, CI, first promotion (PRs #52, #53; ADR-034)
+- [ ] Chat 05 (Docs workstream): docs and `CLAUDE.md` no longer describe Vercel (ADR-033, ADR-034). This change
+- [ ] SES workstream: replace Resend with SES v2 (ADR-037, planned)
+- [ ] DynamoDB workstream: repositories, order transaction, rate limit, data migration (ADR-035, planned)
+- [ ] Admin page: private page listing inquiries behind a login (not yet written)
+- [ ] Add a `build` step to CI after the DynamoDB workstream
+- [ ] Control chat: Amplify in `us-east-1` with `staging` and `main` sites; recreate the www → apex redirect rules
+- [ ] Owner/GitHub org owner: remove the dead Vercel GitHub App

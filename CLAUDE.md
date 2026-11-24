@@ -5,8 +5,8 @@
 > Language: TypeScript
 > UI Library: React
 > Styling: Tailwind CSS + shadcn/ui
-> Database: Supabase PostgreSQL
-> Deployment: Vercel
+> Database: Supabase PostgreSQL (migrating to DynamoDB, planned: ADR-035)
+> Deployment: AWS Amplify Hosting (Vercel is no longer used; ADR-033)
 > AI Assistant: Claude Code
 > Version: 1.0
 > Last Updated: August 2026
@@ -462,20 +462,24 @@ Claude must not replace technologies without approval.
 
 ## Database
 
-Supabase PostgreSQL
+Supabase PostgreSQL today.
+
+Planned (ADR-035): DynamoDB, with a dev table (local machines only), a staging table and a prod table.
 
 ---
 
 ## Backend Services
 
-- Supabase
+- Supabase (planned: replaced by DynamoDB, ADR-035)
 - Next.js Route Handlers
 
 ---
 
 ## Email
 
-Resend
+Resend today.
+
+Planned (ADR-037): Amazon SES in `us-east-1`.
 
 ---
 
@@ -493,7 +497,11 @@ Alternative:
 
 ## Hosting
 
-Vercel
+AWS Amplify Hosting (`WEB_COMPUTE`, Next.js SSR). Today: app `peptologics` in `eu-north-1`, built from `main`.
+
+Planned (ADR-033): Amplify in `us-east-1` with two branch sites, `staging` and `main`, and no dev site.
+
+Vercel is no longer used.
 
 ---
 
@@ -641,15 +649,35 @@ The main branch should always remain deployable.
 
 ---
 
-## Protected Branch
+## Protected Branches
 
-main
+main (production)
+
+staging (default branch)
 
 Rules:
 
 - Never commit directly.
 - Never force push.
 - Never bypass pull requests.
+
+Rulesets enforce this: PR required, check `ci` required, 0 required approvals (the owner is the only approver). There is no `develop` or `dev` branch (retired, tag `archive/dev`; ADR-034).
+
+## Branch Flow
+
+```
+feature/* or fix/*  (branch from staging, test locally against the dev table)
+        │  PR, ci green, squash merge
+        ▼
+staging
+        │  PR, ci green, merge commit (never squash)
+        ▼
+main
+```
+
+Hotfix: branch `hotfix/*` from `main`, PR into `main` (squash), then back-merge `main` into `staging` with a PR using a merge commit.
+
+CI fails any PR into `main` whose source is not `staging` or `hotfix/*`.
 
 ---
 
@@ -6341,10 +6369,10 @@ Protected Branch
 main
 ```
 
-Development Branch
+Integration Branch
 
 ```
-develop
+staging
 ```
 
 Feature Branches
@@ -6378,28 +6406,24 @@ hotfix/email-timeout
 # Branch Workflow
 
 ```
-main
+feature/*  (from staging)
         │
         ▼
-develop
+Pull Request (squash)
         │
         ▼
-feature/*
+staging
         │
         ▼
-Pull Request
+Pull Request (merge commit)
         │
         ▼
-develop
-        │
-        ▼
-Production Release
-        │
-        ▼
-main
+main  (production)
 ```
 
-Never develop directly on `main`.
+Hotfixes branch from `main`, merge into `main`, then `main` is merged back into `staging`.
+
+Never develop directly on `main` or `staging`.
 
 ---
 
@@ -6457,11 +6481,11 @@ Benefits:
 
 Maintain separate environment configurations for:
 
-Development
+Development (a developer's machine; no dev site)
 
-Staging (if introduced)
+Staging (the Amplify `staging` branch site, planned: ADR-033)
 
-Production
+Production (the Amplify `main` branch site)
 
 Never reuse production secrets in development.
 
@@ -6488,6 +6512,8 @@ RESEND_API_KEY=
 
 WHATSAPP_ACCESS_TOKEN=
 ```
+
+Amplify rules: environment variables are set per branch in Amplify and written into `.env.production` at build time. Amplify does **not** allow variable names starting with `AWS_`. The build spec passes only variables prefixed `SUPABASE_`, `RESEND_`, `INQUIRY_`, `CUSTOMER_`, `NEXT_PUBLIC_`, `REVALIDATE_`, `RATE_LIMIT_` or `APP_ENV` to the server runtime, so a new variable with another prefix silently never reaches the live site. See `docs/deployment.md`.
 
 Do not commit `.env.local`.
 
@@ -6544,8 +6570,10 @@ Do not manually modify production schema.
 
 Secrets belong only in:
 
-- Vercel Environment Variables
-- Secure secret managers
+- Amplify environment variables
+- Secure secret managers (SSM Parameter Store is under consideration)
+
+Planned (ADR-033): DynamoDB and SES are reached through the Amplify app's IAM role, with no access keys.
 
 Never store secrets:
 
@@ -6627,9 +6655,9 @@ Only after these checks should production deployment proceed.
 
 ---
 
-# Vercel Deployment
+# Amplify Deployment
 
-Production deployments should use Vercel.
+Production deployments use AWS Amplify Hosting (Vercel is no longer used; ADR-033). Amplify builds `main` for production. A `staging` branch site is planned.
 
 Deployment configuration should remain consistent across environments.
 

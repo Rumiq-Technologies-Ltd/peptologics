@@ -1,7 +1,7 @@
 # Architecture — PeptoLogics
 
 Next.js 16.3.0 App Router · React 19.2 · TypeScript strict · Tailwind CSS v4 · Supabase PostgreSQL ·
-deployed on Vercel.
+deployed on AWS Amplify Hosting (ADR-033).
 
 ---
 

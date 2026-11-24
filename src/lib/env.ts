@@ -32,13 +32,27 @@ const serverEnvSchema = z.object({
   /** Absolute origin, no trailing slash. Drives metadataBase and canonical URLs. */
   NEXT_PUBLIC_SITE_URL: z.url().default("http://localhost:3000"),
 
-  // --- Supabase -------------------------------------------------------------
-  SUPABASE_URL: z.url(),
+  // --- Data store (Supabase or DynamoDB, ADR-035) ---------------------------
+  /**
+   * Which database holds products, inquiries, notifications and rate limits. Unset means
+   * `supabase`, so shipping the DynamoDB code changes nothing until this is flipped.
+   * Rolling back is setting it back and rebuilding.
+   */
+  INQUIRY_DATA_STORE: z.enum(["supabase", "dynamodb"]).default("supabase"),
+  /**
+   * The DynamoDB table for this environment: `peptologics-dev` (developer machines only),
+   * `peptologics-staging` or `peptologics-prod`. Required when the store is `dynamodb`.
+   * Credentials are never set here: locally `AWS_PROFILE`, on Amplify the app's IAM role.
+   */
+  DYNAMODB_TABLE_NAME: z.string().min(1).optional(),
+
+  // --- Supabase (required only while INQUIRY_DATA_STORE=supabase) -----------
+  SUPABASE_URL: z.url().optional(),
   /**
    * Deliberately NOT prefixed NEXT_PUBLIC_. The browser never talks to Supabase;
    * every query runs server-side, so there is no reason to ship this key.
    */
-  SUPABASE_ANON_KEY: z.string().min(1),
+  SUPABASE_ANON_KEY: z.string().min(1).optional(),
   /**
    * Bypasses RLS. Write path only. Never reaches a repository that reads.
    *
@@ -88,10 +102,31 @@ const serverEnvSchema = z.object({
  * while still making a production deploy fail fast on a missing secret.
  */
 export const serverEnvSchemaWithProductionRules = serverEnvSchema
-  .refine((value) => value.NODE_ENV !== "production" || Boolean(value.SUPABASE_SERVICE_ROLE_KEY), {
-    error: "Required in production — the inquiry write path cannot run without it.",
-    path: ["SUPABASE_SERVICE_ROLE_KEY"],
+  .refine((value) => value.INQUIRY_DATA_STORE !== "supabase" || Boolean(value.SUPABASE_URL), {
+    error: "Required while INQUIRY_DATA_STORE is supabase (the default).",
+    path: ["SUPABASE_URL"],
   })
+  .refine((value) => value.INQUIRY_DATA_STORE !== "supabase" || Boolean(value.SUPABASE_ANON_KEY), {
+    error: "Required while INQUIRY_DATA_STORE is supabase (the default).",
+    path: ["SUPABASE_ANON_KEY"],
+  })
+  .refine(
+    (value) => value.INQUIRY_DATA_STORE !== "dynamodb" || Boolean(value.DYNAMODB_TABLE_NAME),
+    {
+      error: "Required when INQUIRY_DATA_STORE is dynamodb.",
+      path: ["DYNAMODB_TABLE_NAME"],
+    },
+  )
+  .refine(
+    (value) =>
+      value.INQUIRY_DATA_STORE !== "supabase" ||
+      value.NODE_ENV !== "production" ||
+      Boolean(value.SUPABASE_SERVICE_ROLE_KEY),
+    {
+      error: "Required in production — the inquiry write path cannot run without it.",
+      path: ["SUPABASE_SERVICE_ROLE_KEY"],
+    },
+  )
   .refine(
     (value) =>
       value.NODE_ENV !== "production" || value.RATE_LIMIT_SALT !== "peptologics-dev-salt-change-me",

@@ -182,9 +182,9 @@ const nextConfig: NextConfig = {
     return [
       /*
        * Tesamorelin's 10 mg redirect was removed on 18 Aug 2026, when the 10 mg vial
-       * returned to the catalog alongside the 5 mg. The compound has now been sold as
-       * 10 mg, then 5 mg, and now both — which is also why its only Certificate of
-       * Analysis names 10 mg.
+       * returned to the catalog alongside the 5 mg. The compound has since been sold as
+       * 10 mg, 5 mg, 20 mg and 10 mg again, and from 24 Nov 2026 as 20 mg only — which is
+       * also why its only Certificate of Analysis names 10 mg.
        */
       // Glutathione moved from 10 mg to 1500 mg, then to 600 mg on 1 Oct 2026.
       {
@@ -208,23 +208,25 @@ const nextConfig: NextConfig = {
       },
       /*
        * 27 Aug 2026. Tesamorelin dropped its smaller vial, so the retired size points at
-       * the one still sold rather than 404ing on a link someone already has.
+       * the one still sold rather than 404ing on a link someone already has. Retargeted to
+       * the 20 mg vial on 24 Nov 2026, when it replaced the 10 mg.
        *
        * RETA-PL3 10 mg had the same redirect until 21 Sep 2026, when the vial returned to
        * the catalog. A permanent redirect off its own slug would now hide the product.
        */
       {
         source: "/products/tesamorelin-5mg",
-        destination: "/products/tesamorelin-10mg",
+        destination: "/products/tesamorelin-20mg",
         permanent: true,
       },
       /*
-       * 27 Sep 2026. Tesamorelin's 20 mg vial was withdrawn, leaving Tesa 10 as the only
-       * size of the compound, so the retired slug points at it.
+       * 24 Nov 2026. The 20 mg vial replaced the 10 mg, so the retired slug points at it.
+       * (Until 24 Nov this pair ran the other way, from 20 mg to 10 mg, after the 20 mg
+       * was withdrawn on 27 Sep 2026; that rule was removed because 20 mg is live again.)
        */
       {
-        source: "/products/tesamorelin-20mg",
-        destination: "/products/tesamorelin-10mg",
+        source: "/products/tesamorelin-10mg",
+        destination: "/products/tesamorelin-20mg",
         permanent: true,
       },
       /*

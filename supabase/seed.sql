@@ -27,18 +27,21 @@
 -- `sort_order` so the catalog reads as one product offered at two strengths rather than
 -- as two unrelated rows.
 --
--- Tesa 10 carries the only certificate the compound has. The scan published against the
--- 5 mg vial until 17 Aug 2026 names "Tesamorelin 10mg", lot 0771, on its face; it is the
--- 10 mg certificate and sits on the 10 mg row where it belongs.
+-- Tesamorelin 20 mg replaced the 10 mg vial on 24 Nov 2026 and keeps the only certificate
+-- the compound has. The scan names "Tesamorelin 10mg", lot 0771, on its face; the client
+-- asked for it to stay on the 20 mg row because the 20 mg vial is the same material at
+-- double the quantity. The file keeps its original name (`tesamorelin-10mg.webp`) so it
+-- remains an honest record of what the scan says.
 --
 -- `name` is the client's vial label, not the compound's generic name, and the two have
--- diverged: PL3 is retatrutide, PL2 is tirzepatide, Tesa 10 is tesamorelin, IPA 10 is
--- ipamorelin. Slugs still carry the generic name, which is deliberate — they are indexed
--- links and renaming one costs a redirect. Shortened 27 Sep 2026 at the client's request.
+-- diverged: PL3 is retatrutide, PL2 is tirzepatide, IPA 10 is ipamorelin. Slugs still carry the generic name, which is deliberate — they are indexed
+-- links and renaming one costs a redirect. Shortened 27 Sep 2026 at the client's request;
+-- Tesa 10 went back to the full name, Tesamorelin, on 24 Nov 2026 (also at the client's
+-- request).
 --
--- Tesa 10 and IPA 10 carry the strength in the label itself. The catalog also prints the
--- strength beside the name, so both read "Tesa 10 · 10 mg/vial". That repetition is the
--- client's choice, confirmed 27 Sep 2026.
+-- IPA 10 carries the strength in the label itself. The catalog also prints the strength
+-- beside the name, so it reads "IPA 10 · 10 mg/vial". That repetition is the client's
+-- choice, confirmed 27 Sep 2026.
 insert into public.products (
   slug, name, category, strength_mg, price_cents, is_blend, featured, sort_order, coa_url,
   image_url
@@ -55,14 +58,21 @@ values
   ('retatrutide-30mg',  'PL3',          'peptide',  30,    18000, false, true,  10,  null, '/products/retatrutide-30mg.webp'),
   -- $5.00/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot BPC10-260101-057).
   ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  20,  '/coa/bpc-157-10mg.webp', '/products/bpc-157-10mg.webp'),
-  -- $7.50/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot Tesa10-260101-054).
-  ('tesamorelin-10mg',  'Tesa 10',      'peptide',  10,    7500,  false, false, 30,  '/coa/tesamorelin-10mg.webp', '/products/tesamorelin-10mg.webp'),
+  -- $4.25/mg. Added 24 Nov 2026. No certificate or vial photograph yet; the placeholder
+  -- image renders until the client supplies one.
+  ('bpc-157-20mg',      'BPC-157',      'peptide',  20,    8500,  false, false, 25,  null, null),
+  -- $7.50/mg. Replaced the 10 mg vial on 24 Nov 2026 (slug `tesamorelin-10mg`, redirected
+  -- here). The certificate is the 10 mg lot — see the note above this statement.
+  ('tesamorelin-20mg',  'Tesamorelin',  'peptide',  20,    15000, false, false, 30,  '/coa/tesamorelin-10mg.webp', '/products/tesamorelin-20mg.webp'),
   -- $0.65/mg — copper peptide, arguably 'cosmetic'; category to confirm. Listed at 50 mg
   -- until 28 Aug 2026, when the official price menu (PeptoLogics_Price_Menu_Original.pdf)
   -- showed 100 mg / $65; the slug moved with it, redirected in next.config.ts. The 100 mg
   -- vial render arrived 1 Sep 2026.
   -- Certificate added 17 Sep 2026 (Bioviridian lot GHK100-260101-060).
   ('ghk-cu-100mg',      'GHK-Cu',       'peptide',  100,   6500,  false, true,  50,  '/coa/ghk-cu-100mg.webp', '/products/ghk-cu-100mg.webp'),
+  -- $0.65/mg. Alanine-histidine-lysine copper peptide, a different compound from GHK-Cu.
+  -- Added 24 Nov 2026; category follows GHK-Cu. No certificate or vial photograph yet.
+  ('ahk-cu-100mg',      'AHK-Cu',       'peptide',  100,   6500,  false, false, 55,  null, null),
   -- $6.00/mg
   ('mots-c-10mg',       'MOTS-c',       'peptide',  10,    6000,  false, false, 60,  '/coa/mots-c-10mg.jpg', '/products/mots-c-10mg.webp'),
   -- $3.75/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot MS40-260101-058).
@@ -92,9 +102,14 @@ values
   -- against the official price menu.
   -- Certificate withheld 27 Sep 2026 — see the note above this statement.
   ('tirzepatide-30mg',  'PL2',          'peptide',  30,    15000, false, true,  150, null, '/products/tirzepatide-30mg.webp'),
+  -- $7.50/mg. Added 24 Nov 2026. No certificate or vial photograph yet.
+  ('tirzepatide-10mg',  'PL2',          'peptide',  10,    7500,  false, false, 155, null, null),
   -- $5.00/mg. Repriced 28 Aug 2026 against the official price menu. Certificate added
   -- 17 Sep 2026 (Bioviridian lot IPA10-260101-060).
-  ('ipamorelin-10mg',   'IPA 10',       'peptide',  10,    5000,  false, false, 160, '/coa/ipamorelin-10mg.webp', '/products/ipamorelin-10mg.webp')
+  ('ipamorelin-10mg',   'IPA 10',       'peptide',  10,    5000,  false, false, 160, '/coa/ipamorelin-10mg.webp', '/products/ipamorelin-10mg.webp'),
+  -- $20.00/mg. Added 24 Nov 2026 at the client's request, named Eloralintide. No
+  -- certificate or vial photograph yet.
+  ('eloralintide-5mg',  'Eloralintide', 'peptide',  5,     10000, false, false, 165, null, null)
 on conflict (slug) do update set
   name        = excluded.name,
   category    = excluded.category,
@@ -152,12 +167,12 @@ on conflict (slug) do update set
 -- - K-L-O-W: discontinued 27 Aug 2026. No equivalent vial, so no redirect (next.config.ts).
 -- - Tesamorelin 5 mg: dropped 27 Aug 2026 when the compound retired its smaller vial, and
 --   redirected to the 10 mg still sold.
--- - Tesamorelin 20 mg: withdrawn 27 Sep 2026 at the client's request, leaving Tesa 10 as
---   the only vial of the compound. Redirects to it. It had no certificate, so the
---   lab-testing page is unchanged by its removal.
+-- - Tesamorelin 10 mg (Tesa 10): replaced by the 20 mg vial on 24 Nov 2026 at the client's
+--   request and redirected to it. The 20 mg row was archived from 27 Sep 2026 until then,
+--   so it is listed in the insert above rather than here.
 --
 -- PL3 10 mg was archived here alongside K-L-O-W on 27 Aug 2026 and returned to the catalog
 -- on 21 Sep 2026, so it is listed in the insert above rather than archived here.
 update public.products
    set status = 'archived', deleted_at = coalesce(deleted_at, now())
- where slug in ('k-l-o-w-80mg', 'tesamorelin-5mg', 'tesamorelin-20mg');
+ where slug in ('k-l-o-w-80mg', 'tesamorelin-5mg', 'tesamorelin-10mg');

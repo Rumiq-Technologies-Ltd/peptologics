@@ -47,8 +47,18 @@ let writeClient: TypedClient | undefined;
  * Use this for the catalog and anything else a visitor is allowed to see.
  */
 export function getReadClient(): TypedClient {
-  readClient ??= createClient<Database>(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, clientOptions);
+  readClient ??= createClient<Database>(
+    requireSetting(env.SUPABASE_URL, "SUPABASE_URL"),
+    requireSetting(env.SUPABASE_ANON_KEY, "SUPABASE_ANON_KEY"),
+    clientOptions,
+  );
   return readClient;
+}
+
+/** Both are optional in the env schema (unused when the store is DynamoDB), so check here. */
+function requireSetting(value: string | undefined, name: string): string {
+  if (!value) throw new Error(`${name} is not set, so the Supabase data store is unavailable.`);
+  return value;
 }
 
 /**
@@ -71,7 +81,11 @@ export function getWriteClient(): TypedClient {
     );
   }
 
-  writeClient ??= createClient<Database>(env.SUPABASE_URL, serviceRoleKey, clientOptions);
+  writeClient ??= createClient<Database>(
+    requireSetting(env.SUPABASE_URL, "SUPABASE_URL"),
+    serviceRoleKey,
+    clientOptions,
+  );
   return writeClient;
 }
 

@@ -107,3 +107,34 @@ describe("production-only environment rules", () => {
     expect(issuePaths({ INQUIRY_EMAIL_PROVIDER: "sendgrid" })).toContain("INQUIRY_EMAIL_PROVIDER");
   });
 });
+
+describe("data store switch (ADR-035)", () => {
+  it("defaults to supabase and then requires the Supabase settings", () => {
+    expect(serverEnvSchemaWithProductionRules.parse(base).INQUIRY_DATA_STORE).toBe("supabase");
+    expect(
+      serverEnvSchemaWithProductionRules.safeParse({ SUPABASE_ANON_KEY: "anon" }).success,
+    ).toBe(false);
+  });
+
+  it("needs only the table name, not Supabase, when the store is dynamodb", () => {
+    const parsed = serverEnvSchemaWithProductionRules.safeParse({
+      INQUIRY_DATA_STORE: "dynamodb",
+      DYNAMODB_TABLE_NAME: "peptologics-dev",
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("refuses dynamodb without a table name", () => {
+    expect(issuePaths({ INQUIRY_DATA_STORE: "dynamodb" })).toContain("DYNAMODB_TABLE_NAME");
+  });
+
+  it("does not demand the service-role key in production once the store is dynamodb", () => {
+    const rate = { RATE_LIMIT_SALT: "a-real-secret-of-16+chars" };
+    const dynamo = { INQUIRY_DATA_STORE: "dynamodb", DYNAMODB_TABLE_NAME: "peptologics-prod" };
+
+    expect(issuePaths({ ...rate, NODE_ENV: "production" })).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(issuePaths({ ...rate, ...dynamo, NODE_ENV: "production" })).not.toContain(
+      "SUPABASE_SERVICE_ROLE_KEY",
+    );
+  });
+});

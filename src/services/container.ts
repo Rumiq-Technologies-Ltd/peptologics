@@ -5,22 +5,27 @@ import {
   type InquiryService,
 } from "@/features/inquiry/services/inquiry.service";
 import { createOrderRepository } from "@/features/inquiry/services/order.repository";
+import { createDynamoOrderRepository } from "@/features/inquiry/services/order.repository.dynamodb";
 import { createRateLimitRepository } from "@/features/inquiry/services/rate-limit.repository";
+import { createDynamoRateLimitRepository } from "@/features/inquiry/services/rate-limit.repository.dynamodb";
 import { createRateLimitService } from "@/features/inquiry/services/rate-limit.service";
 import { createProductRepository } from "@/features/products/services/product.repository";
+import { createDynamoProductRepository } from "@/features/products/services/product.repository.dynamodb";
 import {
   createProductService,
   type ProductService,
 } from "@/features/products/services/product.service";
+import { env } from "@/lib/env";
 import { createEmailService } from "@/services/email.service";
 import { createNotificationRepository } from "@/services/notification.repository";
+import { createDynamoNotificationRepository } from "@/services/notification.repository.dynamodb";
 import { createNotificationService } from "@/services/notification.service";
 
 /**
  * The composition root.
  *
- * The single place that decides which repository each service receives and which
- * Supabase key that repository holds. Services take their dependencies as
+ * The single place that decides which repository each service receives: the Supabase
+ * ones or the DynamoDB ones, chosen by `INQUIRY_DATA_STORE` (ADR-035). Services take their dependencies as
  * arguments rather than importing them, which is what makes them testable
  * without mocking module resolution.
  *
@@ -50,23 +55,47 @@ export function getContainer(): Container {
   return container;
 }
 
+/**
+ * The four repositories for the configured data store. Unset means Supabase, so the
+ * DynamoDB code is inert until the switch is flipped. The Supabase set is deleted in a
+ * later PR, after the two-week fallback period (D7).
+ */
+function createRepositories() {
+  if (env.INQUIRY_DATA_STORE === "dynamodb") {
+    return {
+      products: createDynamoProductRepository(),
+      orders: createDynamoOrderRepository(),
+      rateLimit: createDynamoRateLimitRepository(),
+      notifications: createDynamoNotificationRepository(),
+    };
+  }
+
+  return {
+    products: createProductRepository(),
+    orders: createOrderRepository(),
+    rateLimit: createRateLimitRepository(),
+    notifications: createNotificationRepository(),
+  };
+}
+
 function buildContainer(): Container {
-  const productRepository = createProductRepository();
+  const repositories = createRepositories();
+  const productRepository = repositories.products;
 
   const notifications = createNotificationService({
     email: createEmailService(),
-    repository: createNotificationRepository(),
+    repository: repositories.notifications,
   });
 
   return {
     products: createProductService({ repository: productRepository }),
 
     inquiries: createInquiryService({
-      orders: createOrderRepository(),
+      orders: repositories.orders,
       // The catalog read is the price authority, so the inquiry service reads it
       // through the same repository the catalog pages use — one source of prices.
       products: productRepository,
-      rateLimit: createRateLimitService({ repository: createRateLimitRepository() }),
+      rateLimit: createRateLimitService({ repository: repositories.rateLimit }),
       notifications,
     }),
   };

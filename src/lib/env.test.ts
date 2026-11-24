@@ -51,10 +51,10 @@ describe("production-only environment rules", () => {
   });
 
   it("requires every email variable only when APP_ENV=production", () => {
-    expect(issuePaths({ APP_ENV: "production" })).toContain("RESEND_API_KEY");
+    expect(issuePaths({ APP_ENV: "production" })).toContain("INQUIRY_NOTIFICATION_FROM");
 
     for (const appEnv of [undefined, "development", "staging"]) {
-      expect(issuePaths({ APP_ENV: appEnv })).not.toContain("RESEND_API_KEY");
+      expect(issuePaths({ APP_ENV: appEnv })).not.toContain("INQUIRY_NOTIFICATION_FROM");
     }
   });
 
@@ -67,6 +67,43 @@ describe("production-only environment rules", () => {
         INQUIRY_NOTIFICATION_FROM: "a@peptologics.com",
         INQUIRY_NOTIFICATION_TO: "b@peptologics.com",
       }),
-    ).not.toContain("RESEND_API_KEY");
+    ).not.toContain("INQUIRY_NOTIFICATION_FROM");
+  });
+
+  const productionBase = {
+    APP_ENV: "production",
+    NEXT_PUBLIC_SITE_URL: "https://peptologics.com",
+    INQUIRY_NOTIFICATION_FROM: "a@peptologics.com",
+    INQUIRY_NOTIFICATION_TO: "b@peptologics.com",
+  };
+
+  it("requires the Resend key in production only for the resend provider (the default)", () => {
+    expect(issuePaths(productionBase)).toContain("INQUIRY_NOTIFICATION_FROM");
+    expect(issuePaths({ ...productionBase, INQUIRY_EMAIL_PROVIDER: "resend" })).toContain(
+      "INQUIRY_NOTIFICATION_FROM",
+    );
+  });
+
+  it("does not require the Resend key when the provider is ses, but requires the configuration set", () => {
+    const ses = { ...productionBase, INQUIRY_EMAIL_PROVIDER: "ses" };
+
+    expect(issuePaths(ses)).not.toContain("INQUIRY_NOTIFICATION_FROM");
+    expect(issuePaths(ses)).toContain("INQUIRY_SES_CONFIGURATION_SET");
+    expect(issuePaths({ ...ses, INQUIRY_SES_CONFIGURATION_SET: "peptologics-prod" })).toEqual([]);
+  });
+
+  it("still requires sender and recipient in production for ses", () => {
+    expect(
+      issuePaths({
+        APP_ENV: "production",
+        NEXT_PUBLIC_SITE_URL: "https://peptologics.com",
+        INQUIRY_EMAIL_PROVIDER: "ses",
+        INQUIRY_SES_CONFIGURATION_SET: "peptologics-prod",
+      }),
+    ).toContain("INQUIRY_NOTIFICATION_FROM");
+  });
+
+  it("rejects an unknown provider", () => {
+    expect(issuePaths({ INQUIRY_EMAIL_PROVIDER: "sendgrid" })).toContain("INQUIRY_EMAIL_PROVIDER");
   });
 });

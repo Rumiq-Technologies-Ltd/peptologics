@@ -4,9 +4,9 @@ import { NOTIFICATION_RETRY_ATTEMPTS } from "@/constants/business";
 import { buildCustomerConfirmationEmail } from "@/features/inquiry/templates/customerConfirmation";
 import { buildInternalNotificationEmail } from "@/features/inquiry/templates/internalNotification";
 import type { InquiryNotification, NotificationOutcome } from "@/features/inquiry/types/inquiry";
+import { parseRecipients, sendEmail } from "@/lib/email";
 import { customerConfirmationFrom, env, isEmailConfigured } from "@/lib/env";
 import { logger } from "@/lib/logger";
-import { parseRecipients, sendResendEmail } from "@/lib/resend";
 import { withRetry } from "@/lib/resilience";
 
 /**
@@ -22,7 +22,7 @@ import { withRetry } from "@/lib/resilience";
  *    already committed by the time this runs, and an exception escaping into the
  *    caller could only ever turn a saved lead into an error page.
  * 2. **Missing credentials are `skipped`, not `failed`.** A deployment without a
- *    verified Resend domain is an expected state, not an incident, and keeping the
+ *    verified email domain is an expected state, not an incident, and keeping the
  *    two distinct is what stops the dead-letter list filling with noise before the
  *    account exists.
  */
@@ -49,7 +49,8 @@ export function createEmailService(): EmailService {
           channel: "email",
           status: "skipped",
           attempts: 0,
-          errorMessage: "Resend is not configured (API key, from address or recipients missing).",
+          errorMessage:
+            "Email is not configured (provider credentials, from address or recipients missing).",
         };
       }
 
@@ -75,23 +76,20 @@ export function createEmailService(): EmailService {
           () => {
             attempts += 1;
 
-            return sendResendEmail(
-              {
-                from: env.INQUIRY_NOTIFICATION_FROM ?? "",
-                to: recipients,
-                subject: content.subject,
-                text: content.text,
-                html: content.html,
-                // The representative replies to the customer, not to the sending
-                // mailbox. Safe to interpolate: the address passed Zod's email
-                // check and sanitisation collapsed any whitespace, so it cannot
-                // carry a header-injecting newline.
-                replyTo: notification.customer.email,
-              },
-              env.RESEND_API_KEY ?? "",
-            );
+            return sendEmail({
+              from: env.INQUIRY_NOTIFICATION_FROM ?? "",
+              to: recipients,
+              subject: content.subject,
+              text: content.text,
+              html: content.html,
+              // The representative replies to the customer, not to the sending
+              // mailbox. Safe to interpolate: the address passed Zod's email
+              // check and sanitisation collapsed any whitespace, so it cannot
+              // carry a header-injecting newline.
+              replyTo: notification.customer.email,
+            });
           },
-          { attempts: NOTIFICATION_RETRY_ATTEMPTS, operationName: "resend.send" },
+          { attempts: NOTIFICATION_RETRY_ATTEMPTS, operationName: "email.send" },
         );
 
         logger.info("email_sent", {
@@ -129,7 +127,8 @@ export function createEmailService(): EmailService {
           channel: "customer_email",
           status: "skipped",
           attempts: 0,
-          errorMessage: "Resend is not configured (API key, from address or recipients missing).",
+          errorMessage:
+            "Email is not configured (provider credentials, from address or recipients missing).",
         };
       }
 
@@ -157,27 +156,24 @@ export function createEmailService(): EmailService {
           () => {
             attempts += 1;
 
-            return sendResendEmail(
-              {
-                from: customerConfirmationFrom,
-                to: [notification.customer.email],
-                subject: content.subject,
-                text: content.text,
-                html: content.html,
-                /*
-                 * A customer hitting reply must reach the company, not the sending
-                 * mailbox — which is the mirror image of the internal notification, where
-                 * reply-to is the customer. Falls back to the from address when no
-                 * internal recipient is configured, so reply always goes somewhere real.
-                 */
-                replyTo: internalRecipients[0] ?? customerConfirmationFrom,
-              },
-              env.RESEND_API_KEY ?? "",
-            );
+            return sendEmail({
+              from: customerConfirmationFrom,
+              to: [notification.customer.email],
+              subject: content.subject,
+              text: content.text,
+              html: content.html,
+              /*
+               * A customer hitting reply must reach the company, not the sending
+               * mailbox — which is the mirror image of the internal notification, where
+               * reply-to is the customer. Falls back to the from address when no
+               * internal recipient is configured, so reply always goes somewhere real.
+               */
+              replyTo: internalRecipients[0] ?? customerConfirmationFrom,
+            });
           },
           {
             attempts: NOTIFICATION_RETRY_ATTEMPTS,
-            operationName: "resend.sendCustomerConfirmation",
+            operationName: "email.sendCustomerConfirmation",
           },
         );
 

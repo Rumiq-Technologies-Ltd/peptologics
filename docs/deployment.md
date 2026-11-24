@@ -96,19 +96,21 @@ restrict it to repositories that exclude `peptologics`. It does not block merges
 Today these live in **Amplify environment variables**. The Amplify build spec writes them into
 `.env.production` at build time. Set them per branch.
 
-| Variable                    | Value                                                                  |
-| --------------------------- | ---------------------------------------------------------------------- |
-| `APP_ENV`                   | `production` on `main`, `staging` on `staging`, unset locally          |
-| `SUPABASE_URL`              | `https://<project-ref>.supabase.co` (retired by ADR-035 once merged)   |
-| `SUPABASE_ANON_KEY`         | Supabase → Settings → API → `anon` key                                 |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → `service_role`. Secret                     |
-| `NEXT_PUBLIC_SITE_URL`      | `https://peptologics.com` on production only, no trailing slash        |
-| `RESEND_API_KEY`            | Resend → API Keys. Secret (retired by ADR-037 once merged)             |
-| `INQUIRY_NOTIFICATION_FROM` | `PeptoLogics <inquiries@peptologics.com>`: note the space before `<`   |
-| `INQUIRY_NOTIFICATION_TO`   | Where inquiries land. Comma-separated for several recipients           |
-| `NEXT_PUBLIC_CONTACT_EMAIL` | Public address shown in the footer and on the contact page             |
-| `REVALIDATE_SECRET`         | 24 random bytes hex. Secret                                            |
-| `RATE_LIMIT_SALT`           | 24 random bytes hex. Secret. Changing it resets all rate-limit windows |
+| Variable                        | Value                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------------------- |
+| `APP_ENV`                       | `production` on `main`, `staging` on `staging`, unset locally                         |
+| `SUPABASE_URL`                  | `https://<project-ref>.supabase.co` (retired by ADR-035 once merged)                  |
+| `SUPABASE_ANON_KEY`             | Supabase → Settings → API → `anon` key                                                |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase → Settings → API → `service_role`. Secret                                    |
+| `NEXT_PUBLIC_SITE_URL`          | `https://peptologics.com` on production only, no trailing slash                       |
+| `INQUIRY_EMAIL_PROVIDER`        | `resend` or `ses`. Unset means `resend`. Flip + rebuild to switch/roll back (ADR-037) |
+| `INQUIRY_SES_CONFIGURATION_SET` | `peptologics-prod`. Required in production when the provider is `ses`                 |
+| `RESEND_API_KEY`                | Resend → API Keys. Secret. Needed only while the provider is `resend`                 |
+| `INQUIRY_NOTIFICATION_FROM`     | `PeptoLogics <inquiries@peptologics.com>`: note the space before `<`                  |
+| `INQUIRY_NOTIFICATION_TO`       | Where inquiries land. Comma-separated for several recipients                          |
+| `NEXT_PUBLIC_CONTACT_EMAIL`     | Public address shown in the footer and on the contact page                            |
+| `REVALIDATE_SECRET`             | 24 random bytes hex. Secret                                                           |
+| `RATE_LIMIT_SALT`               | 24 random bytes hex. Secret. Changing it resets all rate-limit windows                |
 
 Generate the two secrets:
 
@@ -132,9 +134,11 @@ visible from inside the application (ADR-025, amended by ADR-032):
 - `NEXT_PUBLIC_SITE_URL` must be a real domain when `APP_ENV=production`, not `localhost` and not
   `*.amplifyapp.com`. Pointed at the deployment URL, every canonical link, Open Graph URL, sitemap
   entry and JSON-LD `@id` names a host that is not the one being served.
-- All three Resend variables are required when `APP_ENV=production`. Email is the only notification
-  channel, so without them an inquiry saves, returns `201`, shows the customer a reference number,
-  and nobody is told about the lead.
+- `INQUIRY_NOTIFICATION_FROM` and `INQUIRY_NOTIFICATION_TO` are required when `APP_ENV=production`,
+  plus `RESEND_API_KEY` while the provider is `resend` (the default), or
+  `INQUIRY_SES_CONFIGURATION_SET` when it is `ses`. Email is the only notification channel, so
+  without them an inquiry saves, returns `201`, shows the customer a reference number, and nobody is
+  told about the lead.
 - `SUPABASE_SERVICE_ROLE_KEY` is required when `NODE_ENV=production`.
 - `RATE_LIMIT_SALT` must not be the development default.
 - `CUSTOMER_CONFIRMATION_FROM` is optional and falls back to `INQUIRY_NOTIFICATION_FROM`. The customer
@@ -199,7 +203,7 @@ TODO(control-chat): the exact records Amplify and SES need, and who creates them
 inquiry email can reach anyone but the Resend account owner. Production must not ship on the sandbox
 sender `onboarding@resend.dev`.
 
-**Planned (SES, ADR-037).** Amazon SES in `us-east-1` replaces Resend. The sender addresses stay as
+**SES (ADR-037).** Amazon SES in `us-east-1` replaces Resend once `INQUIRY_EMAIL_PROVIDER=ses` is set and proven. Both variables use the `INQUIRY_` prefix, so the Amplify build spec already passes them. The app's IAM role supplies credentials; there are no keys. The sender addresses stay as
 they are today. Expected volume is under 10 inquiries a day.
 
 ---

@@ -348,6 +348,23 @@ async function verify(): Promise<void> {
     `${costMismatches} mismatch(es)`,
   );
 
+  // After a real write, read every product back and compare it with what was built.
+  if (dynamo) {
+    let readBackFailures = 0;
+
+    for (const product of products) {
+      const built = builtItem(keys.product(product.id).PK, "META");
+      const stored = await readBack(keys.product(product.id));
+      if (!built || differingFields(built, stored).length > 0) readBackFailures += 1;
+    }
+
+    check(
+      "every product read back from the table matches",
+      readBackFailures === 0,
+      `${readBackFailures} differ`,
+    );
+  }
+
   if (!productsOnly) {
     // Order integrity at the source.
     const linesByOrder = new Map<string, OrderLineSource[]>();

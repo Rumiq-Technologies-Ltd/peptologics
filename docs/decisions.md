@@ -946,3 +946,29 @@ acquisition plan.
 - No build step in CI yet, because the build reads the live database. One is to be added after the DynamoDB workstream (ADR-035, planned).
 - The Amplify `staging` site is planned (ADR-033); until it exists, staging is a branch only.
 - Squash on feature PRs keeps `staging` linear; merge commits on promotion keep `main` and `staging` in step. Using the wrong method is the usual cause of a promotion that then conflicts.
+
+---
+
+## ADR-037 — Amazon SES replaces Resend, behind a provider switch
+
+**Status** Accepted · AWS migration, SES workstream (Chat 06). Resend remains the live provider until the control chat confirms SES is proven; deleting `src/lib/resend/` and `RESEND_API_KEY` is a separate, later PR.
+
+**Context.** The migration moves email to Amazon SES in `us-east-1` (domain `peptologics.com` verified, configuration set `peptologics-prod`). Email is the only notification channel (ADR-023) and the customer confirmation is its own logged channel (ADR-027), so a cutover that drops mail is a lost lead.
+
+**Decision.**
+
+- **A provider switch, not a replacement.** `INQUIRY_EMAIL_PROVIDER` is `resend` or `ses`; unset means `resend`, so merging this changes nothing. Switching, or rolling back, is changing the variable plus one Amplify rebuild (about 2 minutes). `src/lib/email/` holds the dispatcher; `src/lib/ses/` and `src/lib/resend/` are transports only.
+- **No fallback between providers inside a send.** Two providers per message makes failures hard to trace.
+- **Credentials come from the IAM role**, never from code or env: the Amplify compute role in production, `AWS_PROFILE` locally. The role is limited to `ses:SendEmail` and `ses:SendRawEmail` on the domain identity and the configuration set.
+- **Region is a constant** (`us-east-1`, `src/lib/aws/config.ts`), not an env var: Amplify rejects names starting with `AWS_`, and there is only one region to get wrong.
+- **`maxAttempts: 1` on the SDK client.** `withRetry` already retries (`NOTIFICATION_RETRY_ATTEMPTS`); stacking the SDK's retries beneath ours would multiply attempts and blur which layer gave up.
+- **Every send passes `INQUIRY_SES_CONFIGURATION_SET`**, which publishes bounce, complaint and delivery events. It is required in production when the provider is `ses`.
+- **Error classes.** Throttling, 5xx and network errors are retryable. `MessageRejected`, `MailFromDomainNotVerifiedException`, account/sending-paused and permission errors fail fast.
+- **Header-injection guard.** CR/LF in subject, from, to or reply-to is rejected (not stripped), even though SES builds the MIME.
+- **Message ID.** The SES MessageId is stored in the existing `notification_log.provider_message_id`; no schema change, so delivery and bounce events can be matched to an inquiry.
+
+**Consequences.**
+
+- **Retrying after a timeout or network error can send a duplicate email**, because SES may have accepted the first attempt. This is deliberate: a duplicate is preferable to a lost email.
+- Until SES production access is granted, SES delivers only to the verified domain, so customer confirmations cannot be live-tested before then.
+- Until the later cleanup PR, both transports and `RESEND_API_KEY` stay in the code base.

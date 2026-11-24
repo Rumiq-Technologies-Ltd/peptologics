@@ -262,7 +262,7 @@ describe("notification isolation", () => {
   it("still reports success when dispatch reports every channel failed", async () => {
     const { service, dispatch } = makeHarness();
     dispatch.mockResolvedValueOnce([
-      { channel: "email", status: "failed", attempts: 3, errorMessage: "Resend 500" },
+      { channel: "email", status: "failed", attempts: 3, errorMessage: "Email provider 500" },
     ]);
 
     const result = await service.submit(makeInput(), context);

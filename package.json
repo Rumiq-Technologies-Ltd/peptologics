@@ -23,6 +23,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.1176.0",
     "@hookform/resolvers": "^5.7.1",
     "@react-three/fiber": "^9.7.0",
     "@supabase/supabase-js": "^2.112.1",
@@ -53,6 +54,7 @@
     "@types/react-dom": "^19",
     "@types/three": "^0.185.4",
     "@vitest/coverage-v8": "^4.1.10",
+    "aws-sdk-client-mock": "^4.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "eslint-config-prettier": "^10.1.8",

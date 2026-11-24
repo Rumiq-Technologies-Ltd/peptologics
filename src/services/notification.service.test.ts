@@ -51,7 +51,7 @@ function makeHarness({ internal, customer }: HarnessOptions = {}) {
       (async (): Promise<NotificationOutcome> => ({
         channel: "email",
         status: "sent",
-        providerMessageId: "resend-1",
+        providerMessageId: "provider-id-1",
         attempts: 1,
       })),
   );
@@ -61,7 +61,7 @@ function makeHarness({ internal, customer }: HarnessOptions = {}) {
       (async (): Promise<NotificationOutcome> => ({
         channel: "customer_email",
         status: "sent",
-        providerMessageId: "resend-2",
+        providerMessageId: "provider-id-2",
         attempts: 1,
       })),
   );
@@ -87,8 +87,13 @@ describe("dispatch", () => {
     const outcomes = await service.dispatch(notification);
 
     expect(outcomes).toEqual([
-      { channel: "email", status: "sent", providerMessageId: "resend-1", attempts: 1 },
-      { channel: "customer_email", status: "sent", providerMessageId: "resend-2", attempts: 1 },
+      { channel: "email", status: "sent", providerMessageId: "provider-id-1", attempts: 1 },
+      {
+        channel: "customer_email",
+        status: "sent",
+        providerMessageId: "provider-id-2",
+        attempts: 1,
+      },
     ]);
     expect(recordOutcome).toHaveBeenCalledTimes(2);
     expect(recordOutcome).toHaveBeenCalledWith("order-1", outcomes[0]);

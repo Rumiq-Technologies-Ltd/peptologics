@@ -59,8 +59,7 @@ Customers will:
 
 Company representatives will:
 
-- Receive inquiries via Email.
-- Receive inquiries via WhatsApp.
+- Receive inquiries via Email (the only notification channel, ADR-023).
 - Contact customers manually.
 - Complete orders outside the website.
 
@@ -485,13 +484,7 @@ Planned (ADR-037): Amazon SES in `us-east-1`.
 
 ## Notifications
 
-Preferred:
-
-- Meta WhatsApp Cloud API
-
-Alternative:
-
-- Twilio WhatsApp
+Email is the only notification channel (ADR-023). WhatsApp was dropped and is not used.
 
 ---
 

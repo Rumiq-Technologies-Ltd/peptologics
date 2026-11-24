@@ -9,7 +9,7 @@ import { z } from "zod";
  * error rather than a leaked service-role key. Every secret in the application
  * is read here and nowhere else.
  *
- * Optional-by-design: the Resend credentials are `.optional()` so the inquiry
+ * Optional-by-design: the email credentials are `.optional()` so the inquiry
  * flow, the build, and local development all work before that account exists.
  * Missing credentials degrade the email channel to `skipped`; they never throw
  * and never block an order from being saved.
@@ -48,9 +48,14 @@ const serverEnvSchema = z.object({
    */
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
 
-  // --- Email (Resend) -------------------------------------------------------
+  // --- Email (Resend or SES, ADR-037) ---------------------------------------
+  /** Which provider sends inquiry email. Unset means `resend`; flipping it is the rollback. */
+  INQUIRY_EMAIL_PROVIDER: z.enum(["resend", "ses"]).default("resend"),
+  /** SES configuration set; tracks bounces and complaints. Required in production for `ses`. */
+  INQUIRY_SES_CONFIGURATION_SET: z.string().min(1).optional(),
+  /** Required only when the provider is `resend`. Retired once SES is proven. */
   RESEND_API_KEY: z.string().min(1).optional(),
-  /** Must be on a Resend-verified sending domain. */
+  /** Must be on a domain verified with the active provider. */
   INQUIRY_NOTIFICATION_FROM: z.string().min(1).optional(),
   /** Comma-separated list of internal recipients. */
   INQUIRY_NOTIFICATION_TO: z.string().min(1).optional(),
@@ -123,15 +128,30 @@ export const serverEnvSchemaWithProductionRules = serverEnvSchema
       if (value.APP_ENV !== "production") return true;
 
       return Boolean(
-        value.RESEND_API_KEY && value.INQUIRY_NOTIFICATION_FROM && value.INQUIRY_NOTIFICATION_TO,
+        value.INQUIRY_NOTIFICATION_FROM &&
+        value.INQUIRY_NOTIFICATION_TO &&
+        (value.INQUIRY_EMAIL_PROVIDER === "ses" || value.RESEND_API_KEY),
       );
     },
     {
       error:
-        "All three Resend variables are required in production. Email is the only notification " +
-        "channel (ADR-023): without them an inquiry still saves and still returns a cheerful " +
-        "confirmation, but nobody is ever told about the lead.",
-      path: ["RESEND_API_KEY"],
+        "INQUIRY_NOTIFICATION_FROM and INQUIRY_NOTIFICATION_TO are required in production, plus " +
+        "RESEND_API_KEY when INQUIRY_EMAIL_PROVIDER is resend (the default). Email is the only " +
+        "notification channel (ADR-023): without them an inquiry still saves and still returns a " +
+        "cheerful confirmation, but nobody is ever told about the lead.",
+      path: ["INQUIRY_NOTIFICATION_FROM"],
+    },
+  )
+  .refine(
+    (value) =>
+      value.APP_ENV !== "production" ||
+      value.INQUIRY_EMAIL_PROVIDER !== "ses" ||
+      Boolean(value.INQUIRY_SES_CONFIGURATION_SET),
+    {
+      error:
+        "INQUIRY_SES_CONFIGURATION_SET is required in production when INQUIRY_EMAIL_PROVIDER is " +
+        "ses: without it bounces and complaints are not tracked.",
+      path: ["INQUIRY_SES_CONFIGURATION_SET"],
     },
   );
 
@@ -177,9 +197,11 @@ function loadServerEnv(): ServerEnv {
 
 export const env: ServerEnv = loadServerEnv();
 
-/** True only when every credential the Resend adapter needs is present. */
+/** True only when everything the active email provider needs is present. */
 export const isEmailConfigured: boolean = Boolean(
-  env.RESEND_API_KEY && env.INQUIRY_NOTIFICATION_FROM && env.INQUIRY_NOTIFICATION_TO,
+  env.INQUIRY_NOTIFICATION_FROM &&
+  env.INQUIRY_NOTIFICATION_TO &&
+  (env.INQUIRY_EMAIL_PROVIDER === "ses" || env.RESEND_API_KEY),
 );
 
 /**

@@ -90,16 +90,3 @@ export async function sendResendEmail(
 
   return { id: (payload as { id: string }).id };
 }
-
-/**
- * Splits the comma-separated recipient list from the environment.
- *
- * Kept here rather than in the service so the parsing rule lives beside the
- * transport that consumes it.
- */
-export function parseRecipients(value: string): string[] {
-  return value
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
-}

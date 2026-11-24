@@ -21,7 +21,7 @@ All products are supplied for laboratory research use only and are not for human
 | Database  | Supabase PostgreSQL                                          |
 | Email     | Resend                                                       |
 | WhatsApp  | Meta Cloud API (env-gated; `wa.me` deep link until approved) |
-| Hosting   | Vercel                                                       |
+| Hosting   | AWS Amplify Hosting (Vercel is no longer used)               |
 
 ## Getting started
 

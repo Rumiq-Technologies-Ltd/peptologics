@@ -1,7 +1,7 @@
 # Architecture — PeptoLogics
 
 Next.js 16.3.0 App Router · React 19.2 · TypeScript strict · Tailwind CSS v4 · Supabase PostgreSQL ·
-deployed on Vercel.
+deployed on AWS Amplify Hosting (ADR-033).
 
 ---
 
@@ -218,21 +218,21 @@ Consequences worth remembering before adding a surface:
 
 ## 7. Directory map
 
-| Path                     | Contains                                                                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `src/app/`               | Routes, layouts, metadata, Route Handlers. No business logic.                                                            |
-| `src/components/ui/`     | Generic primitives (shadcn) + `LatticeMark`, `HexFrame`. No business logic.                                              |
-| `src/components/layout/` | Compliance strip, header, nav, footer, container, section.                                                               |
-| `src/components/shared/` | Reused across features: empty/error states, skeletons, skip link.                                                        |
-| `src/features/<name>/`   | Self-contained feature: components, services, types, mappers, utils.                                                     |
-| `src/services/`          | Cross-feature services and `container.ts`, the one composition root.                                                     |
-| `src/lib/`               | Integrations and cross-cutting concerns: supabase, resend, logger, errors, http, resilience, security, validations, env. |
-| `src/store/`             | Zustand stores.                                                                                                          |
-| `src/hooks/`             | Reusable client hooks.                                                                                                   |
-| `src/types/`             | Cross-cutting types: `api.ts`, `result.ts`, generated `database.types.ts`.                                               |
-| `src/utils/`             | Pure functions. No React, no Next, no side effects.                                                                      |
-| `src/constants/`         | `site.ts`, `routes.ts`, `business.ts`, `messages.ts`. No magic strings elsewhere.                                        |
-| `supabase/`              | `config.toml`, `migrations/`, `seed.sql`.                                                                                |
+| Path                     | Contains                                                                                                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/`               | Routes, layouts, metadata, Route Handlers. No business logic.                                                                                               |
+| `src/components/ui/`     | Generic primitives (shadcn) + `LatticeMark`, `HexFrame`. No business logic.                                                                                 |
+| `src/components/layout/` | Compliance strip, header, nav, footer, container, section.                                                                                                  |
+| `src/components/shared/` | Reused across features: empty/error states, skeletons, skip link.                                                                                           |
+| `src/features/<name>/`   | Self-contained feature: components, services, types, mappers, utils.                                                                                        |
+| `src/services/`          | Cross-feature services and `container.ts`, the one composition root.                                                                                        |
+| `src/lib/`               | Integrations and cross-cutting concerns: supabase, email (provider switch), ses, resend, aws, logger, errors, http, resilience, security, validations, env. |
+| `src/store/`             | Zustand stores.                                                                                                                                             |
+| `src/hooks/`             | Reusable client hooks.                                                                                                                                      |
+| `src/types/`             | Cross-cutting types: `api.ts`, `result.ts`, generated `database.types.ts`.                                                                                  |
+| `src/utils/`             | Pure functions. No React, no Next, no side effects.                                                                                                         |
+| `src/constants/`         | `site.ts`, `routes.ts`, `business.ts`, `messages.ts`. No magic strings elsewhere.                                                                           |
+| `supabase/`              | `config.toml`, `migrations/`, `seed.sql`.                                                                                                                   |
 
 There is no `proxy.ts`. Nothing needs to run before render, and adding one would cost an invocation
 per request for no benefit.

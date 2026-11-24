@@ -1,37 +1,53 @@
 # Deployment — PeptoLogics
 
-Vercel (Next.js) + Supabase (PostgreSQL) + Resend (email).
+**Today:** AWS Amplify Hosting (Next.js SSR, `WEB_COMPUTE`) + Supabase (PostgreSQL) + Resend (email).
+**Planned:** Amplify in `us-east-1` with a `staging` and a `main` site ([ADR-033](./decisions.md)),
+DynamoDB instead of Supabase (ADR-035, written by the DynamoDB workstream) and Amazon SES instead of
+Resend (ADR-037, written by the SES workstream).
 
-Domain: **peptologics.com**. Registrar access is with the client; DNS is changed by hand at the
-registrar, not by Vercel (see [DNS](#dns)).
+> **Vercel is no longer used.** Earlier versions of this document described a Vercel setup. Nothing
+> here depends on it. ADR-033 records the move.
+
+Domain: **peptologics.com**. DNS is hosted in **Route 53**. Mailboxes are on **Namecheap Private
+Email**, so the `MX` records and the root SPF record must never be touched when changing the web or
+sending setup (see [DNS](#dns)).
+
+Anything marked `TODO(control-chat)` is an AWS step whose exact console or CLI detail is supplied by
+the control chat. Workers do not run AWS commands.
 
 ---
 
+## Hosting
+
+| Item          | Today                                                                    | Planned ([ADR-033](./decisions.md))                           |
+| ------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Service       | AWS Amplify Hosting, `WEB_COMPUTE` (Next.js SSR)                         | unchanged                                                     |
+| App           | `peptologics` (id `d1zqn3kd1eopzq`)                                      | a new app with the same name                                  |
+| Region        | `eu-north-1`                                                             | `us-east-1`                                                   |
+| Branch builds | `main` only                                                              | two branch sites: `staging` and `main`. There is no dev site. |
+| Previews      | none (the Vercel previews are gone). Amplify branch deploys replace them | the `staging` site                                            |
+
+Amplify builds a branch when it receives a push. Merging a PR into `main` deploys production.
+
+TODO(control-chat): the exact steps to create the `us-east-1` app, connect it to the repository, set
+per-branch variables and cut the domain over.
+
 ## Environments
 
-| Environment | Trigger             | Supabase        | `NEXT_PUBLIC_SITE_URL`     | Indexed |
-| ----------- | ------------------- | --------------- | -------------------------- | ------- |
-| Development | local `npm run dev` | the one project | `http://localhost:3000`    | n/a     |
-| Preview     | any pushed branch   | the one project | leave unset → Vercel's URL | **no**  |
-| Production  | `main`              | the one project | `https://peptologics.com`  | yes     |
+| Environment | Where it runs                      | Database today           | Database planned (ADR-035)                    | `APP_ENV`    | `NEXT_PUBLIC_SITE_URL`     | Indexed |
+| ----------- | ---------------------------------- | ------------------------ | --------------------------------------------- | ------------ | -------------------------- | ------- |
+| Development | a developer's machine              | the one Supabase project | `peptologics-dev` table                       | unset        | `http://localhost:3000`    | n/a     |
+| Staging     | Amplify branch `staging` (planned) | the one Supabase project | `peptologics-staging` table, seeded from prod | `staging`    | the staging site's own URL | **no**  |
+| Production  | Amplify branch `main`              | the one Supabase project | `peptologics-prod` table                      | `production` | `https://peptologics.com`  | yes     |
 
-> **One Supabase project serves all three.** A preview deployment and a developer's laptop write
-> orders to the same database production reads. That is acceptable today — there are no real customer
-> records yet and the catalog is read-only from the browser — but it stops being acceptable the moment
-> real leads arrive. Two options when that happens, in order of preference:
->
-> 1. Create a second Supabase project for preview/development and point the non-production
->    environments at it. Costs one more project; nothing in the code changes.
-> 2. Use Supabase branching, which gives ephemeral databases per Git branch.
->
-> Recorded as an open question in [decisions.md](./decisions.md).
+> **One Supabase project serves every environment today.** A developer's laptop writes orders to the
+> database production reads. The DynamoDB move (planned, ADR-035) separates them into three tables,
+> and the dev table is used only from developers' own machines.
 
-Preview deployments must never be indexed. `robots.ts` disallows every path unless `VERCEL_ENV` is
-`production`, so a preview or local build tells crawlers to stay out, and it advertises no sitemap.
-Every page's metadata derives from `NEXT_PUBLIC_SITE_URL`, and Vercel sets `x-robots-tag: noindex` on
-preview deployments by default. **Do not** set `NEXT_PUBLIC_SITE_URL` to the production domain in the
-Preview environment — canonicals and structured data would then name the production host from a staging
-build.
+`APP_ENV` is the environment flag (ADR-032). Only `production` opens `robots.txt` and enables the
+launch-critical build checks below. `NODE_ENV` cannot be used for this, because a staging build also
+runs with `NODE_ENV=production`. Do **not** set `NEXT_PUBLIC_SITE_URL` to the production domain on
+the staging site: canonicals and structured data would name the production host from a staging build.
 
 ## Pre-deploy gate
 
@@ -39,38 +55,62 @@ All of these must pass. A failure blocks the deploy.
 
 ```bash
 npm run verify      # typecheck + lint + format + unit tests + build
-npm run test:e2e    # 11 Playwright specs against a production build
+npm run test:e2e    # Playwright specs against a production build
 ```
+
+CI (`.github/workflows/ci.yml`) runs on every PR into `staging` and `main`: `npm ci`, `npx next
+typegen`, typecheck, lint, format check and tests. It has **no build step yet**, because the build
+reads the live database. A build step is to be added after the DynamoDB workstream. The check is
+named `ci` and is required by the branch rulesets.
 
 ---
 
-## First-time Vercel setup
+## Branches and promotion
 
-Do these in order. Steps 1–4 need no DNS; the domain only enters at step 5.
+Only two long-lived branches exist: `main` (production) and `staging`. **`staging` is the default
+branch.** `dev` is retired (tag `archive/dev`). The reasoning is in [ADR-034](./decisions.md).
 
-### 1. Import the repository
+| Flow      | Branch from                      | PR into   | Merge method                                                                |
+| --------- | -------------------------------- | --------- | --------------------------------------------------------------------------- |
+| Feature   | `staging` (`feature/*`, `fix/*`) | `staging` | **squash**                                                                  |
+| Promotion | `staging`                        | `main`    | **merge commit**, never squash                                              |
+| Hotfix    | `main` (`hotfix/*`)              | `main`    | **squash**, then back-merge `main` into `staging` by PR with a merge commit |
 
-Vercel dashboard → **Add New → Project** → import `Rumiq-Technologies-Ltd/peptologics`.
+- Test locally before opening a PR. Local code runs against the dev data (planned: the
+  `peptologics-dev` table).
+- A guard in CI fails any PR into `main` whose source is not `staging` or `hotfix/*`.
+- `main` and `staging` are protected by rulesets: no deletion, no force-push, PR required, **0 required
+  approvals** (the owner is the only approver and GitHub does not let you approve your own PR), check
+  `ci` required. `staging-protection` also requires the branch to be up to date with `staging`;
+  `main-protection` does not, so a promotion never needs a back-merge first.
+- Never commit directly to `main` or `staging`.
 
-Framework preset **Next.js** is detected. Leave the build command, output directory and install
-command at their defaults — this repo needs no overrides.
+**Known issue.** The dead Vercel GitHub App still posts a failing check on every PR. Removing it needs
+a GitHub organisation owner: Organisation settings → GitHub Apps → Vercel → Configure → uninstall, or
+restrict it to repositories that exclude `peptologics`. It does not block merges.
 
-### 2. Set the environment variables
+---
 
-Project → **Settings → Environment Variables**. Add each one to the environments marked below.
+## Environment variables
 
-| Variable                    | Production | Preview | Value                                                                         |
-| --------------------------- | ---------- | ------- | ----------------------------------------------------------------------------- |
-| `SUPABASE_URL`              | ✓          | ✓       | `https://<project-ref>.supabase.co`                                           |
-| `SUPABASE_ANON_KEY`         | ✓          | ✓       | Supabase → Settings → API → `anon` / publishable key                          |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✓          | ✓       | Supabase → Settings → API → `service_role`. **Mark as sensitive.**            |
-| `NEXT_PUBLIC_SITE_URL`      | ✓          | ✗       | `https://peptologics.com` — production only, no trailing slash                |
-| `RESEND_API_KEY`            | ✓          | ✓       | Resend → API Keys. **Sensitive.**                                             |
-| `INQUIRY_NOTIFICATION_FROM` | ✓          | ✓       | `PeptoLogics <inquiries@peptologics.com>` — note the space before `<`         |
-| `INQUIRY_NOTIFICATION_TO`   | ✓          | ✓       | Where inquiries land. Comma-separated for several recipients                  |
-| `NEXT_PUBLIC_CONTACT_EMAIL` | ✓          | ✓       | Public address shown in the footer and on the contact page                    |
-| `REVALIDATE_SECRET`         | ✓          | ✓       | 24 random bytes hex. **Sensitive.** See below                                 |
-| `RATE_LIMIT_SALT`           | ✓          | ✓       | 24 random bytes hex. **Sensitive.** Changing it resets all rate-limit windows |
+Today these live in **Amplify environment variables**. The Amplify build spec writes them into
+`.env.production` at build time. Set them per branch.
+
+| Variable                        | Value                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------------------- |
+| `APP_ENV`                       | `production` on `main`, `staging` on `staging`, unset locally                         |
+| `SUPABASE_URL`                  | `https://<project-ref>.supabase.co` (retired by ADR-035 once merged)                  |
+| `SUPABASE_ANON_KEY`             | Supabase → Settings → API → `anon` key                                                |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase → Settings → API → `service_role`. Secret                                    |
+| `NEXT_PUBLIC_SITE_URL`          | `https://peptologics.com` on production only, no trailing slash                       |
+| `INQUIRY_EMAIL_PROVIDER`        | `resend` or `ses`. Unset means `resend`. Flip + rebuild to switch/roll back (ADR-037) |
+| `INQUIRY_SES_CONFIGURATION_SET` | `peptologics-prod`. Required in production when the provider is `ses`                 |
+| `RESEND_API_KEY`                | Resend → API Keys. Secret. Needed only while the provider is `resend`                 |
+| `INQUIRY_NOTIFICATION_FROM`     | `PeptoLogics <inquiries@peptologics.com>`: note the space before `<`                  |
+| `INQUIRY_NOTIFICATION_TO`       | Where inquiries land. Comma-separated for several recipients                          |
+| `NEXT_PUBLIC_CONTACT_EMAIL`     | Public address shown in the footer and on the contact page                            |
+| `REVALIDATE_SECRET`             | 24 random bytes hex. Secret                                                           |
+| `RATE_LIMIT_SALT`               | 24 random bytes hex. Secret. Changing it resets all rate-limit windows                |
 
 Generate the two secrets:
 
@@ -78,80 +118,76 @@ Generate the two secrets:
 node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
 ```
 
-Four guardrails are enforced by `src/lib/env.ts` and will **fail the build** rather than deploy
-something half-configured. The last two exist because both failures happened on the live site and
-neither was visible from inside the application (ADR-025):
+Two Amplify rules that fail **silently**:
 
+1. **The server runtime only receives variables with an allowed prefix.** The Amplify build spec
+   passes a variable to the runtime only if its name starts with `SUPABASE_`, `RESEND_`, `INQUIRY_`,
+   `CUSTOMER_`, `NEXT_PUBLIC_`, `REVALIDATE_`, `RATE_LIMIT_` or `APP_ENV`. A new variable with any
+   other prefix is set in the console, builds fine, and never reaches the live site. The control chat
+   adds the prefix to the build spec. Raise this in the PR that introduces the variable.
+2. **Amplify does not allow variable names that start with `AWS_`.** Use another name.
+
+Build-time guardrails in `src/lib/env.ts` fail the build rather than deploy something
+half-configured. The first two exist because both failures happened on the live site and neither was
+visible from inside the application (ADR-025, amended by ADR-032):
+
+- `NEXT_PUBLIC_SITE_URL` must be a real domain when `APP_ENV=production`, not `localhost` and not
+  `*.amplifyapp.com`. Pointed at the deployment URL, every canonical link, Open Graph URL, sitemap
+  entry and JSON-LD `@id` names a host that is not the one being served.
+- `INQUIRY_NOTIFICATION_FROM` and `INQUIRY_NOTIFICATION_TO` are required when `APP_ENV=production`,
+  plus `RESEND_API_KEY` while the provider is `resend` (the default), or
+  `INQUIRY_SES_CONFIGURATION_SET` when it is `ses`. Email is the only notification channel, so
+  without them an inquiry saves, returns `201`, shows the customer a reference number, and nobody is
+  told about the lead.
 - `SUPABASE_SERVICE_ROLE_KEY` is required when `NODE_ENV=production`.
 - `RATE_LIMIT_SALT` must not be the development default.
-- `NEXT_PUBLIC_SITE_URL` must be a real domain when `VERCEL_ENV=production` — not `localhost`, not
-  `*.vercel.app`. Pointed at the deployment URL, every canonical link, Open Graph URL, sitemap entry
-  and JSON-LD `@id` names a host that is not the one being served.
-- All three Resend variables are required when `VERCEL_ENV=production`. Email is the only
-  notification channel, so without them an inquiry saves, returns `201`, shows the customer a
-  reference number — and nobody is ever told about the lead.
-- `CUSTOMER_CONFIRMATION_FROM` is optional and falls back to `INQUIRY_NOTIFICATION_FROM`, so nothing
-  fails the build. It does need real attention before launch anyway: the customer confirmation
-  (ADR-027) goes to an address a stranger typed, and Resend's sandbox `onboarding@resend.dev` sender
-  only delivers to the Resend account owner. Until `peptologics.com` is verified with SPF and DKIM,
-  every confirmation records `failed` in the dead-letter list. Set this to
-  `PeptoLogics <hello@peptologics.com>` once the domain is verified.
+- `CUSTOMER_CONFIRMATION_FROM` is optional and falls back to `INQUIRY_NOTIFICATION_FROM`. The customer
+  confirmation (ADR-027) goes to an address a stranger typed, so the sending domain must be verified
+  with the mail provider or every confirmation records `failed` in the dead-letter list.
 
-`VERCEL_ENV`, not `NODE_ENV`: a preview build also runs with `NODE_ENV=production`, and on a preview
-a `*.vercel.app` URL is correct and Resend credentials are optional.
+> **`NEXT_PUBLIC_SITE_URL` must name the primary host.** The primary host is the apex,
+> `https://peptologics.com`: Amplify 301-redirects `https://www.peptologics.com/<*>` to it. The
+> redirect is needed because the inquiry origin check once refused every request from the `www` host
+> with 403.
 
-> **`NEXT_PUBLIC_SITE_URL` must match the primary host chosen in Vercel's Domains panel.** If
-> `www.peptologics.com` is primary and the apex redirects to it, this variable must be
-> `https://www.peptologics.com`. Set it to the apex while www is primary and every canonical points
-> at a URL that 308-redirects — a contradiction search engines have to resolve for themselves.
+**Planned (ADR-033, ADR-035, ADR-037).** DynamoDB and SES will be reached through the Amplify app's
+IAM role, with no access keys. Remaining secrets stay in Amplify environment variables.
+TODO(control-chat): decide whether the remaining secrets move to SSM Parameter Store.
 
-### 3. Deploy to preview and check it
+---
 
-Push any branch, or use the **Deploy** button. Then, against the preview URL:
+## First-time Amplify setup
 
-```bash
-curl -s https://<preview-url>/api/health | jq
-```
+Do these in order. The domain only enters at step 5.
 
-Expect `database: "reachable"` and `channels.email: "configured"`.
+1. **Create the app.** Amplify Hosting, platform `WEB_COMPUTE`, connected to
+   `Rumiq-Technologies-Ltd/peptologics`. Framework preset Next.js; the repo needs no build overrides.
+   TODO(control-chat): exact steps, region `us-east-1`, app tags.
+2. **Set the environment variables** from the table above, per branch.
+3. **Deploy a branch and check it.** Against the branch URL:
 
-### 4. Promote to production
+   ```bash
+   curl -s https://<branch-url>/api/health | jq
+   ```
 
-Merge to `main`. Vercel builds and promotes automatically.
+   Expect `database: "reachable"` and `channels.email: "configured"`.
 
-### 5. Add the domain
-
-Project → **Settings → Domains** → add `peptologics.com`. Add `www.peptologics.com` too; Vercel will
-offer to redirect one to the other.
-
-**Either direction is fine — but `NEXT_PUBLIC_SITE_URL` must name whichever host you make primary.**
-The code has no preference: every canonical, the sitemap, `robots.txt` and the structured data are
-all derived from that one variable. What breaks is the mismatch, and the build now refuses it
-(ADR-025).
-
-Vercel then shows the exact DNS records to create. Use what the dashboard shows for your domain; it is
-authoritative and the values below are the general ones.
+4. **Promote.** Merge a `staging` → `main` PR. Amplify builds and releases `main`.
+5. **Add the domain and the redirects.** Recreate both redirect rules on the new app:
+   `https://www.peptologics.com/<*>` → `https://peptologics.com/<*>` (301), plus the existing second
+   rule. TODO(control-chat): domain association, certificate and the exact redirect rules.
 
 ---
 
 ## DNS
 
-Two records at the registrar. **Delete or replace any existing A/CNAME on the same names first** —
-leaving an old host's A record in place is the usual reason a domain never verifies.
+DNS for `peptologics.com` is hosted in **Route 53**. Mail is on **Namecheap Private Email**: the `MX`
+records point to `privateemail.com`, the root SPF record includes it, and DMARC is `p=none`.
 
-| Type    | Name / Host       | Value                  | TTL    |
-| ------- | ----------------- | ---------------------- | ------ |
-| `A`     | `@` (apex, blank) | `76.76.21.21`          | `3600` |
-| `CNAME` | `www`             | `cname.vercel-dns.com` | `3600` |
-
-Notes that matter:
-
-- **Never CNAME the apex.** It is invalid DNS wherever the zone has other records at the root (it
-  will, once email is set up). If the registrar offers `ALIAS` or `ANAME` at the apex, that is fine
-  and preferable — point it at `cname.vercel-dns.com`.
-- Nameserver delegation to Vercel is the alternative to both records. It gives Vercel full control of
-  the zone, which is simpler _if_ Vercel also manages the mail records. With Resend sending mail for
-  the domain, keeping DNS at the registrar is the lower-risk choice.
+- **Never change or remove the `MX` records or the root SPF `TXT` record.** Doing so stops staff mail.
+- Mail-sending setup for the web app uses DKIM `CNAME` records and a custom MAIL FROM subdomain, never
+  the root SPF.
+- Never `CNAME` the apex. Amplify domain association handles the apex and `www` records.
 - Propagation is usually minutes and can be up to 48 hours. Check with:
 
 ```bash
@@ -159,28 +195,23 @@ nslookup peptologics.com
 nslookup www.peptologics.com
 ```
 
-Vercel issues the TLS certificate automatically once the records resolve. Nothing to configure.
+TODO(control-chat): the exact records Amplify and SES need, and who creates them.
 
-### Resend, in the same zone
+### Sending domain for email
 
-Resend needs its own records on `peptologics.com` before mail can be sent from the domain:
+**Today (Resend).** The sender domain must be verified in Resend with its SPF/DKIM records before
+inquiry email can reach anyone but the Resend account owner. Production must not ship on the sandbox
+sender `onboarding@resend.dev`.
 
-1. Resend → **Domains → Add Domain** → `peptologics.com`.
-2. Add every record it lists at the registrar — typically a DKIM `TXT` (often on a
-   `resend._domainkey` name), an SPF `TXT` on the apex, and sometimes an `MX` for a bounce subdomain.
-3. Wait for Resend to report **Verified**.
-4. Only then set `INQUIRY_NOTIFICATION_FROM` to an address on the domain.
-
-> **Current state: not verified.** The sender is Resend's sandbox, `onboarding@resend.dev`, which
-> delivers **only to the Resend account owner's inbox**. Production must not ship on it — real
-> inquiries would silently fail to reach anyone else. This is the last blocking item before launch.
+**SES (ADR-037).** Amazon SES in `us-east-1` replaces Resend once `INQUIRY_EMAIL_PROVIDER=ses` is set and proven. Both variables use the `INQUIRY_` prefix, so the Amplify build spec already passes them. The app's IAM role supplies credentials; there are no keys. The sender addresses stay as
+they are today. Expected volume is under 10 inquiries a day.
 
 ---
 
 ## Security headers
 
-Set in [`next.config.ts`](../next.config.ts), not `vercel.json`, so they apply to `next start` and to
-any future host, and so a change to them goes through review.
+Set in [`next.config.ts`](../next.config.ts) so they apply to `next start` and to any host, and so a
+change to them goes through review.
 
 | Header                       | Value                                                  |
 | ---------------------------- | ------------------------------------------------------ |
@@ -198,10 +229,8 @@ any future host, and so a change to them goes through review.
 request, which makes every page dynamic and discards the static prerendering the whole site is built
 on; the disclaimer gate's pre-paint script also has to run before hydration, so it cannot wait for
 React to attach a nonce. A hash-based policy fails on the per-page JSON-LD. What the policy still
-buys is real: no third-party origin can load anything, `object-src 'none'`, `base-uri 'self'` (an
-injected `<base>` cannot repoint relative URLs), `form-action 'self'` (an injected form cannot post
-customer details elsewhere), and `frame-ancestors 'none'` (the gate and the inquiry form cannot be
-framed). Full reasoning is in the config's own comment.
+buys is real: no third-party origin can load anything, `object-src 'none'`, `base-uri 'self'`,
+`form-action 'self'` and `frame-ancestors 'none'`. Full reasoning is in the config's own comment.
 
 Verify after deploy:
 
@@ -213,7 +242,7 @@ curl -sI https://peptologics.com | grep -Ei "content-security|strict-transport|x
 
 ## Database migrations
 
-Applied through migrations only. Never edit production schema by hand.
+**Today (Supabase).** Applied through migrations only. Never edit production schema by hand.
 
 > **Read this before running `supabase db push`.** The remote migration history was written by the
 > Supabase MCP tooling, so its versions (`20260806073131_helpers`, …) do **not** match the local
@@ -230,11 +259,14 @@ Applied through migrations only. Never edit production schema by hand.
 > ```
 >
 > After that, `db push` behaves normally for new migrations. Until then, apply schema changes the way
-> the existing ones were applied — through the MCP tooling or the Supabase SQL editor — and commit the
-> matching `.sql` file so the repo stays the record of truth.
+> the existing ones were applied and commit the matching `.sql` file so the repo stays the record of
+> truth.
 
 All twelve migrations are applied to project `pmbatptoffscqtnfmhbz`, including
 `create_inquiry_email_only` from the WhatsApp removal.
+
+**Planned (ADR-035).** DynamoDB replaces Supabase, so this section is rewritten by the DynamoDB
+workstream together with `docs/database.md`.
 
 ## Adding a product to the catalog
 
@@ -243,11 +275,11 @@ Inserting a row into `products` is **not** enough to make its page reachable. `/
 inserting a product:
 
 1. Insert the row (via a seed edit and re-run, or Supabase Studio).
-2. **Trigger a redeploy** so `generateStaticParams` picks up the new slug. A Vercel Deploy Hook called
-   from a Supabase Database Webhook on `products` INSERT would automate this.
+2. **Trigger a redeploy** so `generateStaticParams` picks up the new slug. TODO(control-chat): an
+   Amplify build hook that a database event could call, if automation is wanted.
 3. `POST /api/revalidate` refreshes the catalog listing, but does **not** create the new detail page.
 
-Editing an existing product — including its price — needs no redeploy. It propagates within the hour,
+Editing an existing product, including its price, needs no redeploy. It propagates within the hour,
 or immediately with:
 
 ```bash
@@ -257,26 +289,25 @@ curl -X POST https://peptologics.com/api/revalidate \
   -d '{"slug":"retatrutide-10mg"}'
 ```
 
-`/`, `/products` and `/lab-testing` are purged too, with or without a slug — a price appears in three
+`/`, `/products` and `/lab-testing` are purged too, with or without a slug: a price appears in three
 places and a certificate in a fourth, and they must not disagree. Full contract in [api.md](./api.md).
 
-> **A data-only change plus a redeploy is not always enough.** Vercel restores `.next/cache` between
-> builds, and a prerendered page whose ISR entry is still valid can be reused even though the database
-> behind it changed. Seen locally: after publishing eight certificates, a rebuild kept serving the old
-> empty list until `.next` was deleted. If a change is invisible after a deploy, call
-> `POST /api/revalidate` — it is instant and cheaper than a cache-cleared rebuild.
+> **A data-only change plus a redeploy is not always enough.** A build can restore `.next/cache`, and
+> a prerendered page whose ISR entry is still valid can be reused even though the database behind it
+> changed. Seen locally: after publishing eight certificates, a rebuild kept serving the old empty
+> list until `.next` was deleted. If a change is invisible after a deploy, call
+> `POST /api/revalidate`: it is instant and cheaper than a cache-cleared rebuild.
 
 ## Notification channels
 
-**Email is the only channel.** WhatsApp was removed at the client's request — see ADR-023. There are
-no Meta credentials to obtain, no template to get approved, and nothing in the deploy checklist that
-waits on Meta.
+**Email is the only channel.** WhatsApp was removed at the client's request (ADR-023). There are no
+Meta credentials to obtain and nothing in the deploy checklist that waits on Meta.
 
 If it is ever wanted back, the work is an adapter plus one entry in `NotificationService.dispatch`:
 `notification_log` and its repository are already channel-generic, and the table's CHECK constraint
 still permits a `whatsapp` channel value.
 
-Watch `notification_log` for the dead-letter list — anything left `pending` or `failed` is a lead
+Watch `notification_log` for the dead-letter list. Anything left `pending` or `failed` is a lead
 nobody was told about:
 
 ```sql
@@ -290,27 +321,28 @@ select order_id, channel, status, attempts, error_message, created_at
 
 ## Rollback
 
-**Deployment rollback** — instant, and the first move in any production incident:
+**Deployment rollback** is the first move in any production incident. Redeploy the last good build:
+Amplify console → app → branch → an earlier successful build → **Redeploy this version**. (The
+control chat can do the same with the AWS CLI `amplify start-job --job-type RETRY --job-id <id>`.)
 
-1. Vercel → **Deployments** → find the last known-good deployment → **⋯ → Promote to Production**.
-2. Investigate afterwards. Never patch production directly.
-3. Fix on a branch, verify, merge.
+**Code rollback** is a revert PR through the normal flow: revert on a branch, PR, `ci` green, merge.
 
-Because every route is either static or a stateless function, promoting an older build is genuinely
-safe: there is no in-flight session state to lose and no client-side migration to unwind. The cart
-lives in the visitor's own `localStorage` and its stored schema is versioned, so an older build reads
-it correctly.
+Never patch production directly. Investigate afterwards, fix on a branch, verify, merge.
 
-**Environment variable rollback** — changing a variable does not affect the running deployment until
-it is redeployed. If a bad value is set, correct it and redeploy; the previous deployment keeps
-serving in the meantime.
+Because every route is either static or a stateless function, redeploying an older build is safe:
+there is no in-flight session state to lose and no client-side migration to unwind. The cart lives in
+the visitor's own `localStorage` and its stored schema is versioned, so an older build reads it
+correctly.
 
-**Database rollback is separate and harder.** Promoting an older deployment does not undo a
-migration, and a migration that drops a column cannot be reversed by a deploy at all. Before applying
-any destructive migration:
+**Environment variable rollback.** Changing a variable does not affect the running deployment until
+it is redeployed. If a bad value is set, correct it and redeploy.
+
+**Database rollback is separate and harder.** Redeploying an older build does not undo a migration,
+and a migration that drops a column cannot be reversed by a deploy at all. Before applying any
+destructive migration:
 
 1. Confirm the Supabase backup schedule is active and note the latest backup time.
-2. Prefer additive changes — add a column, migrate reads, drop it in a later release.
+2. Prefer additive changes: add a column, migrate reads, drop it in a later release.
 3. If a rollback is unavoidable, restore from backup and accept the data written since it.
 
 ---
@@ -320,6 +352,7 @@ any destructive migration:
 Run against the production URL, in this order.
 
 - [ ] `curl -sI https://peptologics.com` → 200, and every security header present
+- [ ] `https://www.peptologics.com/` → 301 to `https://peptologics.com/`
 - [ ] `curl -s https://peptologics.com | grep PL3` → product content is in the raw HTML
 - [ ] Home page in a fresh browser profile → the disclaimer gate appears and blocks the page
 - [ ] Accept the gate → the page becomes usable; reload → no flash of the gate
@@ -328,10 +361,9 @@ Run against the production URL, in this order.
 - [ ] A product page returns 200; an invented slug returns a real **404**
 - [ ] Submit one real test inquiry → order row created, email received, then delete the test row
 - [ ] `/sitemap.xml` lists the product URLs; `/robots.txt` allows the site, disallows `/api/`, and names the sitemap
-- [ ] `/cart`, `/inquiry`, `/inquiry/success`, `/not-eligible` all send `noindex` (they are no longer disallowed, so a crawler can see the directive)
+- [ ] `/cart`, `/inquiry`, `/inquiry/success`, `/not-eligible` all send `noindex`
 - [ ] **Lighthouse ≥ 95** on Performance, Accessibility, Best Practices, SEO
 - [ ] **Rich Results Test** passes on a product page and on the home page's FAQ
-- [ ] Vercel logs clean — no unexpected errors after the first traffic
+- [ ] Amplify and application logs clean, with no unexpected errors after the first traffic
 
-The last two are the two Phase 7 items that could not be checked locally: Lighthouse needs a Chrome
-CLI and Rich Results needs a public URL.
+The Lighthouse and Rich Results items need a Chrome CLI and a public URL respectively.

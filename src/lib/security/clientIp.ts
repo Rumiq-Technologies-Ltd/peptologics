@@ -9,9 +9,12 @@
  * visitor chose to send, and reading them would let a visitor present a fresh address,
  * and so a fresh rate-limit bucket, on every request (ADR-028).
  *
- * This assumes one proxy (Vercel) between the visitor and the function. If a CDN is ever
- * placed in front, the right-most entry becomes the CDN's address, every visitor shares
- * one bucket, and this rule must be revisited.
+ * UNVERIFIED on Amplify. The rule assumed one proxy between the visitor and the function.
+ * Amplify puts CloudFront and its own compute layer in the path, so the right-most entry
+ * may be a CloudFront address shared by every visitor, which would put them all in one
+ * rate-limit bucket. It has not been checked against a real request; the
+ * `RATE_LIMIT_DIAGNOSTIC` log on POST /api/inquiries exists to settle it. Do not change
+ * the rule until that result has been read.
  */
 export function getClientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");

@@ -18,13 +18,15 @@ const serverEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
   /**
-   * Which Vercel environment this build is for. Set by Vercel, absent locally.
+   * Which deployment this build is for. Amplify sets nothing like this for us, so we set
+   * it ourselves per Amplify branch: `main` is `production`, `staging` is `staging`.
+   * Unset means a developer's own machine.
    *
-   * `NODE_ENV` cannot tell these apart: a preview build also runs with
-   * `NODE_ENV=production`, so a rule keyed on it would fail every preview deploy.
-   * Every launch-critical check below is keyed on this instead.
+   * `NODE_ENV` cannot tell these apart: a staging build also runs with
+   * `NODE_ENV=production`, so a rule keyed on it would fail every staging deploy.
+   * Every launch-critical check below is keyed on this instead (ADR-032).
    */
-  VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
+  APP_ENV: z.enum(["development", "staging", "production"]).optional(),
 
   // --- Site -----------------------------------------------------------------
   /** Absolute origin, no trailing slash. Drives metadataBase and canonical URLs. */
@@ -71,6 +73,13 @@ const serverEnvSchema = z.object({
   REVALIDATE_SECRET: z.string().min(16).optional(),
   /** Salt for hashing IP addresses before they touch the rate-limit table. */
   RATE_LIMIT_SALT: z.string().min(16).default("peptologics-dev-salt-change-me"),
+  /**
+   * Temporary diagnostic. Exactly "true" makes POST /api/inquiries log the shape of its
+   * forwarding headers (counts and header names, never values) so the client-IP rule can
+   * be checked behind Amplify. Anything else, or unset, is off. It is read only to decide
+   * whether to log and never reaches the rate limiter.
+   */
+  RATE_LIMIT_DIAGNOSTIC: z.string().optional(),
 });
 
 /**
@@ -80,7 +89,7 @@ const serverEnvSchema = z.object({
  * the read-only catalog with nothing but a Supabase URL and publishable key,
  * while still making a production deploy fail fast on a missing secret.
  */
-const serverEnvSchemaWithProductionRules = serverEnvSchema
+export const serverEnvSchemaWithProductionRules = serverEnvSchema
   .refine((value) => value.NODE_ENV !== "production" || Boolean(value.SUPABASE_SERVICE_ROLE_KEY), {
     error: "Required in production — the inquiry write path cannot run without it.",
     path: ["SUPABASE_SERVICE_ROLE_KEY"],
@@ -97,20 +106,20 @@ const serverEnvSchemaWithProductionRules = serverEnvSchema
    * The two rules below exist because both failures already happened on the live site,
    * silently, and neither was visible from inside the application (ADR-025).
    *
-   * They are keyed on VERCEL_ENV, not NODE_ENV: a preview build also runs with
-   * NODE_ENV=production, and neither rule should apply to a preview.
+   * They are keyed on APP_ENV, not NODE_ENV: a staging build also runs with
+   * NODE_ENV=production, and neither rule should apply to staging.
    */
   .refine(
     (value) => {
-      if (value.VERCEL_ENV !== "production") return true;
+      if (value.APP_ENV !== "production") return true;
 
       const host = new URL(value.NEXT_PUBLIC_SITE_URL).hostname;
-      return host !== "localhost" && !host.endsWith(".vercel.app");
+      return host !== "localhost" && !host.endsWith(".amplifyapp.com");
     },
     {
       error:
         "Must be the real customer-facing domain in production. Left unset or pointed at the " +
-        "*.vercel.app URL, every canonical link, Open Graph URL, sitemap entry and JSON-LD @id " +
+        "*.amplifyapp.com URL, every canonical link, Open Graph URL, sitemap entry and JSON-LD @id " +
         "names a host that is not the one being served — which tells search engines the site " +
         "lives somewhere else.",
       path: ["NEXT_PUBLIC_SITE_URL"],
@@ -118,7 +127,7 @@ const serverEnvSchemaWithProductionRules = serverEnvSchema
   )
   .refine(
     (value) => {
-      if (value.VERCEL_ENV !== "production") return true;
+      if (value.APP_ENV !== "production") return true;
 
       return Boolean(
         value.RESEND_API_KEY && value.INQUIRY_NOTIFICATION_FROM && value.INQUIRY_NOTIFICATION_TO,

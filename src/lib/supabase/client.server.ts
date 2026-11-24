@@ -33,7 +33,7 @@ const clientOptions = {
 /**
  * Module-scoped singletons.
  *
- * A Vercel function instance handles many requests under Fluid Compute, so
+ * A server instance handles many requests, so
  * building a client per request would waste the connection pool for no benefit.
  * Neither client carries per-request state, so sharing them is safe.
  */

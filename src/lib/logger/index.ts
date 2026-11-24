@@ -4,7 +4,7 @@
  * This module is the single sanctioned `console` boundary in the codebase; the
  * `no-console` rule is switched off for this folder in `eslint.config.mjs`.
  *
- * Vercel parses JSON written to stdout/stderr into queryable log fields, so a
+ * Hosts such as Amplify (CloudWatch) can query JSON written to stdout/stderr as fields, so a
  * ~60-line module gives us structured logging with zero dependencies. pino and
  * winston bring transports and worker threads that are real serverless bundling
  * pain for no gain at this size.

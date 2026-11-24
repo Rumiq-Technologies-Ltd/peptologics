@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 /**
  * Next configuration.
  *
- * Security headers live here rather than in `vercel.json`, so they apply to
- * `next start` and to any future host as well as to Vercel — and so a change to them
+ * Security headers live here rather than in a host-specific config file, so they apply to
+ * `next start` and to any host, including Amplify — and so a change to them
  * goes through code review like everything else.
  */
 

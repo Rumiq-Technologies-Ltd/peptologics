@@ -6,10 +6,10 @@ import { siteUrl } from "@/lib/env.client";
 /**
  * robots.txt.
  *
- * Only the production deployment is open to crawlers. A preview deployment or a local
+ * Only the production deployment is open to crawlers. A staging deployment or a local
  * build disallows everything, so a staging build cannot be indexed by inheriting the
- * production URL (CLAUDE.md forbids indexed staging environments). `VERCEL_ENV` is set by
- * Vercel alone, which is why it, rather than `NODE_ENV`, decides this.
+ * production URL (CLAUDE.md forbids indexed staging environments). `APP_ENV` is set by
+ * us per Amplify branch, which is why it, rather than `NODE_ENV`, decides this (ADR-032).
  *
  * The utility pages (cart, inquiry, success, not-eligible) are deliberately not disallowed.
  * They send `noindex`, and a crawler can only see that directive if it is allowed to fetch
@@ -21,7 +21,7 @@ import { siteUrl } from "@/lib/env.client";
  * robots.txt is a request, not a control.
  */
 export default function robots(): MetadataRoute.Robots {
-  if (env.VERCEL_ENV !== "production") {
+  if (env.APP_ENV !== "production") {
     return { rules: { userAgent: "*", disallow: "/" } };
   }
 

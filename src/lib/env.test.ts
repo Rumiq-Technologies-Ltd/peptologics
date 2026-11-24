@@ -69,11 +69,4 @@ describe("production-only environment rules", () => {
       }),
     ).not.toContain("RESEND_API_KEY");
   });
-
-  it("treats RATE_LIMIT_DIAGNOSTIC as optional", () => {
-    expect(issuePaths({})).not.toContain("RATE_LIMIT_DIAGNOSTIC");
-    expect(issuePaths({ RATE_LIMIT_DIAGNOSTIC: "anything" })).not.toContain(
-      "RATE_LIMIT_DIAGNOSTIC",
-    );
-  });
 });

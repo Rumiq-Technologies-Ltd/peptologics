@@ -73,13 +73,6 @@ const serverEnvSchema = z.object({
   REVALIDATE_SECRET: z.string().min(16).optional(),
   /** Salt for hashing IP addresses before they touch the rate-limit table. */
   RATE_LIMIT_SALT: z.string().min(16).default("peptologics-dev-salt-change-me"),
-  /**
-   * Temporary diagnostic. Exactly "true" makes POST /api/inquiries log the shape of its
-   * forwarding headers (counts and header names, never values) so the client-IP rule can
-   * be checked behind Amplify. Anything else, or unset, is off. It is read only to decide
-   * whether to log and never reaches the rate limiter.
-   */
-  RATE_LIMIT_DIAGNOSTIC: z.string().optional(),
 });
 
 /**

@@ -949,6 +949,49 @@ acquisition plan.
 
 ---
 
+## ADR-035 — DynamoDB replaces Supabase, with a single-table design
+
+**Status** Accepted (D3, 2026-11-23) · AWS migration, DynamoDB workstream (Chat 07). Supabase remains the live store until the control chat flips the switch; deleting the Supabase code, `supabase/` and the Supabase variables is a separate, later PR after the two-week fallback (D7).
+
+**Context.** The site moves to AWS (ADR-033). The data is small (about 20 products, tens of inquiries) and every access pattern is known: the catalog, a product by slug, create an order, update a notification, count a rate-limit hit. One AWS account, three environments (D1, D2, D12).
+
+**Decision.**
+
+- **One table per environment**, on-demand: `peptologics-dev` (developer machines only; no dev site), `peptologics-staging` (seeded from prod data, D2) and `peptologics-prod`. Identical key schema and three indexes (`GSI1`, `GSI2`, `GSI3`); TTL on `expires_at`. The layout is in `docs/database.md`.
+- **A switch, not a replacement.** `INQUIRY_DATA_STORE` is `supabase` or `dynamodb`; unset means `supabase`, so merging changes nothing. `container.ts` builds all four repositories from the chosen store behind unchanged interfaces, so services and their tests do not move. The `SUPABASE_*` variables are required only while the store is `supabase`; `DYNAMODB_TABLE_NAME` only when it is `dynamodb`. Rolling back is setting the variable back and rebuilding.
+- **The atomic write is one `TransactWriteItems`**: idempotency guard, order, lines and both `pending` notifications (at most 29 items). The order number comes from a counter advanced just before, with `SET seq = if_not_exists(seq, 999) + 1`, so a fresh table starts at `PL-001000`. A gap after a failed transaction is accepted, as it was with the Postgres sequence (ADR-004).
+- **Idempotency** is a guard item with `attribute_not_exists`. A concurrent duplicate is cancelled on that item and answered with the winner's order and `created: false`, so it notifies nobody a second time.
+- **The dead-letter list is a sparse index**: only `pending` and `failed` notifications carry `GSI3` keys; recording `sent` or `skipped` removes them.
+- **Rate limiting** is one atomic `ADD` per bucket per window, the window in the key. Correctness does not depend on TTL, which DynamoDB applies lazily.
+- **What Postgres enforced with CHECK constraints is enforced in code** (`order.invariants.ts`), each rule unit-tested, and listed in `docs/database.md`. Foreign keys are not enforced; order lines keep their snapshot and products are archived, never deleted.
+- **Credentials come from the IAM role** (Amplify) or `AWS_PROFILE` (local), never env variables; the region is the constant in `src/lib/aws/config.ts`. The app's role gets `GetItem`, `PutItem`, `UpdateItem`, `Query`, `TransactWriteItems`, `ConditionCheckItem` and `DescribeTable` on one table and its indexes.
+- **Data moves with `scripts/migrate-supabase-to-dynamodb.ts`**: dry run by default, idempotent, original ids kept, soft-deleted rows included (D9), `--products-only` for the dev table, `--since` for the delta pass and `--counter-floor` for the cutover (D6).
+
+**Consequences.**
+
+- **Reads of a global index are eventually consistent.** Harmless for the catalog; the order path uses primary-key reads only.
+- **No joins and no ad-hoc SQL.** Staff look at inquiries through email and the DynamoDB console until the admin page (D4) exists. The `ORDERS#<yyyy-mm>` index on `GSI1` is there for it.
+- **Referential integrity is a convention**, not a constraint. The write path is the only writer, and it is tested.
+- **The build can stop depending on a live database** once the catalog read uses the DynamoDB store, which is what allows a `npm run build` step in CI later (see ADR-034).
+
+---
+
+## ADR-036 — Catalog filtering and sorting move into the repository
+
+**Status** Accepted (D5, 2026-11-23) · DynamoDB workstream (Chat 07).
+
+**Context.** The Postgres repository filtered by category, searched names with `ilike` and sorted with `ORDER BY`, because CLAUDE.md says to sort and filter in the database. DynamoDB cannot do a substring search or sort by an arbitrary attribute without an index per sort.
+
+**Decision.** `findActive` reads the whole catalog with one Query on `GSI1` (`PRODUCTS`) and `product.query.ts` filters, searches and sorts it, on the server, then applies the limit. `findFeatured`, `findByIds` and `listActiveSlugs` use the same read. `findBySlug` uses `GSI2`. The visibility rule (`status = 'active'` and not deleted) is applied to every read, in one function.
+
+**Consequences.**
+
+- Still server-side, still one request; nothing is filtered in the browser.
+- It costs a read of the whole catalog per call, which is fine at about 20 products (a few kilobytes). **Revisit when the catalog passes roughly 200 products or the Query result nears 1 MB** (it paginates correctly before then, but the cost and latency stop being negligible). The answer then is an index per sort, or a search service.
+- Sorting uses `localeCompare` with the `en` locale, which can differ from the Postgres collation for unusual characters.
+
+---
+
 ## ADR-037 — Amazon SES replaces Resend, behind a provider switch
 
 **Status** Accepted · AWS migration, SES workstream (Chat 06). Resend remains the live provider until the control chat confirms SES is proven; deleting `src/lib/resend/` and `RESEND_API_KEY` is a separate, later PR.

@@ -1,6 +1,6 @@
 import { getContainer } from "@/services/container";
 import { jsonFail, jsonOk } from "@/lib/http/responses";
-import { isWriteClientAvailable } from "@/lib/supabase/client.server";
+import { isInquiryWriteStoreAvailable } from "@/lib/data-store";
 import { isEmailConfigured } from "@/lib/env";
 import { logger } from "@/lib/logger";
 
@@ -38,7 +38,7 @@ export async function GET(): Promise<Response> {
         // up. Useful for confirming a deployment picked up its env vars.
         channels: {
           email: isEmailConfigured ? "configured" : "not_configured",
-          inquiryWrites: isWriteClientAvailable() ? "available" : "unavailable",
+          inquiryWrites: isInquiryWriteStoreAvailable() ? "available" : "unavailable",
         },
       },
       "Service is healthy.",

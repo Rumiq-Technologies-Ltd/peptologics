@@ -58,9 +58,8 @@ values
   ('retatrutide-30mg',  'PL3',          'peptide',  30,    18000, false, true,  10,  null, '/products/retatrutide-30mg.webp'),
   -- $5.00/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot BPC10-260101-057).
   ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  20,  '/coa/bpc-157-10mg.webp', '/products/bpc-157-10mg.webp'),
-  -- $4.25/mg. Added 24 Nov 2026. No certificate or vial photograph yet; the placeholder
-  -- image renders until the client supplies one.
-  ('bpc-157-20mg',      'BPC-157',      'peptide',  20,    8500,  false, false, 25,  null, null),
+  -- $4.25/mg. Added 24 Nov 2026. No certificate yet.
+  ('bpc-157-20mg',      'BPC-157',      'peptide',  20,    8500,  false, false, 25,  null, '/products/bpc-157-20mg.webp'),
   -- $7.50/mg. Replaced the 10 mg vial on 24 Nov 2026 (slug `tesamorelin-10mg`, redirected
   -- here). The certificate is the 10 mg lot — see the note above this statement.
   ('tesamorelin-20mg',  'Tesamorelin',  'peptide',  20,    15000, false, false, 30,  '/coa/tesamorelin-10mg.webp', '/products/tesamorelin-20mg.webp'),
@@ -71,8 +70,8 @@ values
   -- Certificate added 17 Sep 2026 (Bioviridian lot GHK100-260101-060).
   ('ghk-cu-100mg',      'GHK-Cu',       'peptide',  100,   6500,  false, true,  50,  '/coa/ghk-cu-100mg.webp', '/products/ghk-cu-100mg.webp'),
   -- $0.65/mg. Alanine-histidine-lysine copper peptide, a different compound from GHK-Cu.
-  -- Added 24 Nov 2026; category follows GHK-Cu. No certificate or vial photograph yet.
-  ('ahk-cu-100mg',      'AHK-Cu',       'peptide',  100,   6500,  false, false, 55,  null, null),
+  -- Added 24 Nov 2026; category follows GHK-Cu. No certificate yet.
+  ('ahk-cu-100mg',      'AHK-Cu',       'peptide',  100,   6500,  false, false, 55,  null, '/products/ahk-cu-100mg.webp'),
   -- $6.00/mg
   ('mots-c-10mg',       'MOTS-c',       'peptide',  10,    6000,  false, false, 60,  '/coa/mots-c-10mg.jpg', '/products/mots-c-10mg.webp'),
   -- $3.75/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot MS40-260101-058).
@@ -102,14 +101,14 @@ values
   -- against the official price menu.
   -- Certificate withheld 27 Sep 2026 — see the note above this statement.
   ('tirzepatide-30mg',  'PL2',          'peptide',  30,    15000, false, true,  150, null, '/products/tirzepatide-30mg.webp'),
-  -- $7.50/mg. Added 24 Nov 2026. No certificate or vial photograph yet.
-  ('tirzepatide-10mg',  'PL2',          'peptide',  10,    7500,  false, false, 155, null, null),
+  -- $7.50/mg. Added 24 Nov 2026. No certificate yet.
+  ('tirzepatide-10mg',  'PL2',          'peptide',  10,    7500,  false, false, 155, null, '/products/tirzepatide-10mg.webp'),
   -- $5.00/mg. Repriced 28 Aug 2026 against the official price menu. Certificate added
   -- 17 Sep 2026 (Bioviridian lot IPA10-260101-060).
   ('ipamorelin-10mg',   'IPA 10',       'peptide',  10,    5000,  false, false, 160, '/coa/ipamorelin-10mg.webp', '/products/ipamorelin-10mg.webp'),
   -- $20.00/mg. Added 24 Nov 2026 at the client's request, named Eloralintide. No
-  -- certificate or vial photograph yet.
-  ('eloralintide-5mg',  'Eloralintide', 'peptide',  5,     10000, false, false, 165, null, null)
+  -- certificate yet. The vial render's label reads ELORA, the client's short name.
+  ('eloralintide-5mg',  'Eloralintide', 'peptide',  5,     10000, false, false, 165, null, '/products/eloralintide-5mg.webp')
 on conflict (slug) do update set
   name        = excluded.name,
   category    = excluded.category,

@@ -105,9 +105,10 @@ values
   -- $5.00/mg. Repriced 28 Aug 2026 against the official price menu. Certificate added
   -- 17 Sep 2026 (Bioviridian lot IPA10-260101-060).
   ('ipamorelin-10mg',   'IPA',          'peptide',  10,    5000,  false, false, 160, '/coa/ipamorelin-10mg.webp', '/products/ipamorelin-10mg.webp'),
-  -- $20.00/mg. Added 24 Nov 2026 at the client's request, named Eloralintide. No
-  -- certificate yet. The vial render's label reads ELORA, the client's short name.
-  ('eloralintide-5mg',  'Eloralintide', 'peptide',  5,     10000, false, false, 165, null, '/products/eloralintide-5mg.webp')
+  -- $20.00/mg. Added 24 Nov 2026 as Eloralintide and renamed Elora on 25 Nov 2026 at the
+  -- client's request, to match the vial label. The slug keeps the generic name (see the note
+  -- above on slugs). No certificate yet.
+  ('eloralintide-5mg',  'Elora',        'peptide',  5,     10000, false, false, 165, null, '/products/eloralintide-5mg.webp')
 on conflict (slug) do update set
   name        = excluded.name,
   category    = excluded.category,

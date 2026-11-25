@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatPresentation,
+  formatProductTitle,
   hasComparableCostPerMg,
 } from "@/features/products/utils/product.display";
 import { makeProduct } from "@/test/factories";
@@ -30,5 +31,19 @@ describe("formatPresentation", () => {
   it("calls a powder lyophilized and a liquid a solution", () => {
     expect(formatPresentation(makeProduct())).toBe("lyophilized");
     expect(formatPresentation(makeProduct({ strengthUnit: "ml" }))).toBe("solution");
+  });
+});
+
+describe("formatProductTitle", () => {
+  const ten = makeProduct({ id: "a", name: "BPC-157", strengthMg: 10 });
+  const twenty = makeProduct({ id: "b", name: "BPC-157", strengthMg: 20 });
+  const single = makeProduct({ id: "c", name: "Elora", strengthMg: 5 });
+
+  it("keeps the strength when the name is sold in more than one size", () => {
+    expect(formatProductTitle(ten, [ten, twenty, single], "10 mg")).toBe("BPC-157 10 mg");
+  });
+
+  it("uses the name alone when the compound has a single size", () => {
+    expect(formatProductTitle(single, [ten, twenty, single], "5 mg")).toBe("Elora");
   });
 });

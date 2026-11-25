@@ -7,7 +7,11 @@ import { Section } from "@/components/layout/Section";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { ProductRowControls } from "@/features/cart/components/ProductRowControls";
 import { ProductImage } from "@/features/products/components/ProductImage";
-import { hasComparableCostPerMg, productForm } from "@/features/products/utils/product.display";
+import {
+  formatProductTitle,
+  hasComparableCostPerMg,
+  productForm,
+} from "@/features/products/utils/product.display";
 import { COMPLIANCE_NOTICE_LONG, SITE_NAME } from "@/constants/site";
 import { ROUTES } from "@/constants/routes";
 import { buildBreadcrumbSchema, buildProductSchema } from "@/lib/seo/structuredData";
@@ -61,16 +65,26 @@ export async function generateMetadata(props: PageProps<"/products/[slug]">): Pr
   // fact from the catalog row.
   const { phrase: presentation } = productForm(product);
 
+  // The catalog decides whether the strength belongs in the title. If it cannot be
+  // read, assume the name is shared and keep the strength: a longer title is safe, a
+  // duplicate one is not.
+  const catalog = await getContainer().products.listActive();
+  const title = formatProductTitle(
+    product,
+    catalog.success ? catalog.data : [product, product],
+    strength,
+  );
+
   const description =
     product.description ??
     `${product.name}, ${strength} per vial, supplied as ${presentation} for laboratory research use only. List price ${formatCurrency(product.priceCents)}. Not for human or animal consumption.`;
 
   return {
-    title: `${product.name} ${strength}`,
+    title,
     description,
     alternates: { canonical: ROUTES.product(product.slug) },
     openGraph: {
-      title: `${product.name} ${strength}`,
+      title,
       description,
       url: ROUTES.product(product.slug),
       type: "website",

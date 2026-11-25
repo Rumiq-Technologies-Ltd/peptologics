@@ -45,3 +45,21 @@ export function productForm(product: Product): { phrase: string; label: string }
     ? { phrase: "a sterile solution", label: "Sterile solution" }
     : { phrase: "lyophilized powder", label: "Lyophilized powder" };
 }
+
+/**
+ * The product's title for a browser tab and a social preview.
+ *
+ * The strength is appended only when the same name is sold in more than one size —
+ * "BPC-157 10 mg" and "BPC-157 20 mg" must stay distinguishable, and two pages with
+ * an identical title read as duplicates to a search engine. A compound sold in a
+ * single size is titled by its name alone.
+ */
+export function formatProductTitle(
+  product: Product,
+  catalog: readonly Product[],
+  formattedStrength: string,
+): string {
+  const sizesSold = catalog.filter((candidate) => candidate.name === product.name).length;
+
+  return sizesSold > 1 ? `${product.name} ${formattedStrength}` : product.name;
+}

@@ -34,14 +34,13 @@
 -- remains an honest record of what the scan says.
 --
 -- `name` is the client's vial label, not the compound's generic name, and the two have
--- diverged: PL3 is retatrutide, PL2 is tirzepatide, IPA 10 is ipamorelin. Slugs still carry the generic name, which is deliberate — they are indexed
--- links and renaming one costs a redirect. Shortened 27 Sep 2026 at the client's request;
+-- diverged: PL3 is retatrutide, PL2 is tirzepatide, IPA is ipamorelin. Slugs still carry the
+-- generic name, which is deliberate — they are indexed links and renaming one costs a redirect. Shortened 27 Sep 2026 at the client's request;
 -- Tesa 10 went back to the full name, Tesamorelin, on 24 Nov 2026 (also at the client's
 -- request).
 --
--- IPA 10 carries the strength in the label itself. The catalog also prints the strength
--- beside the name, so it reads "IPA 10 · 10 mg/vial". That repetition is the client's
--- choice, confirmed 27 Sep 2026.
+-- IPA was "IPA 10" until 25 Nov 2026, when the client asked for the bare name so it matches
+-- the rest of the catalog, where the strength is printed beside the name rather than in it.
 insert into public.products (
   slug, name, category, strength_mg, price_cents, is_blend, featured, sort_order, coa_url,
   image_url
@@ -105,7 +104,7 @@ values
   ('tirzepatide-10mg',  'PL2',          'peptide',  10,    7500,  false, false, 155, null, '/products/tirzepatide-10mg.webp'),
   -- $5.00/mg. Repriced 28 Aug 2026 against the official price menu. Certificate added
   -- 17 Sep 2026 (Bioviridian lot IPA10-260101-060).
-  ('ipamorelin-10mg',   'IPA 10',       'peptide',  10,    5000,  false, false, 160, '/coa/ipamorelin-10mg.webp', '/products/ipamorelin-10mg.webp'),
+  ('ipamorelin-10mg',   'IPA',          'peptide',  10,    5000,  false, false, 160, '/coa/ipamorelin-10mg.webp', '/products/ipamorelin-10mg.webp'),
   -- $20.00/mg. Added 24 Nov 2026 at the client's request, named Eloralintide. No
   -- certificate yet. The vial render's label reads ELORA, the client's short name.
   ('eloralintide-5mg',  'Eloralintide', 'peptide',  5,     10000, false, false, 165, null, '/products/eloralintide-5mg.webp')

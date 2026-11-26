@@ -41,8 +41,8 @@ export default function AboutPage() {
               rather than obscured by them.
             </p>
             <p className="text-ink-700 mt-4">
-              We do not include diluents, syringes, or administration materials, and we do not
-              supply anything intended for use in or on humans or animals.
+              We do not include syringes or administration materials, and we do not supply anything
+              intended for use in or on humans or animals.
             </p>
 
             <h2 className="text-h2 text-ink-950 mt-12 font-bold">Who we supply</h2>

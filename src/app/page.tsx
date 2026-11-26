@@ -60,7 +60,7 @@ const FAQS = [
   {
     question: "Do you provide dosing or administration guidance?",
     answer:
-      "No. We are not a pharmacy and do not provide dosing information, protocols, or medical advice. We do not supply diluents, syringes, or other administration materials.",
+      "No. We are not a pharmacy and do not provide dosing information, protocols, or medical advice. We do not supply syringes or other administration materials.",
   },
   {
     question: "How do I order if the website does not take payment?",

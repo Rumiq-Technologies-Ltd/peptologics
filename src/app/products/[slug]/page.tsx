@@ -275,8 +275,7 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
             <p className="text-ink-700 mt-2 text-sm">{COMPLIANCE_NOTICE_LONG}</p>
             <p className="text-ink-700 mt-2 text-sm">
               {SITE_NAME} is not a pharmacy. We do not provide dosing information, administration
-              guidance, or medical advice, and we do not supply diluents or administration
-              materials.
+              guidance, or medical advice, and we do not supply administration materials.
             </p>
           </div>
         </aside>

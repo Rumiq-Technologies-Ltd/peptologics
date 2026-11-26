@@ -1,0 +1,39 @@
+{
+  "report_id": "TEST-0003",
+  "lab_id": "axiom",
+  "lab_verification_code": "TEST-0003",
+  "product_id": "c5728165-0be6-46ff-9fd7-98ad95fc42a2",
+  "compound_name": "KPV",
+  "lot_number": "TEST-LOT-0003",
+  "tested_strength_mg": 10,
+  "tested_strength_unit": "mg",
+  "sample_received_on": "2026-09-14",
+  "issued_on": "2026-09-16",
+  "purity_percent": 99.78,
+  "net_content_mg": 10.42,
+  "results": [
+    {
+      "test": "Identity",
+      "method": "LC-MS/MS",
+      "specification": "Matches BPC-157",
+      "result": "BPC-157",
+      "outcome": "met"
+    },
+    {
+      "test": "Content",
+      "method": "HPLC quantitation",
+      "specification": "Label claim 10 mg",
+      "result": "10.42 mg",
+      "outcome": "met"
+    },
+    {
+      "test": "Purity",
+      "method": "RP-HPLC (214 nm)",
+      "specification": "Reported value",
+      "result": "99.78%",
+      "outcome": "met"
+    }
+  ],
+  "chromatograms": [],
+  "scan_path": "/coa/TEST-0003/report.webp"
+}

@@ -1,0 +1,32 @@
+{
+  "report_id": "TEST-0002",
+  "lab_id": "axiom",
+  "lab_verification_code": "TEST-0002",
+  "product_id": "f781024b-d0d2-4081-a156-d30e546e9144",
+  "compound_name": "NAD+",
+  "lot_number": "TEST-LOT-0002",
+  "tested_strength_mg": 500,
+  "tested_strength_unit": "mg",
+  "sample_received_on": "2026-10-21",
+  "issued_on": "2026-10-28",
+  "purity_percent": 99.9,
+  "net_content_mg": 512.3,
+  "results": [
+    {
+      "test": "Identity",
+      "method": "LC-MS/MS (ESI+)",
+      "specification": "Within ±1 Da of the theoretical mass",
+      "result": "Within specification",
+      "outcome": "met"
+    },
+    {
+      "test": "Purity",
+      "method": "RP-HPLC, 214 nm",
+      "specification": "Reported value",
+      "result": "99.9%",
+      "outcome": "met"
+    }
+  ],
+  "chromatograms": [],
+  "scan_path": "/coa/TEST-0002/report.webp"
+}

@@ -264,7 +264,7 @@ export function DisclaimerGate() {
               comparable authority for therapeutic use, and must not be administered to humans or
               animals. PeptoLogics is not a pharmacy. We do not provide dosing information,
               administration guidance, medical advice, or any clinical recommendation, and we do not
-              supply diluents, syringes, or other administration materials.
+              supply syringes or other administration materials.
             </p>
           </div>
 

@@ -97,7 +97,7 @@ export default function ContactPage() {
           <ul className="text-ink-700 mt-3 list-disc space-y-2 pl-6">
             <li>Dosing, protocols, or administration guidance of any kind</li>
             <li>Medical, clinical, veterinary or nutritional advice</li>
-            <li>Reconstitution instructions, diluents, or administration materials</li>
+            <li>Reconstitution instructions or administration materials</li>
             <li>Any question premised on use in or on humans or animals</li>
           </ul>
           <p className="text-ink-600 mt-4 text-sm">

@@ -34,16 +34,17 @@ script.
 
 ## Entities
 
-| Entity               | PK                               | SK                  | Other keys and notes                                                                                                      |
-| -------------------- | -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Product              | `PRODUCT#<id>`                   | `META`              | `GSI1PK=PRODUCTS`, `GSI1SK=<sort_order, 6 digits>#<name>`, `GSI2PK=SLUG#<slug>`. `cost_per_mg` is computed on write       |
-| Slug guard           | `SLUG#<slug>`                    | `GUARD`             | Written with a product under `attribute_not_exists`, to make a slug unique                                                |
-| Order                | `ORDER#<id>`                     | `META`              | `GSI1PK=ORDERS#<yyyy-mm UTC>`, `GSI1SK=<created_at ISO>`: newest-first per month, for staff and the future admin page     |
-| Order item           | `ORDER#<id>`                     | `ITEM#<product_id>` | The sort key makes one line per product automatic                                                                         |
-| Notification         | `ORDER#<id>`                     | `NOTIF#<channel>`   | `channel` is `email` or `customer_email`. `GSI3PK=NOTIF_OPEN`, `GSI3SK=<created_at>#<order_id>#<channel>` only while open |
-| Idempotency guard    | `IDEMP#<idempotency_key>`        | `GUARD`             | Holds `order_id` and `order_number`, so a replay is answered with one read                                                |
-| Order-number counter | `COUNTER#order_number`           | `META`              | `seq`. Advanced with `SET seq = if_not_exists(seq, 999) + 1`, so a fresh table's first order is `PL-001000`               |
-| Rate-limit bucket    | `RL#<bucket_key>#<window_start>` | `META`              | `hits`, advanced by `ADD`. `expires_at` (epoch seconds) is the TTL attribute                                              |
+| Entity               | PK                               | SK                      | Other keys and notes                                                                                                                                                                                      |
+| -------------------- | -------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product              | `PRODUCT#<id>`                   | `META`                  | `GSI1PK=PRODUCTS`, `GSI1SK=<sort_order, 6 digits>#<name>`, `GSI2PK=SLUG#<slug>`. `cost_per_mg` is computed on write                                                                                       |
+| Slug guard           | `SLUG#<slug>`                    | `GUARD`                 | Written with a product under `attribute_not_exists`, to make a slug unique                                                                                                                                |
+| Order                | `ORDER#<id>`                     | `META`                  | `GSI1PK=ORDERS#<yyyy-mm UTC>`, `GSI1SK=<created_at ISO>`: newest-first per month, for staff and the future admin page                                                                                     |
+| Order item           | `ORDER#<id>`                     | `ITEM#<product_id>`     | The sort key makes one line per product automatic                                                                                                                                                         |
+| Notification         | `ORDER#<id>`                     | `NOTIF#<channel>`       | `channel` is `email` or `customer_email`. `GSI3PK=NOTIF_OPEN`, `GSI3SK=<created_at>#<order_id>#<channel>` only while open                                                                                 |
+| Idempotency guard    | `IDEMP#<idempotency_key>`        | `GUARD`                 | Holds `order_id` and `order_number`, so a replay is answered with one read                                                                                                                                |
+| Order-number counter | `COUNTER#order_number`           | `META`                  | `seq`. Advanced with `SET seq = if_not_exists(seq, 999) + 1`, so a fresh table's first order is `PL-001000`                                                                                               |
+| Rate-limit bucket    | `RL#<bucket_key>#<window_start>` | `META`                  | `hits`, advanced by `ADD`. `expires_at` (epoch seconds) is the TTL attribute                                                                                                                              |
+| COA report version   | `COA#<report_id>`                | `V#<version, 4 digits>` | One immutable item per version of a lab report. `report_id` is the **lab's own ID** (`AX-2026-4139-WDN9`, `COA9405`). Only the current version has `GSI1PK=COA_CURRENT`, `GSI1SK=<issued_on>#<report_id>` |
 
 ## Access patterns
 
@@ -57,7 +58,21 @@ script.
 | Dead-letter list (not sent)   | Query `GSI3PK=NOTIF_OPEN`                                              | Not used by the app yet; for staff and the admin page |
 | Orders, newest first          | Query `GSI1PK=ORDERS#<yyyy-mm>`, descending                            | For the admin page (D4)                               |
 | Rate limit                    | One `UpdateItem ... ADD hits 1 ... ReturnValues UPDATED_NEW`           | `rate-limit.repository.dynamodb.ts`                   |
+| One COA report                | Query `PK=COA#<id>`, descending, `Limit 1`, **strongly consistent**    | `coa.repository.dynamodb.ts`                          |
+| A report's revision history   | Query `PK=COA#<id>`, descending, strongly consistent                   | `coa.repository.dynamodb.ts`                          |
+| Every current COA report      | Query `GSI1PK=COA_CURRENT`, descending (newest issue date first)       | `coa.repository.dynamodb.ts`                          |
 | Health                        | The catalog read (needs `Query` on `GSI1`)                             | `src/app/api/health/route.ts`                         |
+
+## COA reports
+
+Published Certificates of Analysis (owner decisions D18, D19; plan in `docs/handoffs/coa-verification-plan.md`).
+
+- **Versions are immutable.** An amendment, a withdrawal and a supersession each write a new version; nothing is edited in place, so the history is the data. The highest `V#` is current.
+- **Sparse current marker.** Only the current version carries the `GSI1` keys. Publishing a new version is one `TransactWriteItems`: put the new item with the keys, `REMOVE GSI1PK, GSI1SK` on the previous one, and guard the put with `attribute_not_exists(PK)`. That transaction lives in the publish script, not the app.
+- **The app only reads.** The public site has no path that writes a certificate. The IAM actions the app role already has cover these reads; no new index is needed.
+- **A single report is read strongly consistent** so a withdrawal shows on the next request. Listings read the index, which is eventually consistent, and are refreshed by the publish script.
+- **Every figure is entered from the lab's report**, never computed. `status` is `active`, `withdrawn` or `superseded`; an unreadable status is read as `withdrawn`, never `active`.
+- While `INQUIRY_DATA_STORE` is `supabase`, the COA repository is empty and every lookup is a clean miss.
 
 ## Invariants and where each now lives
 

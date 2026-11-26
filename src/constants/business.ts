@@ -59,3 +59,15 @@ export const NOTIFICATION_RETRY_ATTEMPTS = 3 as const;
 
 /** Products shown in the featured strip on the home page. */
 export const FEATURED_PRODUCT_LIMIT = 6 as const;
+
+/**
+ * The purity rule the site states as a company rule (owner decision D18): no peptide is sold
+ * below this measured purity. Each lot's own figure is shown on its COA record as evidence.
+ */
+export const MINIMUM_PURITY_PERCENT = 99 as const;
+
+/**
+ * Catalog categories the purity rule covers. Peptides only: blends, cosmetic items and
+ * supplies (bacteriostatic water and the like) neither state the rule nor are held to it.
+ */
+export const PURITY_RULE_CATEGORIES: readonly string[] = ["peptide"];

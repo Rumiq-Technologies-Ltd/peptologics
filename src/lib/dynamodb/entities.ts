@@ -52,6 +52,12 @@ export const keys = {
     PK: `IDEMP#${idempotencyKey}`,
     SK: "GUARD",
   }),
+  /** Every version of one COA report shares this partition, newest version last. */
+  coaPartition: (reportId: string): string => `COA#${reportId}`,
+  coaVersion: (reportId: string, version: number): TableKey => ({
+    PK: `COA#${reportId}`,
+    SK: formatCoaVersion(version),
+  }),
   orderCounter: { PK: "COUNTER#order_number", SK: "META" } satisfies TableKey,
   rateLimit: (bucketKey: string, windowStartSeconds: number): TableKey => ({
     PK: `RL#${bucketKey}#${windowStartSeconds}`,
@@ -288,5 +294,98 @@ export function buildNotificationItem(notification: NotificationSource): Item {
       : undefined,
     updated_at: notification.updated_at ?? notification.created_at,
     entity: "notification",
+  });
+}
+
+// --- COA reports -------------------------------------------------------------
+
+/**
+ * Only the *current* version of each report carries the `GSI1` keys below, the same sparse
+ * trick `GSI3` plays for open notifications. A listing therefore returns one item per
+ * report, however many amendments it has had.
+ */
+export const COA_CURRENT_PARTITION = "COA_CURRENT";
+
+/**
+ * The lab's own report ID, normalised: upper case, digits and hyphens, 3 to 40 characters.
+ * Shared by the lookup (untrusted input) and the publisher (staff input), so the two can
+ * never disagree about what an ID looks like.
+ */
+export const COA_REPORT_ID_PATTERN = /^[A-Z0-9][A-Z0-9-]{2,39}$/;
+
+/** `V#0001`: zero-padded so versions sort in numeric order within the partition. */
+export function formatCoaVersion(version: number): string {
+  return `V#${String(version).padStart(4, "0")}`;
+}
+
+export interface CoaResultSource {
+  test: string;
+  method: string;
+  specification: string;
+  result: string;
+  outcome: string;
+}
+
+export interface CoaChromatogramSource {
+  path: string;
+  caption: string;
+  alt: string;
+}
+
+/**
+ * One version of a published report, in storage terms (snake_case, absent = null).
+ *
+ * Versions are immutable. An amendment, a withdrawal and a supersession each write a new
+ * version rather than editing an old one, so the history is the data.
+ */
+export interface CoaVersionSource {
+  report_id: string;
+  version: number;
+  status: string;
+  superseded_by?: string | null;
+  change_note?: string | null;
+  lab_id: string;
+  lab_verification_code?: string | null;
+  product_id: string;
+  compound_name: string;
+  lot_number: string;
+  tested_strength_mg: number;
+  tested_strength_unit: string;
+  sample_received_on?: string | null;
+  issued_on: string;
+  purity_percent?: number | null;
+  net_content_mg?: number | null;
+  results: CoaResultSource[];
+  chromatograms: CoaChromatogramSource[];
+  scan_path: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+/**
+ * The item for one report version. `current` adds the sparse `GSI1` keys; the publisher is
+ * responsible for removing them from the previous version in the same transaction.
+ */
+export function buildCoaVersionItem(
+  source: CoaVersionSource,
+  options: { current: boolean; now: string },
+): Item {
+  if (!COA_REPORT_ID_PATTERN.test(source.report_id)) {
+    throw new Error(`COA report has an invalid report ID: ${source.report_id}`);
+  }
+  if (!Number.isInteger(source.version) || source.version < 1) {
+    throw new Error(`COA report ${source.report_id} has an invalid version.`);
+  }
+
+  const createdAt = source.created_at ?? options.now;
+
+  return compact({
+    ...source,
+    ...keys.coaVersion(source.report_id, source.version),
+    GSI1PK: options.current ? COA_CURRENT_PARTITION : undefined,
+    GSI1SK: options.current ? `${source.issued_on}#${source.report_id}` : undefined,
+    entity: "coa_report_version",
+    created_at: createdAt,
+    updated_at: source.updated_at ?? createdAt,
   });
 }

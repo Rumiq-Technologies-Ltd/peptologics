@@ -1,5 +1,8 @@
 import "server-only";
 
+import { createEmptyCoaRepository } from "@/features/coa/services/coa.repository";
+import { createDynamoCoaRepository } from "@/features/coa/services/coa.repository.dynamodb";
+import { createCoaService, type CoaService } from "@/features/coa/services/coa.service";
 import {
   createInquiryService,
   type InquiryService,
@@ -36,6 +39,7 @@ import { createNotificationService } from "@/services/notification.service";
 export interface Container {
   products: ProductService;
   inquiries: InquiryService;
+  coa: CoaService;
 }
 
 let container: Container | undefined;
@@ -56,7 +60,7 @@ export function getContainer(): Container {
 }
 
 /**
- * The four repositories for the configured data store. Unset means Supabase, so the
+ * The repositories for the configured data store. Unset means Supabase, so the
  * DynamoDB code is inert until the switch is flipped. The Supabase set is deleted in a
  * later PR, after the two-week fallback period (D7).
  */
@@ -67,6 +71,7 @@ function createRepositories() {
       orders: createDynamoOrderRepository(),
       rateLimit: createDynamoRateLimitRepository(),
       notifications: createDynamoNotificationRepository(),
+      coa: createDynamoCoaRepository(),
     };
   }
 
@@ -75,6 +80,8 @@ function createRepositories() {
     orders: createOrderRepository(),
     rateLimit: createRateLimitRepository(),
     notifications: createNotificationRepository(),
+    // COA records exist only in DynamoDB; until the switch, every lookup is a clean miss.
+    coa: createEmptyCoaRepository(),
   };
 }
 
@@ -89,6 +96,8 @@ function buildContainer(): Container {
 
   return {
     products: createProductService({ repository: productRepository }),
+
+    coa: createCoaService({ repository: repositories.coa }),
 
     inquiries: createInquiryService({
       orders: repositories.orders,

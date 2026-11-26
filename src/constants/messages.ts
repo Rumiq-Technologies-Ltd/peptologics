@@ -36,6 +36,13 @@ export const MESSAGES = {
     notFound: "We could not find that product.",
   },
 
+  coa: {
+    notFound: "We could not find a certificate with that report ID.",
+    notFoundDetail:
+      "Check the ID against the one printed on the laboratory's report, or contact us and we will look into it.",
+    loadFailed: "We could not load that certificate just now. Please try again shortly.",
+  },
+
   generic: {
     error: "Something went wrong on our end. Please try again.",
     retry: "Try again",

@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildCoaVersionItem,
   buildNotificationItem,
   buildOrderItems,
   buildOrderLineItem,
   buildProductItems,
+  COA_CURRENT_PARTITION,
+  COA_REPORT_ID_PATTERN,
+  formatCoaVersion,
   formatOrderNumber,
   keys,
   parseOrderNumber,
+  type CoaVersionSource,
   type OrderSource,
   type ProductSource,
 } from "@/lib/dynamodb/entities";
@@ -154,5 +159,82 @@ describe("notification and line items", () => {
     });
 
     expect(line).toMatchObject({ ...keys.orderItem(order.id, product.id), strength_mg: 10 });
+  });
+});
+
+describe("COA report versions", () => {
+  const source: CoaVersionSource = {
+    report_id: "AX-2026-4139-WDN9",
+    version: 2,
+    status: "active",
+    change_note: null,
+    lab_id: "axiom",
+    product_id: "11111111-1111-4111-8111-111111111111",
+    compound_name: "Tesamorelin",
+    lot_number: "TSM-260101-010",
+    tested_strength_mg: 20,
+    tested_strength_unit: "mg",
+    issued_on: "2026-10-28",
+    purity_percent: 99.9,
+    results: [],
+    chromatograms: [],
+    scan_path: "/coa/AX-2026-4139-WDN9/report.webp",
+  };
+
+  it("keeps every version of a report in one partition, in numeric order", () => {
+    expect(keys.coaPartition("COA9405")).toBe("COA#COA9405");
+    expect(keys.coaVersion("COA9405", 1)).toEqual({ PK: "COA#COA9405", SK: "V#0001" });
+    // Zero-padded, so version 10 sorts after version 9 as a string.
+    expect(formatCoaVersion(10) > formatCoaVersion(9)).toBe(true);
+  });
+
+  it("gives the current version, and only that one, the sparse index keys", () => {
+    const current = buildCoaVersionItem(source, { current: true, now: NOW });
+    expect(current).toMatchObject({
+      GSI1PK: COA_CURRENT_PARTITION,
+      GSI1SK: "2026-10-28#AX-2026-4139-WDN9",
+      entity: "coa_report_version",
+    });
+
+    const previous = buildCoaVersionItem(source, { current: false, now: NOW });
+    expect(previous).not.toHaveProperty("GSI1PK");
+    expect(previous).not.toHaveProperty("GSI1SK");
+  });
+
+  it("stamps created_at and updated_at, and omits nulls", () => {
+    const item = buildCoaVersionItem(source, { current: true, now: NOW });
+
+    expect(item).toMatchObject({ created_at: NOW, updated_at: NOW });
+    expect(item).not.toHaveProperty("change_note");
+  });
+
+  it("keeps an existing created_at when a version is rewritten", () => {
+    const item = buildCoaVersionItem(
+      { ...source, created_at: "2026-10-28T08:00:00.000Z" },
+      { current: true, now: NOW },
+    );
+
+    expect(item.created_at).toBe("2026-10-28T08:00:00.000Z");
+  });
+
+  it("refuses a malformed report ID or version, which would build a bad key", () => {
+    expect(() =>
+      buildCoaVersionItem({ ...source, report_id: "ax/2026" }, { current: true, now: NOW }),
+    ).toThrow(/invalid report ID/);
+    expect(() =>
+      buildCoaVersionItem({ ...source, version: 0 }, { current: true, now: NOW }),
+    ).toThrow(/invalid version/);
+    expect(() =>
+      buildCoaVersionItem({ ...source, version: 1.5 }, { current: true, now: NOW }),
+    ).toThrow(/invalid version/);
+  });
+
+  it("accepts both laboratories' ID formats and nothing key-hostile", () => {
+    for (const id of ["AX-2026-4139-WDN9", "AX-2026-00041", "COA9405"]) {
+      expect(COA_REPORT_ID_PATTERN.test(id)).toBe(true);
+    }
+    for (const id of ["coa9405", "COA#9405", "A", "COA 9405", "-COA9405"]) {
+      expect(COA_REPORT_ID_PATTERN.test(id)).toBe(false);
+    }
   });
 });

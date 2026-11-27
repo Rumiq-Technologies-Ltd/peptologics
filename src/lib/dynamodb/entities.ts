@@ -52,6 +52,11 @@ export const keys = {
     PK: `IDEMP#${idempotencyKey}`,
     SK: "GUARD",
   }),
+  /** One partition per month, so a month's log is a single Query, oldest first. */
+  audit: (timestamp: string, id: string): TableKey => ({
+    PK: `AUDIT#${monthOf(timestamp)}`,
+    SK: `${timestamp}#${id}`,
+  }),
   orderCounter: { PK: "COUNTER#order_number", SK: "META" } satisfies TableKey,
   rateLimit: (bucketKey: string, windowStartSeconds: number): TableKey => ({
     PK: `RL#${bucketKey}#${windowStartSeconds}`,
@@ -286,5 +291,32 @@ export function buildNotificationItem(notification: NotificationSource): Item {
       : undefined,
     updated_at: notification.updated_at ?? notification.created_at,
     entity: "notification",
+  });
+}
+
+// --- Admin audit log (ADR-038) ------------------------------------------------
+
+/** What an admin did. Phase 1 logs the first three; later phases add one per change. */
+export type AuditAction = "sign_in" | "sign_out" | "access_denied" | (string & {});
+
+export interface AuditSource {
+  id: string;
+  /** ISO 8601, UTC. */
+  timestamp: string;
+  /** The staff email: the only personal data the log holds. */
+  actor_email: string;
+  /** Null when the person is signed in but in neither group. */
+  actor_role: "owner" | "editor" | null;
+  action: AuditAction;
+  /** What the action touched (a path or a record id), when there is one. */
+  target?: string | null;
+  request_id: string;
+}
+
+export function buildAuditItem(entry: AuditSource): Item {
+  return compact({
+    ...entry,
+    ...keys.audit(entry.timestamp, entry.id),
+    entity: "audit",
   });
 }

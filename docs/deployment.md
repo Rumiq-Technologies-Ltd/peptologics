@@ -123,21 +123,22 @@ Start the build straight after step 2, not after the deploy of any other change.
 Today these live in **Amplify environment variables**. The Amplify build spec writes them into
 `.env.production` at build time. Set them per branch.
 
-| Variable                        | Value                                                                                 |
-| ------------------------------- | ------------------------------------------------------------------------------------- |
-| `APP_ENV`                       | `production` on `main`, `staging` on `staging`, unset locally                         |
-| `SUPABASE_URL`                  | `https://<project-ref>.supabase.co` (retired by ADR-035 once merged)                  |
-| `SUPABASE_ANON_KEY`             | Supabase → Settings → API → `anon` key                                                |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase → Settings → API → `service_role`. Secret                                    |
-| `NEXT_PUBLIC_SITE_URL`          | `https://peptologics.com` on production only, no trailing slash                       |
-| `INQUIRY_EMAIL_PROVIDER`        | `resend` or `ses`. Unset means `resend`. Flip + rebuild to switch/roll back (ADR-037) |
-| `INQUIRY_SES_CONFIGURATION_SET` | `peptologics-prod`. Required in production when the provider is `ses`                 |
-| `RESEND_API_KEY`                | Resend → API Keys. Secret. Needed only while the provider is `resend`                 |
-| `INQUIRY_NOTIFICATION_FROM`     | `PeptoLogics <inquiries@peptologics.com>`: note the space before `<`                  |
-| `INQUIRY_NOTIFICATION_TO`       | Where inquiries land. Comma-separated for several recipients                          |
-| `NEXT_PUBLIC_CONTACT_EMAIL`     | Public address shown in the footer and on the contact page                            |
-| `REVALIDATE_SECRET`             | 24 random bytes hex. Secret                                                           |
-| `RATE_LIMIT_SALT`               | 24 random bytes hex. Secret. Changing it resets all rate-limit windows                |
+| Variable                                                      | Value                                                                                                           |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `APP_ENV`                                                     | `production` on `main`, `staging` on `staging`, unset locally                                                   |
+| `SUPABASE_URL`                                                | `https://<project-ref>.supabase.co` (retired by ADR-035 once merged)                                            |
+| `SUPABASE_ANON_KEY`                                           | Supabase → Settings → API → `anon` key                                                                          |
+| `SUPABASE_SERVICE_ROLE_KEY`                                   | Supabase → Settings → API → `service_role`. Secret                                                              |
+| `NEXT_PUBLIC_SITE_URL`                                        | `https://peptologics.com` on production only, no trailing slash                                                 |
+| `INQUIRY_EMAIL_PROVIDER`                                      | `resend` or `ses`. Unset means `resend`. Flip + rebuild to switch/roll back (ADR-037)                           |
+| `INQUIRY_SES_CONFIGURATION_SET`                               | `peptologics-prod`. Required in production when the provider is `ses`                                           |
+| `RESEND_API_KEY`                                              | Resend → API Keys. Secret. Needed only while the provider is `resend`                                           |
+| `INQUIRY_NOTIFICATION_FROM`                                   | `PeptoLogics <inquiries@peptologics.com>`: note the space before `<`                                            |
+| `INQUIRY_NOTIFICATION_TO`                                     | Where inquiries land. Comma-separated for several recipients                                                    |
+| `NEXT_PUBLIC_CONTACT_EMAIL`                                   | Public address shown in the footer and on the contact page                                                      |
+| `NEXT_PUBLIC_COGNITO_USER_POOL_ID` / `_CLIENT_ID` / `_DOMAIN` | Admin sign-in (ADR-038, [admin.md](./admin.md)). Not secrets. Set all three or none. Staging only until Stage 4 |
+| `REVALIDATE_SECRET`                                           | 24 random bytes hex. Secret                                                                                     |
+| `RATE_LIMIT_SALT`                                             | 24 random bytes hex. Secret. Changing it resets all rate-limit windows                                          |
 
 Generate the two secrets:
 

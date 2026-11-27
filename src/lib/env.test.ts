@@ -138,3 +138,31 @@ describe("data store switch (ADR-035)", () => {
     );
   });
 });
+
+describe("Cognito settings", () => {
+  const all = {
+    NEXT_PUBLIC_COGNITO_USER_POOL_ID: "us-east-1_AbCdEfGhI",
+    NEXT_PUBLIC_COGNITO_CLIENT_ID: "abcdefghij1234567890",
+    NEXT_PUBLIC_COGNITO_DOMAIN: "peptologics-staging.auth.us-east-1.amazoncognito.com",
+  };
+
+  it("accepts none, or all three", () => {
+    expect(issuePaths({})).toEqual([]);
+    expect(issuePaths(all)).toEqual([]);
+  });
+
+  it("rejects one or two of the three", () => {
+    expect(
+      issuePaths({ NEXT_PUBLIC_COGNITO_USER_POOL_ID: all.NEXT_PUBLIC_COGNITO_USER_POOL_ID }),
+    ).toContain("NEXT_PUBLIC_COGNITO_USER_POOL_ID");
+  });
+
+  it("rejects a domain written as a URL and a malformed pool id", () => {
+    expect(issuePaths({ ...all, NEXT_PUBLIC_COGNITO_DOMAIN: "https://x.example.com" })).toContain(
+      "NEXT_PUBLIC_COGNITO_DOMAIN",
+    );
+    expect(issuePaths({ ...all, NEXT_PUBLIC_COGNITO_USER_POOL_ID: "not-a-pool" })).toContain(
+      "NEXT_PUBLIC_COGNITO_USER_POOL_ID",
+    );
+  });
+});

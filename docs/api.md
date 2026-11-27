@@ -47,14 +47,15 @@ SQL, table names and internal paths never appear in a response.
 
 ## Endpoints
 
-| Method | Path              | Purpose                                                           | Auth                                       |
-| ------ | ----------------- | ----------------------------------------------------------------- | ------------------------------------------ |
-| `GET`  | `/api/health`     | Liveness plus a database reachability check. No sensitive detail. | none                                       |
-| `GET`  | `/api/products`   | Active catalog.                                                   | none                                       |
-| `POST` | `/api/inquiries`  | Create an inquiry.                                                | none, but same-origin + rate limited       |
-| `POST` | `/api/contact`    | Send a message from the contact form (email only, nothing saved). | none, but same-origin + rate limited       |
-| `POST` | `/api/revalidate` | Purge the catalog cache after a price change.                     | `Authorization: Bearer $REVALIDATE_SECRET` |
-| `POST` | `/api/vitals`     | Record one real-user speed measurement (ADR-031).                 | none, but same-origin                      |
+| Method | Path               | Purpose                                                                                                                                                   | Auth                                       |
+| ------ | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `GET`  | `/api/health`      | Liveness plus a database reachability check. No sensitive detail.                                                                                         | none                                       |
+| `GET`  | `/api/products`    | Active catalog.                                                                                                                                           | none                                       |
+| `POST` | `/api/inquiries`   | Create an inquiry.                                                                                                                                        | none, but same-origin + rate limited       |
+| `POST` | `/api/contact`     | Send a message from the contact form (email only, nothing saved).                                                                                         | none, but same-origin + rate limited       |
+| `POST` | `/api/revalidate`  | Purge the catalog cache after a price change.                                                                                                             | `Authorization: Bearer $REVALIDATE_SECRET` |
+| `GET`  | `/api/auth/<slug>` | Admin sign-in and sign-out (`sign-in`, `sign-in-callback`, `sign-out`, `sign-out-callback`). 404 when the admin is off (ADR-038, [admin.md](./admin.md)). | Cognito                                    |
+| `POST` | `/api/vitals`      | Record one real-user speed measurement (ADR-031).                                                                                                         | none, but same-origin                      |
 
 Detail — request shape, validation rules, every error response — is documented per endpoint below.
 

@@ -21,6 +21,7 @@ import { siteUrl } from "@/lib/env.client";
  * robots.txt is a request, not a control.
  */
 export default function robots(): MetadataRoute.Robots {
+  // `/admin` is disallowed on every deployment, though it also sends noindex (ADR-038).
   if (env.APP_ENV !== "production") {
     return { rules: { userAgent: "*", disallow: "/" } };
   }
@@ -29,7 +30,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/"],
+      disallow: ["/api/", "/admin"],
     },
     sitemap: new URL("/sitemap.xml", siteUrl).toString(),
     host: siteUrl,

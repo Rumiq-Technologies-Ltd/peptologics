@@ -2,6 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 
+import { isAdminEnabled } from "@/lib/admin/enabled";
+
 /**
  * Server-side environment contract.
  *
@@ -86,6 +88,26 @@ const serverEnvSchema = z.object({
    * silently skipping them.
    */
   CUSTOMER_CONFIRMATION_FROM: z.string().min(1).optional(),
+
+  // --- Admin sign-in (Amazon Cognito, ADR-038) ------------------------------
+  /**
+   * None of the three is a secret (the app client is public: PKCE, no client secret). They are
+   * all-or-nothing: with none set the admin is off and `/admin` is a 404. Whether the admin is
+   * actually on is decided in `src/lib/admin/enabled.ts`, not here.
+   */
+  NEXT_PUBLIC_COGNITO_USER_POOL_ID: z
+    .string()
+    .regex(/^[a-z]{2}-[a-z]+-\d_[A-Za-z0-9]+$/, "Expected a pool id like us-east-1_AbCdEfGhI.")
+    .optional(),
+  NEXT_PUBLIC_COGNITO_CLIENT_ID: z
+    .string()
+    .regex(/^[a-z0-9]{10,}$/, "Expected the app client id (lowercase letters and digits).")
+    .optional(),
+  /** The managed-login hostname with no scheme, e.g. `peptologics-staging.auth.us-east-1.amazoncognito.com`. */
+  NEXT_PUBLIC_COGNITO_DOMAIN: z
+    .string()
+    .regex(/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i, "A hostname only: no https:// and no path.")
+    .optional(),
 
   // --- Operations -----------------------------------------------------------
   /** Bearer secret for POST /api/revalidate. */
@@ -188,6 +210,22 @@ export const serverEnvSchemaWithProductionRules = serverEnvSchema
         "ses: without it bounces and complaints are not tracked.",
       path: ["INQUIRY_SES_CONFIGURATION_SET"],
     },
+  )
+  .refine(
+    (value) => {
+      const set = [
+        value.NEXT_PUBLIC_COGNITO_USER_POOL_ID,
+        value.NEXT_PUBLIC_COGNITO_CLIENT_ID,
+        value.NEXT_PUBLIC_COGNITO_DOMAIN,
+      ].filter(Boolean).length;
+      return set === 0 || set === 3;
+    },
+    {
+      error:
+        "NEXT_PUBLIC_COGNITO_USER_POOL_ID, NEXT_PUBLIC_COGNITO_CLIENT_ID and " +
+        "NEXT_PUBLIC_COGNITO_DOMAIN must be set together, or not at all.",
+      path: ["NEXT_PUBLIC_COGNITO_USER_POOL_ID"],
+    },
   );
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -231,6 +269,9 @@ function loadServerEnv(): ServerEnv {
 }
 
 export const env: ServerEnv = loadServerEnv();
+
+/** Whether `/admin` is on for this deployment (ADR-038). Off means a 404. */
+export const adminEnabled: boolean = isAdminEnabled(env);
 
 /** True only when everything the active email provider needs is present. */
 export const isEmailConfigured: boolean = Boolean(

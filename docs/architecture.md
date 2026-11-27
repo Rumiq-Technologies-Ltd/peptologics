@@ -60,6 +60,8 @@ stops `relation "orders" does not exist` from ever reaching a browser.
 
 ## 2. Rendering strategy
 
+The public site lives in the `src/app/(site)` route group and the admin in `src/app/admin`, each with its own root layout (ADR-038). URLs are unchanged; `src/app/global-not-found.tsx` renders the public 404 for unmatched URLs.
+
 `cacheComponents` is **off** (see ADR-008). Standard Next 16 defaults apply: `fetch` is uncached,
 Route Handlers are uncached, `revalidate` defaults to `false`.
 
@@ -70,6 +72,7 @@ Route Handlers are uncached, `revalidate` defaults to `false`.
 | `/products/[slug]`                                | Static + ISR              | `generateStaticParams` (all 12) + `revalidate = 3600` + `dynamicParams = false` |
 | `/cart`, `/inquiry`, `/inquiry/success`           | Static shell, client body | `robots: { index: false }`                                                      |
 | `/about`, `/contact`, `/lab-testing`, legal pages | Fully static              | —                                                                               |
+| `/admin/**`                                       | Dynamic, no-store         | Own root layout, `requireAdmin` on every page (ADR-038, [admin.md](./admin.md)) |
 | `/api/*`                                          | Dynamic                   | Uncached by default in v16                                                      |
 | `sitemap.ts`                                      | Static + ISR              | `revalidate = 3600`                                                             |
 

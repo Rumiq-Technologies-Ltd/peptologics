@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
+import type { ReactNode } from "react";
 
+import { displaySans, plexMono } from "@/components/layout/fonts";
 import { ComplianceStrip } from "@/components/layout/ComplianceStrip";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
@@ -8,87 +8,22 @@ import { JsonLd } from "@/components/shared/JsonLd";
 import { SkipLink } from "@/components/shared/SkipLink";
 import { WebVitalsReporter } from "@/components/shared/WebVitalsReporter";
 import { Toaster } from "@/components/ui/sonner";
-import { COMPLIANCE_NOTICE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/constants/site";
 import { CartHydrator } from "@/features/cart/components/CartHydrator";
 import { DisclaimerGate } from "@/features/disclaimer/components/DisclaimerGate";
 import { MotionPrePaintScript } from "@/components/motion/motionPrePaintScript";
 import { ScrollReveal } from "@/components/motion/ScrollReveal";
 import { DisclaimerPrePaintScript } from "@/features/disclaimer/prePaintScript";
-import { siteUrl } from "@/lib/env.client";
 import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/seo/structuredData";
 
-import "./globals.css";
-
 /**
- * EXPERIMENT — the display face, in place of Inter.
+ * The public site's whole HTML document: fonts, gate, chrome and providers.
  *
- * The brief asked for General Sans or Aileron. Neither is on Google Fonts, and the CSP
- * pins `font-src` to `'self'`, so a Fontshare or CDN link would be blocked at runtime:
- * using either for real means committing the licensed files to `public/` and wiring
- * `next/font/local`. Plus Jakarta Sans is the closest thing available through
- * `next/font/google` — the same geometric-humanist grotesk with a wide weight range —
- * and it self-hosts at build time, so nothing about the policy has to move to judge the
- * direction. Swap in the real face if the direction is approved.
- *
- * Note this overrides CLAUDE.md, which mandates Inter. Deliberate, and scoped to this
- * branch.
- *
- * IBM Plex Mono is untouched: numeric data only — product codes, vial sizes, prices —
- * where a monospace face keeps table columns optically aligned.
- *
- * Both are preloaded: mono appears inside fixed-width catalog columns, so a late
- * swap would shift row heights and cost CLS.
+ * It lives here, not in the layout, because two files need it: the `(site)` layout and
+ * `global-not-found.tsx`. With more than one root layout (the admin has its own, ADR-038),
+ * Next renders an unmatched URL through `global-not-found`, and the visitor must still see
+ * the site's own 404 inside the site's own chrome.
  */
-const displaySans = Plus_Jakarta_Sans({
-  variable: "--font-display-sans",
-  subsets: ["latin"],
-  display: "swap",
-  preload: true,
-});
-
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "600"],
-  display: "swap",
-  preload: true,
-});
-
-export const metadata: Metadata = {
-  // Required for relative canonical and Open Graph URLs. Without it, a page
-  // exporting `alternates: { canonical: "/products" }` is a build error.
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: `${SITE_NAME} — ${SITE_TAGLINE}`,
-    template: `%s | ${SITE_NAME}`,
-  },
-  description: SITE_DESCRIPTION,
-  applicationName: SITE_NAME,
-  /*
-   * Open Graph and Twitter defaults, inherited by every page that does not override
-   * them. The image is deliberately absent here: Next injects `opengraph-image.tsx`
-   * automatically, and naming it as well would emit the tag twice.
-   */
-  openGraph: {
-    type: "website",
-    siteName: SITE_NAME,
-    locale: "en_US",
-    url: siteUrl,
-    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
-    description: SITE_DESCRIPTION,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
-    description: SITE_DESCRIPTION,
-  },
-  // The compliance position belongs in the document metadata as well as on the
-  // page, so it travels with any excerpt of the site.
-  other: { "compliance-notice": COMPLIANCE_NOTICE },
-  robots: { index: true, follow: true },
-};
-
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export function SiteDocument({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"

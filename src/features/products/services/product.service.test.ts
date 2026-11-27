@@ -28,7 +28,7 @@ function makeHarness() {
   const findBySlug = vi.fn<ProductRepository["findBySlug"]>(async () => makeProduct());
   const findByIds = vi.fn<ProductRepository["findByIds"]>(async () => []);
   const listActiveSlugs = vi.fn<ProductRepository["listActiveSlugs"]>(async () => [
-    { slug: "retatrutide-10mg", updatedAt: "2026-08-01" },
+    { slug: "pl3-10mg", updatedAt: "2026-08-01" },
   ]);
 
   const repository: ProductRepository = {
@@ -75,9 +75,9 @@ describe("listActive", () => {
   it("sanitises a search term before it reaches the repository", async () => {
     const { service, findActive } = makeHarness();
 
-    await service.listActive({ search: "  reta​trutide  " });
+    await service.listActive({ search: "  pl​3  " });
 
-    expect(findActive).toHaveBeenCalledWith(expect.objectContaining({ search: "retatrutide" }));
+    expect(findActive).toHaveBeenCalledWith(expect.objectContaining({ search: "pl3" }));
   });
 
   it("caps an absurdly long search term", async () => {

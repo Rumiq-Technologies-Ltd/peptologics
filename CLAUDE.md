@@ -5790,7 +5790,7 @@ Use readable, descriptive URLs.
 Good:
 
 ```
-/products/retatrutide-10mg
+/products/pl3-10mg
 ```
 
 Avoid:

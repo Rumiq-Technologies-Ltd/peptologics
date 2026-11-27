@@ -21,8 +21,8 @@ export function makeProduct(overrides: Partial<Product> = {}): Product {
 
   return {
     id,
-    slug: "retatrutide-10mg",
-    name: "Retatrutide",
+    slug: "pl3-10mg",
+    name: "PL3",
     description: null,
     category: "peptide",
     strengthMg: 10,
@@ -33,7 +33,6 @@ export function makeProduct(overrides: Partial<Product> = {}): Product {
     featured: false,
     sortOrder: 0,
     imageUrl: null,
-    coaUrl: null,
     status: "active",
     ...overrides,
   };

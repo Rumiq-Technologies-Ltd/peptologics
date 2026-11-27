@@ -86,13 +86,13 @@ describe("slugify and isValidSlug", () => {
   });
 
   it("accepts a well-formed slug", () => {
-    expect(isValidSlug("retatrutide-10mg")).toBe(true);
+    expect(isValidSlug("pl3-10mg")).toBe(true);
   });
 
   it.each([
     ["a traversal attempt", "../../etc/passwd"],
-    ["an uppercase slug", "Retatrutide"],
-    ["spaces", "reta trutide"],
+    ["an uppercase slug", "PL3"],
+    ["spaces", "pl 3"],
     ["an empty string", ""],
   ])("rejects %s", (_label, candidate) => {
     // Slugs are authored, so anything off-pattern cannot exist and is refused before a

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { ExternalLinkIcon, FileTextIcon } from "lucide-react";
+import { ExternalLinkIcon, FileTextIcon, HistoryIcon, Undo2Icon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CoaReportDetails } from "@/features/coa/components/CoaReportDetails";
+import {
+  DEFAULT_PREVIOUS_LABEL,
+  getCoaEntry,
+  getPreviousReport,
+  isLinkOnly,
+  isPdf,
+  type CoaEntry,
+  type CoaReport,
+} from "@/features/coa/constants/coaReports";
 import type { Product } from "@/features/products/types/product";
 import { formatStrength } from "@/utils/formatStrength";
 import { cn } from "@/utils/cn";
@@ -23,9 +33,11 @@ import { cn } from "@/utils/cn";
  * itself in a dialog rather than a new tab, so the visitor never loses the page they
  * were reading.
  *
- * The list is built from the catalog, filtered to products that actually have a
- * `coa_url`. Nothing is hardcoded: adding a certificate is a database update and a file,
- * and a product without one simply does not appear rather than offering a dead button.
+ * The list is the catalog filtered to products with an entry in `COA_ENTRIES` (the single
+ * source of truth for COAs, keyed by slug), so a product without one simply does not
+ * appear rather than offering a dead button. A hosted image scan shows in the dialog; a
+ * hosted PDF opens in a new tab from the dialog; a link-only product shows the lab
+ * reports and sends the customer to the lab.
  *
  * Only the dialog is client-side. The page around it, including this list's server-read
  * data, stays a Server Component.
@@ -51,8 +63,18 @@ export interface CoaLibraryProps {
  */
 const COA_WELL_ASPECT = "aspect-[1290/2000]";
 
+type View = "current" | "previous";
+
+interface ViewedCoa {
+  product: Product;
+  entry: CoaEntry;
+}
+
 export function CoaLibrary({ products }: CoaLibraryProps) {
-  const documented = products.filter((product) => Boolean(product.coaUrl));
+  const documented = products.flatMap((product): ViewedCoa[] => {
+    const entry = getCoaEntry(product.slug);
+    return entry ? [{ product, entry }] : [];
+  });
 
   /*
    * Two pieces of state rather than one, on purpose.
@@ -60,34 +82,34 @@ export function CoaLibrary({ products }: CoaLibraryProps) {
    * `isOpen` drives the dialog; `viewed` holds what to render and is deliberately *not*
    * cleared on close. Radix keeps the content mounted through its exit animation, so
    * deriving the content from the open state alone empties the panel the instant the
-   * close begins — the visitor watches an empty box fade out. Verified in the browser
-   * before this was split.
+   * close begins — the visitor watches an empty box fade out.
    */
   const [isOpen, setIsOpen] = useState(false);
-  const [viewed, setViewed] = useState<Product | null>(null);
+  const [viewed, setViewed] = useState<ViewedCoa | null>(null);
+  const [view, setView] = useState<View>("current");
 
   /*
-   * The button that opened the dialog, so focus can be put back on it.
-   *
-   * Radix restores focus to its own `DialogTrigger`, and there isn't one here — the
-   * dialog is driven from state so that one dialog can serve every row. Without this,
-   * closing dropped focus to `<body>` and a keyboard user had to tab from the top of the
-   * page again. Caught by an end-to-end test, not by looking.
+   * The button that opened the dialog, so focus can be put back on it. Radix restores
+   * focus to its own `DialogTrigger`, and there isn't one here: one dialog serves every row.
    */
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   if (documented.length === 0) return null;
 
-  function openCertificate(product: Product, trigger: HTMLButtonElement): void {
+  function openCertificate(coa: ViewedCoa, trigger: HTMLButtonElement): void {
     triggerRef.current = trigger;
-    setViewed(product);
+    setViewed(coa);
+    setView("current");
     setIsOpen(true);
   }
+
+  const previous = viewed ? getPreviousReport(viewed.entry) : null;
+  const showingPrevious = view === "previous" && previous !== null;
 
   return (
     <>
       <ul className="divide-ink-100 border-ink-200 divide-y rounded-xl border bg-white">
-        {documented.map((product) => (
+        {documented.map(({ product, entry }) => (
           <li
             key={product.id}
             className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5"
@@ -104,14 +126,13 @@ export function CoaLibrary({ products }: CoaLibraryProps) {
               variant="outline"
               size="sm"
               className="min-h-11 shrink-0 sm:min-h-9"
-              onClick={(event) => openCertificate(product, event.currentTarget)}
+              onClick={(event) => openCertificate({ product, entry }, event.currentTarget)}
             >
               <FileTextIcon aria-hidden="true" />
               View COA
               {/* The visible label repeats on every row, so the name goes to screen
                   readers only — otherwise every button announces identically. The
-                  strength goes with it: since the catalog began stocking two vial sizes
-                  of MOTS-c, the name alone no longer identifies a row uniquely. */}
+                  strength goes with it: the name alone no longer identifies a row. */}
               <span className="sr-only">
                 {" "}
                 for {product.name} {formatStrength(product.strengthMg, product.strengthUnit)}
@@ -131,43 +152,122 @@ export function CoaLibrary({ products }: CoaLibraryProps) {
         >
           {viewed ? (
             <>
-              <DialogHeader className="border-ink-200 sticky top-0 z-10 border-b bg-white p-5 text-left">
-                <DialogTitle>{viewed.name} — Certificate of Analysis</DialogTitle>
-                <DialogDescription>
-                  {formatStrength(viewed.strengthMg, viewed.strengthUnit)} per vial. A certificate
-                  applies only to the lot it identifies.
+              <DialogHeader className="border-ink-200 sticky top-0 z-10 border-b bg-white p-5 pr-14 text-left">
+                <DialogTitle>
+                  {viewed.product.name} —{" "}
+                  {showingPrevious ? "Previous certificate" : "Certificate of Analysis"}
+                </DialogTitle>
+                <DialogDescription className="mt-2">
+                  {formatStrength(viewed.product.strengthMg, viewed.product.strengthUnit)} per vial.{" "}
+                  {showingPrevious
+                    ? "An earlier report with its own lot. It does not describe the current lot."
+                    : "A certificate applies only to the lot it identifies."}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="p-5">
-                <div
-                  className={cn(
-                    "border-ink-200 relative w-full overflow-hidden rounded-lg border bg-white",
-                    COA_WELL_ASPECT,
-                  )}
-                >
-                  <Image
-                    src={viewed.coaUrl ?? ""}
-                    alt={`Certificate of Analysis for ${viewed.name}`}
-                    fill
-                    // The scan is the content, so it is worth the bytes at full width.
-                    sizes="(max-width: 768px) 100vw, 700px"
-                    className="object-contain"
-                  />
-                </div>
+              <div className="space-y-4 p-5">
+                {showingPrevious && previous ? (
+                  <HostedReport product={viewed.product} report={previous} />
+                ) : isLinkOnly(viewed.entry) ? (
+                  viewed.entry.current.map((report) => (
+                    <CoaReportDetails
+                      key={report.verification?.reportId ?? report.file}
+                      report={report}
+                    />
+                  ))
+                ) : (
+                  viewed.entry.current.map((report) => (
+                    <HostedReport
+                      key={report.file}
+                      product={viewed.product}
+                      report={report}
+                      extra={
+                        previous && !showingPrevious ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="min-h-11 sm:min-h-9"
+                            onClick={() => setView("previous")}
+                          >
+                            <HistoryIcon aria-hidden="true" />
+                            {previous.label ?? DEFAULT_PREVIOUS_LABEL}
+                          </Button>
+                        ) : null
+                      }
+                    />
+                  ))
+                )}
 
-                <Button asChild variant="outline" size="sm" className="mt-4">
-                  {/* Escape hatch for anyone who wants to zoom, print or save it. */}
-                  <a href={viewed.coaUrl ?? "#"} target="_blank" rel="noopener noreferrer">
-                    <ExternalLinkIcon aria-hidden="true" />
-                    Open full size
-                  </a>
-                </Button>
+                {showingPrevious ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="min-h-11 sm:min-h-9"
+                    onClick={() => setView("current")}
+                  >
+                    <Undo2Icon aria-hidden="true" />
+                    Back to current certificate
+                  </Button>
+                ) : null}
               </div>
             </>
           ) : null}
         </DialogContent>
       </Dialog>
+    </>
+  );
+}
+
+interface HostedReportProps {
+  product: Product;
+  report: CoaReport;
+  /** Another button beside the file and verify buttons. */
+  extra?: React.ReactNode;
+}
+
+/** A report whose file lives on this site: the scan inline, or a PDF to open in a new tab. */
+function HostedReport({ product, report, extra }: HostedReportProps) {
+  const file = report.file ?? "";
+  const pdf = isPdf(file);
+
+  return (
+    <>
+      {pdf ? null : (
+        <div
+          className={cn(
+            "border-ink-200 relative w-full overflow-hidden rounded-lg border bg-white",
+            COA_WELL_ASPECT,
+          )}
+        >
+          <Image
+            src={file}
+            alt={`Certificate of Analysis for ${product.name}`}
+            fill
+            // The scan is the content, so it is worth the bytes at full width.
+            sizes="(max-width: 768px) 100vw, 700px"
+            className="object-contain"
+          />
+        </div>
+      )}
+
+      <CoaReportDetails
+        report={report}
+        actions={
+          <>
+            <Button asChild variant="outline" size="sm" className="min-h-11 sm:min-h-9">
+              {/* Escape hatch for anyone who wants to zoom, print or save it. */}
+              <a href={file} target="_blank" rel="noopener noreferrer">
+                <ExternalLinkIcon aria-hidden="true" />
+                {pdf ? "Open PDF" : "Open full size"}
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            </Button>
+            {extra}
+          </>
+        }
+      />
     </>
   );
 }

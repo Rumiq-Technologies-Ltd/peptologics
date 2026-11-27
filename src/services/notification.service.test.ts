@@ -27,8 +27,8 @@ const notification: InquiryNotification = {
   items: [
     {
       productId: "product-1",
-      productName: "Retatrutide",
-      productSlug: "retatrutide-10mg",
+      productName: "PL3",
+      productSlug: "pl3-10mg",
       strengthMg: 10,
       quantity: 1,
       unitPriceCents: 6000,

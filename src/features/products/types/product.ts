@@ -47,7 +47,6 @@ export interface Product {
   featured: boolean;
   sortOrder: number;
   imageUrl: string | null;
-  coaUrl: string | null;
   status: ProductStatus;
 }
 

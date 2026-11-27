@@ -100,11 +100,11 @@ describe("parsePersistedItems", () => {
 });
 
 describe("resolveCartLines", () => {
-  const retatrutide = makeProduct({ name: "Retatrutide", priceCents: 6000 });
+  const pl3 = makeProduct({ name: "PL3", priceCents: 6000 });
   const bpc = makeProduct({ name: "BPC-157", slug: "bpc-157-10mg", priceCents: 5000 });
 
   it("prices each line from the catalog, not from the stored item", () => {
-    const lines = resolveCartLines([{ productId: retatrutide.id, quantity: 3 }], [retatrutide]);
+    const lines = resolveCartLines([{ productId: pl3.id, quantity: 3 }], [pl3]);
 
     expect(lines).toHaveLength(1);
     expect(lines[0]?.lineTotalCents).toBe(18_000);
@@ -115,39 +115,39 @@ describe("resolveCartLines", () => {
     // there is nothing to render it from and the line disappears (ADR-010).
     const lines = resolveCartLines(
       [
-        { productId: retatrutide.id, quantity: 1 },
+        { productId: pl3.id, quantity: 1 },
         { productId: "withdrawn-product-id", quantity: 4 },
       ],
-      [retatrutide],
+      [pl3],
     );
 
     expect(lines).toHaveLength(1);
-    expect(lines[0]?.product.id).toBe(retatrutide.id);
+    expect(lines[0]?.product.id).toBe(pl3.id);
   });
 
   it("preserves the order the visitor built the list in", () => {
     const lines = resolveCartLines(
       [
         { productId: bpc.id, quantity: 1 },
-        { productId: retatrutide.id, quantity: 1 },
+        { productId: pl3.id, quantity: 1 },
       ],
       // Catalog order is deliberately the reverse of the stored order.
-      [retatrutide, bpc],
+      [pl3, bpc],
     );
 
-    expect(lines.map((line) => line.product.name)).toEqual(["BPC-157", "Retatrutide"]);
+    expect(lines.map((line) => line.product.name)).toEqual(["BPC-157", "PL3"]);
   });
 
   it("clamps a stored quantity that is out of range", () => {
-    const lines = resolveCartLines([{ productId: retatrutide.id, quantity: 9999 }], [retatrutide]);
+    const lines = resolveCartLines([{ productId: pl3.id, quantity: 9999 }], [pl3]);
 
     expect(lines[0]?.quantity).toBe(MAX_LINE_QUANTITY);
     expect(lines[0]?.lineTotalCents).toBe(6000 * MAX_LINE_QUANTITY);
   });
 
   it("returns nothing when either side is empty", () => {
-    expect(resolveCartLines([], [retatrutide])).toEqual([]);
-    expect(resolveCartLines([{ productId: retatrutide.id, quantity: 1 }], [])).toEqual([]);
+    expect(resolveCartLines([], [pl3])).toEqual([]);
+    expect(resolveCartLines([{ productId: pl3.id, quantity: 1 }], [])).toEqual([]);
   });
 });
 

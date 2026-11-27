@@ -286,7 +286,7 @@ or immediately with:
 curl -X POST https://peptologics.com/api/revalidate \
   -H "Authorization: Bearer $REVALIDATE_SECRET" \
   -H "Content-Type: application/json" \
-  -d '{"slug":"retatrutide-10mg"}'
+  -d '{"slug":"pl3-10mg"}'
 ```
 
 `/`, `/products` and `/lab-testing` are purged too, with or without a slug: a price appears in three

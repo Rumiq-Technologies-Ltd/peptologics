@@ -22,7 +22,7 @@ import { isValidSlug } from "@/utils/slugify";
  * future Phase 10 migration untouched (ADR-008).
  */
 
-/** Body: `{ "slug": "retatrutide-10mg" }` to target one product, or omit for the catalog. */
+/** Body: `{ "slug": "pl3-10mg" }` to target one product, or omit for the catalog. */
 interface RevalidateBody {
   slug?: unknown;
 }
@@ -82,9 +82,9 @@ export async function POST(request: Request): Promise<Response> {
    * Always purge every page built from the catalog. A price shows on the detail page,
    * in the catalog row and in the home page's featured strip, and refreshing one
    * without the others is how a site ends up quoting two different prices for one
-   * product. `/lab-testing` is here because it lists published certificates from
-   * `products.coa_url`, so a certificate added to the database is invisible until this
-   * runs — found the hard way when a stale build cache kept serving the old list.
+   * product. `/lab-testing` is here because it lists the catalog products that have a
+   * COA entry, so a product added to the catalog is invisible there until this runs —
+   * found the hard way when a stale build cache kept serving the old list.
    */
   for (const path of [ROUTES.home, ROUTES.products, ROUTES.labTesting]) {
     revalidatePath(path);

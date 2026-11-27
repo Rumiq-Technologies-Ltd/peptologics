@@ -23,7 +23,7 @@ export function HeaderNav() {
     <nav aria-label="Primary" className="hidden lg:block">
       <ul className="flex items-center gap-1">
         {PRIMARY_NAV.map((item) => {
-          // Exact match, or a section match so /products/retatrutide-10mg still
+          // Exact match, or a section match so /products/pl3-10mg still
           // highlights "Products".
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 

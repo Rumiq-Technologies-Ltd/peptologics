@@ -27,7 +27,6 @@ const product: ProductSource = {
   featured: true,
   sort_order: 20,
   image_url: "/products/bpc-157-10mg.webp",
-  coa_url: null,
   status: "active",
 };
 
@@ -86,7 +85,6 @@ describe("buildProductItems", () => {
   it("omits null columns instead of storing them", () => {
     const [item] = buildProductItems(product, NOW);
     expect(item).not.toHaveProperty("description");
-    expect(item).not.toHaveProperty("coa_url");
   });
 
   it.each([

@@ -60,13 +60,13 @@ import {
 const TRUST_SIGNALS = [
   {
     icon: FlaskConicalIcon,
-    label: "Third-party tested",
-    detail: "HPLC and mass spectrometry analysis on production lots.",
+    label: "Third-party tested reports",
+    detail: "Published laboratory reports (HPLC, mass spectrometry).",
   },
   {
     icon: FileCheck2Icon,
-    label: "COA on request",
-    detail: "Lot-specific Certificate of Analysis for your order.",
+    label: "Laboratory reports",
+    detail: "Reports from independent laboratories.",
   },
   {
     icon: SnowflakeIcon,

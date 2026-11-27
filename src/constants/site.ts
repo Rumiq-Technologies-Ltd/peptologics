@@ -8,7 +8,7 @@ export const SITE_DOMAIN = "peptologics.com" as const;
 export const SITE_TAGLINE = "Premium Peptides · Pure Results" as const;
 
 export const SITE_DESCRIPTION =
-  "PeptoLogics supplies lyophilized research peptides with a Certificate of Analysis for every lot. Compare list pricing and cost per milligram, then request a quotation. For laboratory research use only." as const;
+  "PeptoLogics supplies lyophilized research peptides. Laboratory reports are published on the Lab Testing page. Compare list pricing and cost per milligram, then request a quotation. For laboratory research use only." as const;
 
 /**
  * The compliance line. Kept in one constant so it can never drift between surfaces.

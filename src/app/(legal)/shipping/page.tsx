@@ -68,7 +68,7 @@ export default function ShippingPage() {
       <p>
         Products are supplied as lyophilized powder in sealed vials, packed in tamper-evident
         packaging with temperature-controlled materials appropriate to the shipment. Storage
-        conditions are stated on the Certificate of Analysis.
+        conditions are stated on the Certificate of Analysis where one is published.
       </p>
 
       <h2>Shipping times and costs</h2>

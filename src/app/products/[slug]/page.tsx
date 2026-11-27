@@ -230,8 +230,8 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
 
           <h2 className="text-h3 text-ink-950 mt-12 font-semibold">Analytical documentation</h2>
           <p className="text-ink-700 mt-3 max-w-prose">
-            A lot-specific Certificate of Analysis is available on request. A certificate applies
-            only to the lot it identifies.{" "}
+            Where a laboratory report is published, it is on the Lab Testing page. A certificate
+            applies only to the lot it identifies.{" "}
             <Link
               href={ROUTES.labTesting}
               className="text-brand-600 font-medium underline underline-offset-2"

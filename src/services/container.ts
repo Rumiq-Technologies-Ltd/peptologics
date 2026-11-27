@@ -1,6 +1,10 @@
 import "server-only";
 
 import {
+  createContactService,
+  type ContactService,
+} from "@/features/contact/services/contact.service";
+import {
   createInquiryService,
   type InquiryService,
 } from "@/features/inquiry/services/inquiry.service";
@@ -15,7 +19,10 @@ import {
   createProductService,
   type ProductService,
 } from "@/features/products/services/product.service";
-import { env } from "@/lib/env";
+import { NOTIFICATION_RETRY_ATTEMPTS } from "@/constants/business";
+import { parseRecipients, sendEmail } from "@/lib/email";
+import { customerConfirmationFrom, env, isEmailConfigured } from "@/lib/env";
+import { withRetry } from "@/lib/resilience";
 import { createEmailService } from "@/services/email.service";
 import { createNotificationRepository } from "@/services/notification.repository";
 import { createDynamoNotificationRepository } from "@/services/notification.repository.dynamodb";
@@ -36,6 +43,7 @@ import { createNotificationService } from "@/services/notification.service";
 export interface Container {
   products: ProductService;
   inquiries: InquiryService;
+  contact: ContactService;
 }
 
 let container: Container | undefined;
@@ -82,6 +90,8 @@ function buildContainer(): Container {
   const repositories = createRepositories();
   const productRepository = repositories.products;
 
+  const rateLimit = createRateLimitService({ repository: repositories.rateLimit });
+
   const notifications = createNotificationService({
     email: createEmailService(),
     repository: repositories.notifications,
@@ -95,8 +105,25 @@ function buildContainer(): Container {
       // The catalog read is the price authority, so the inquiry service reads it
       // through the same repository the catalog pages use — one source of prices.
       products: productRepository,
-      rateLimit: createRateLimitService({ repository: repositories.rateLimit }),
+      rateLimit,
       notifications,
+    }),
+
+    // Email only, nothing stored (D33). Shares the transport, retry budget and rate-limit
+    // repository with the inquiry flow, so there is one pipeline, not two.
+    contact: createContactService({
+      rateLimit,
+      sendMessage: (message) =>
+        withRetry(() => sendEmail(message), {
+          attempts: NOTIFICATION_RETRY_ATTEMPTS,
+          operationName: "email.sendContact",
+        }),
+      config: {
+        configured: isEmailConfigured,
+        companyFrom: env.INQUIRY_NOTIFICATION_FROM ?? "",
+        companyTo: parseRecipients(env.INQUIRY_NOTIFICATION_TO ?? ""),
+        visitorFrom: customerConfirmationFrom,
+      },
     }),
   };
 }

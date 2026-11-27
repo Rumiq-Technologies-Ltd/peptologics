@@ -26,6 +26,13 @@ export const INQUIRY_RATE_LIMIT_MAX = 5 as const;
 export const INQUIRY_RATE_LIMIT_WINDOW_SECONDS = 900 as const;
 
 /**
+ * The contact form's limit. Same numbers as the inquiry form, counted in its own bucket so a
+ * visitor who sent a message is not then blocked from sending an inquiry.
+ */
+export const CONTACT_RATE_LIMIT_MAX = 5 as const;
+export const CONTACT_RATE_LIMIT_WINDOW_SECONDS = 900 as const;
+
+/**
  * Minimum seconds between form mount and submit. Bots post instantly; a human
  * filling eight fields cannot. Failing this check returns a silent success so
  * the bot learns nothing.

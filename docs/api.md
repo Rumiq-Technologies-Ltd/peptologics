@@ -52,6 +52,7 @@ SQL, table names and internal paths never appear in a response.
 | `GET`  | `/api/health`     | Liveness plus a database reachability check. No sensitive detail. | none                                       |
 | `GET`  | `/api/products`   | Active catalog.                                                   | none                                       |
 | `POST` | `/api/inquiries`  | Create an inquiry.                                                | none, but same-origin + rate limited       |
+| `POST` | `/api/contact`    | Send a message from the contact form (email only, nothing saved). | none, but same-origin + rate limited       |
 | `POST` | `/api/revalidate` | Purge the catalog cache after a price change.                     | `Authorization: Bearer $REVALIDATE_SECRET` |
 | `POST` | `/api/vitals`     | Record one real-user speed measurement (ADR-031).                 | none, but same-origin                      |
 
@@ -246,6 +247,75 @@ their inquiry failed when it did not.
 A replayed `Idempotency-Key` notifies nobody a second time. The order already exists and was already
 dispatched, so a replay would put a duplicate lead in the inbox and a duplicate confirmation in the
 customer's.
+
+## `POST /api/contact`
+
+Sends a message from the form on `/contact` (D33). **Email only: nothing is stored**, so there is no
+database row and no `notification_log` entry; the company inbox holds the only copy. Two emails go out
+through the same `sendEmail` dispatcher as the inquiry emails (Resend or SES, per `INQUIRY_EMAIL_PROVIDER`).
+
+`Origin`, when present, must be ours, exactly as for `/api/inquiries`. There is no `Idempotency-Key`:
+there is nothing stored to deduplicate against, and the form disables its button while sending.
+
+### Request body
+
+```json
+{
+  "name": "Ada Lovelace",
+  "email": "ada@example.com",
+  "message": "Do you have the 10 mg vial in stock?",
+  "honeypot": "",
+  "formElapsedMs": 12000
+}
+```
+
+| Field           | Rules                                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------- |
+| `name`          | Required, 1–100 characters after sanitising (control and zero-width characters removed, whitespace collapsed) |
+| `email`         | Required, a valid address, up to 254 characters, no whitespace or line breaks. Lowercased                     |
+| `message`       | Required, 10–5000 characters after sanitising. Line breaks are kept                                           |
+| `honeypot`      | Must be empty. Not validated strictly, so a bot cannot tell which field caught it                             |
+| `formElapsedMs` | Milliseconds the form was on screen. A missing value or one under 3000 counts as a bot                        |
+
+The schema is `src/lib/validations/contact.schema.ts`, shared by the form and the handler.
+
+### Order of checks
+
+Same-origin → parse JSON → validate (`422`) → honeypot and dwell check → rate limit (`429`) → send.
+A submission that fails the honeypot or dwell check returns `201`, sends nothing and counts nothing,
+and is logged with its reason and no visitor data.
+
+### Rate limiting
+
+Five messages per 15-minute fixed window per salted IP hash, in its **own** `contact:` bucket, so a
+message never uses up an inquiry's allowance. Fails open if the counter is unreachable (ADR-022).
+
+### Emails
+
+| Email   | To                                 | Reply-to                 | From                                                    |
+| ------- | ---------------------------------- | ------------------------ | ------------------------------------------------------- |
+| Company | `INQUIRY_NOTIFICATION_TO`          | the visitor              | `INQUIRY_NOTIFICATION_FROM`                             |
+| Visitor | the address the form was sent with | first internal recipient | `CUSTOMER_CONFIRMATION_FROM`, falling back to the above |
+
+- The company email carries the name, email and message, HTML-escaped. Subject: `Website contact: <name>`.
+- The visitor email is **fixed text**: it never repeats the name or the message, so the form cannot be
+  used to send chosen text to an arbitrary address. It promises a reply within `INQUIRY_RESPONSE_HOURS`.
+- The company email is sent first, with the shared timeout and three-attempt retry. If it fails, nothing
+  has been delivered, so the response is an error. If only the confirmation fails, the message was
+  delivered, so the response is still `201` and the failure is logged.
+- If email is not configured (no provider credentials, sender or recipient) the response is the same
+  error. Nothing is stored, so a success would lose the message.
+
+### Responses
+
+| Status | Meaning                                                                                                     |
+| ------ | ----------------------------------------------------------------------------------------------------------- |
+| `201`  | Sent, or silently suppressed as a bot. `data` is `{ "received": true }`                                     |
+| `400`  | Body was not JSON                                                                                           |
+| `403`  | Cross-origin request                                                                                        |
+| `422`  | Validation failed. `errors` lists `{ field, message }` for `name`, `email` and `message`                    |
+| `429`  | Rate limited, with a `Retry-After` header in seconds                                                        |
+| `500`  | The company email could not be sent (or email is not configured). Message: "We couldn't send your message." |
 
 ## `POST /api/revalidate`
 

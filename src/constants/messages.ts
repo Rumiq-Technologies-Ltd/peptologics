@@ -20,6 +20,16 @@ export const MESSAGES = {
     failed: "We could not submit your inquiry. Please try again, or contact us directly.",
   },
 
+  contact: {
+    success: "Your message has been sent.",
+    successDetail:
+      "Thank you for getting in touch. A representative will reply to the email address you gave us. A confirmation is on its way to your inbox.",
+    validationFailed: "Please check the highlighted fields and try again.",
+    rateLimited:
+      "You have sent several messages recently. Please wait a few minutes before sending another.",
+    failed: "We couldn't send your message.",
+  },
+
   cart: {
     empty: "Your inquiry list is empty.",
     emptyDetail: "Browse the catalog and add the compounds you would like a quotation for.",

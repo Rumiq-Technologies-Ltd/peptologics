@@ -14,13 +14,13 @@ import { getContainer } from "@/services/container";
 /**
  * Lab testing and Certificate of Analysis information.
  *
- * Describes the analytical panel and what a COA does and does not cover. No purity
- * percentage is quoted anywhere, deliberately — that is a substantiable numeric
- * claim and the client has not supplied supporting data.
+ * Describes the analytical panel and what a COA does and does not cover. A purity figure
+ * appears only beside a report, exactly as the lab states it.
  *
- * The certificate library reads `products.coa_url` from the catalog, so publishing one
- * is a file plus a database update — never a code change. Products without a
- * certificate are absent from the list rather than offering a button that goes nowhere.
+ * The certificate library lists the catalog products that have an entry in
+ * `src/features/coa/constants/coaReports.ts`, the single source of truth for COAs.
+ * Products without one are absent from the list rather than offering a button that goes
+ * nowhere. A COA's lot and purity are shown beside it as the lab states them.
  */
 /** One hour, matching the catalog. Must be a literal — see ../products/page.tsx (ADR-015). */
 export const revalidate = 3600;

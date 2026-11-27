@@ -255,13 +255,13 @@ right default and the wrong latency for a price correction — this makes the re
 **Auth:** `Authorization: Bearer $REVALIDATE_SECRET`, compared in constant time. With no secret
 configured the endpoint is closed, not open.
 
-**Body:** optional. `{ "slug": "retatrutide-10mg" }` also purges that product page.
+**Body:** optional. `{ "slug": "pl3-10mg" }` also purges that product page.
 
 ```bash
 curl -X POST https://peptologics.com/api/revalidate \
   -H "Authorization: Bearer $REVALIDATE_SECRET" \
   -H "Content-Type: application/json" \
-  -d '{"slug":"retatrutide-10mg"}'
+  -d '{"slug":"pl3-10mg"}'
 ```
 
 `/` and `/products` are **always** purged, with or without a slug. A price shows in three places — the

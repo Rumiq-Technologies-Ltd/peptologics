@@ -20,7 +20,7 @@ function renderStepper(props: Partial<React.ComponentProps<typeof QuantitySteppe
   render(
     <QuantityStepper
       value={props.value ?? 2}
-      itemLabel={props.itemLabel ?? "Retatrutide"}
+      itemLabel={props.itemLabel ?? "PL3"}
       onChange={onChange}
       onRemove={onRemove}
       disabled={props.disabled}
@@ -34,13 +34,9 @@ describe("QuantityStepper", () => {
   it("labels the group and both controls with the product name", () => {
     renderStepper();
 
-    expect(screen.getByRole("group", { name: "Quantity of Retatrutide" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Decrease quantity of Retatrutide" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Increase quantity of Retatrutide" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Quantity of PL3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Decrease quantity of PL3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Increase quantity of PL3" })).toBeInTheDocument();
   });
 
   it("increments and decrements by one", async () => {
@@ -58,7 +54,7 @@ describe("QuantityStepper", () => {
     // it leaves no way to take the line off the list from here.
     const { onChange, onRemove, user } = renderStepper({ value: 1 });
 
-    const remove = screen.getByRole("button", { name: "Remove Retatrutide from inquiry list" });
+    const remove = screen.getByRole("button", { name: "Remove PL3 from inquiry list" });
     await user.click(remove);
 
     expect(onRemove).toHaveBeenCalledOnce();
@@ -69,7 +65,7 @@ describe("QuantityStepper", () => {
     const { onChange, user } = renderStepper({ value: MAX_LINE_QUANTITY });
 
     const increase = screen.getByRole("button", {
-      name: `Maximum quantity of ${MAX_LINE_QUANTITY} reached for Retatrutide`,
+      name: `Maximum quantity of ${MAX_LINE_QUANTITY} reached for PL3`,
     });
 
     expect(increase).toBeDisabled();

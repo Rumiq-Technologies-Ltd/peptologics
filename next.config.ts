@@ -211,7 +211,7 @@ const nextConfig: NextConfig = {
        * the one still sold rather than 404ing on a link someone already has. Retargeted to
        * the 20 mg vial on 24 Nov 2026, when it replaced the 10 mg.
        *
-       * RETA-PL3 10 mg had the same redirect until 21 Sep 2026, when the vial returned to
+       * PL3 10 mg had the same redirect until 21 Sep 2026, when the vial returned to
        * the catalog. A permanent redirect off its own slug would now hide the product.
        */
       {
@@ -238,6 +238,16 @@ const nextConfig: NextConfig = {
         destination: "/products/ghk-cu-100mg",
         permanent: true,
       },
+      /*
+       * 27 Nov 2026. PL3, PL2 and Elora moved to new slugs (the compound names came off the
+       * site; Elora's slug now matches its name). The old slugs are the only place the old
+       * names remain, by owner decision, so a link someone already has still lands.
+       */
+      { source: "/products/retatrutide-10mg", destination: "/products/pl3-10mg", permanent: true },
+      { source: "/products/retatrutide-30mg", destination: "/products/pl3-30mg", permanent: true },
+      { source: "/products/tirzepatide-10mg", destination: "/products/pl2-10mg", permanent: true },
+      { source: "/products/tirzepatide-30mg", destination: "/products/pl2-30mg", permanent: true },
+      { source: "/products/eloralintide-5mg", destination: "/products/elora-5mg", permanent: true },
       /*
        * K-L-O-W deliberately has no redirect. It is discontinued with no equivalent vial,
        * and pointing it at an unrelated compound would answer a request for one product

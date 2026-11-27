@@ -39,7 +39,6 @@ const PRODUCT_ATTRIBUTES = [
   "featured",
   "sort_order",
   "image_url",
-  "coa_url",
   "status",
   "deleted_at",
   "updated_at",
@@ -63,7 +62,6 @@ function toRecord(item: Record<string, unknown>): ProductRecord {
     ...record,
     description: record.description ?? null,
     image_url: record.image_url ?? null,
-    coa_url: record.coa_url ?? null,
   };
 }
 

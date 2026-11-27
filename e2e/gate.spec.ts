@@ -19,8 +19,8 @@ test("blocks the page behind it while leaving the content crawlable", async ({ p
   /*
    * The catalog is in the HTML the server sent, gate or no gate.
    *
-   * Asserted on a price rather than a product name. Names change — Retatrutide became
-   * RETA-PL3 on 27 Aug 2026 and this line broke with it — but "the catalog rendered
+   * Asserted on a price rather than a product name. Names change — a rename on
+   * 27 Aug 2026 broke a name-based line here — but "the catalog rendered
    * server-side" is the actual claim, and a formatted price proves it without pinning the
    * test to whatever the client is calling a compound this month.
    */

@@ -99,7 +99,6 @@ export interface ProductSource {
   featured: boolean;
   sort_order: number;
   image_url?: string | null;
-  coa_url?: string | null;
   status: string;
   deleted_at?: string | null;
   created_at?: string | null;
@@ -156,7 +155,6 @@ export function buildProductItems(product: ProductSource, now: string): Item[] {
     featured: product.featured,
     sort_order: product.sort_order,
     image_url: product.image_url,
-    coa_url: product.coa_url,
     status: product.status,
     deleted_at: product.deleted_at,
     created_at: createdAt,

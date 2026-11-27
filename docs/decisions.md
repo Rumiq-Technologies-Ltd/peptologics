@@ -894,7 +894,7 @@ Nothing here is invented in code without being listed as `PLACEHOLDER`.
 
 ### Commercial, not engineering
 
-Retatrutide and Tirzepatide are restricted by most payment processors and by Google and Meta ad
+Some compounds in the catalog are restricted by most payment processors and by Google and Meta ad
 policies. This does not affect the build — there are no payments, which is precisely why the
 lead-generation model works — but it will constrain any future payment integration and any paid
 acquisition plan.

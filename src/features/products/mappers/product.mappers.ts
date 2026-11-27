@@ -40,7 +40,6 @@ export interface ProductRow {
   featured: boolean;
   sort_order: number;
   image_url: string | null;
-  coa_url: string | null;
   status: string;
 }
 
@@ -77,7 +76,7 @@ function toEnum<T extends string>(value: string, allowed: readonly T[], fallback
 /**
  * Admits a catalog file link only if it cannot leave the site's own scheme.
  *
- * `image_url` and `coa_url` end up in `src` and `href` attributes, so a `javascript:` or
+ * `image_url` ends up in a `src` attribute, so a `javascript:` or
  * `data:` value would run in a visitor's browser. Only our own tooling writes these columns
  * today, but the check costs nothing and does not depend on that staying true. Site paths
  * and https URLs pass; anything else becomes "no file", which the page already handles.
@@ -117,7 +116,6 @@ export function toProduct(row: ProductRow): Product {
     featured: row.featured,
     sortOrder: row.sort_order,
     imageUrl: toAssetPath(row.image_url),
-    coaUrl: toAssetPath(row.coa_url),
     status: toEnum(row.status, PRODUCT_STATUSES, "archived"),
   };
 }

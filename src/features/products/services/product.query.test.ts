@@ -20,7 +20,6 @@ function record(
     featured: false,
     sort_order: 10,
     image_url: null,
-    coa_url: null,
     status: "active",
     ...overrides,
   };

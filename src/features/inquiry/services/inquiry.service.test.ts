@@ -22,7 +22,7 @@ import { makeCustomer, makeProduct } from "@/test/factories";
  * rate limiter, and the rate limiter must not reach the catalog.
  */
 
-const retatrutide = makeProduct({ name: "Retatrutide", priceCents: 6000, strengthMg: 10 });
+const pl3 = makeProduct({ name: "PL3", priceCents: 6000, strengthMg: 10 });
 
 /** Comfortably past the dwell check: a person spent this long on the form. */
 const DWELL_PASSING_MS = (MIN_FORM_DWELL_SECONDS + 5) * 1000;
@@ -30,7 +30,7 @@ const DWELL_PASSING_MS = (MIN_FORM_DWELL_SECONDS + 5) * 1000;
 function makeInput(overrides: Partial<InquiryInput> = {}): InquiryInput {
   return {
     customer: makeCustomer() as InquiryInput["customer"],
-    items: [{ productId: retatrutide.id, quantity: 2 }],
+    items: [{ productId: pl3.id, quantity: 2 }],
     formElapsedMs: DWELL_PASSING_MS,
     // Present and undefined rather than absent: the schema output type has this key,
     // so omitting it would make the fixture a different shape from a real payload.
@@ -48,7 +48,7 @@ interface Harness {
 }
 
 function makeHarness(options: { catalog?: Product[]; created?: boolean } = {}): Harness {
-  const catalog = options.catalog ?? [retatrutide];
+  const catalog = options.catalog ?? [pl3];
 
   const findByIds = vi.fn(async (ids: readonly string[]) =>
     catalog.filter((product) => ids.includes(product.id)),
@@ -109,8 +109,8 @@ describe("price authority", () => {
 
     const payload = create.mock.calls[0]?.[0] as CreateInquiryPayload;
     expect(payload.items[0]).toMatchObject({
-      productName: "Retatrutide",
-      productSlug: retatrutide.slug,
+      productName: "PL3",
+      productSlug: pl3.slug,
       strengthMg: 10,
     });
   });
@@ -121,7 +121,7 @@ describe("price authority", () => {
     const result = await service.submit(
       makeInput({
         items: [
-          { productId: retatrutide.id, quantity: 1 },
+          { productId: pl3.id, quantity: 1 },
           { productId: "99999999-9999-4999-8999-999999999999", quantity: 1 },
         ],
       }),

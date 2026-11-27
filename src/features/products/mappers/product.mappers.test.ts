@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import { toAssetPath } from "@/features/products/mappers/product.mappers";
 
 /**
- * `image_url` and `coa_url` become `src` and `href` attributes. These cases are the schemes
+ * `image_url` becomes a `src` attribute. These cases are the schemes
  * and the slash tricks that would turn a catalog row into something that runs or leaves the
  * site.
  */
 describe("toAssetPath", () => {
   it.each([
-    ["a site path", "/coa/bpc-157-10mg.webp"],
+    ["a site path", "/products/bpc-157-10mg.webp"],
     ["an https URL", "https://storage.example.com/products/vial.webp"],
   ])("admits %s", (_label, value) => {
     expect(toAssetPath(value)).toBe(value);
@@ -32,6 +32,8 @@ describe("toAssetPath", () => {
   });
 
   it("trims surrounding whitespace before judging the value", () => {
-    expect(toAssetPath("  /coa/tesamorelin-10mg.webp  ")).toBe("/coa/tesamorelin-10mg.webp");
+    expect(toAssetPath("  /products/tesamorelin-20mg.webp  ")).toBe(
+      "/products/tesamorelin-20mg.webp",
+    );
   });
 });

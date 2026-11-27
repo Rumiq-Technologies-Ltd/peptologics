@@ -12,12 +12,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CoaReportDetails } from "@/features/coa/components/CoaReportDetails";
+import { CoaFacts, VerifyWithLabLink } from "@/features/coa/components/CoaFacts";
 import {
   DEFAULT_PREVIOUS_LABEL,
   getCoaEntry,
   getPreviousReport,
-  isLinkOnly,
   isPdf,
   type CoaEntry,
   type CoaReport,
@@ -106,6 +105,14 @@ export function CoaLibrary({ products }: CoaLibraryProps) {
   const previous = viewed ? getPreviousReport(viewed.entry) : null;
   const showingPrevious = view === "previous" && previous !== null;
 
+  // What this view shows. Everything below is derived from the entry: no per-product code.
+  const reports: readonly CoaReport[] =
+    viewed === null ? [] : showingPrevious && previous ? [previous] : viewed.entry.current;
+  const verifiable = reports.filter((report) => report.verification !== null);
+  const headerReport = verifiable.length === 1 ? (verifiable[0] ?? null) : null;
+  // The file the action row opens. Only a single hosted report has one.
+  const hostedFile = reports.length === 1 ? (reports[0]?.file ?? null) : null;
+
   return (
     <>
       <ul className="divide-ink-100 border-ink-200 divide-y rounded-xl border bg-white">
@@ -153,64 +160,63 @@ export function CoaLibrary({ products }: CoaLibraryProps) {
           {viewed ? (
             <>
               <DialogHeader className="border-ink-200 sticky top-0 z-10 border-b bg-white p-5 pr-14 text-left">
-                <DialogTitle>
-                  {viewed.product.name} —{" "}
-                  {showingPrevious ? "Previous certificate" : "Certificate of Analysis"}
-                </DialogTitle>
-                <DialogDescription className="mt-2">
-                  {formatStrength(viewed.product.strengthMg, viewed.product.strengthUnit)} per vial.{" "}
-                  {showingPrevious
-                    ? "An earlier report with its own lot. It does not describe the current lot."
-                    : "A certificate applies only to the lot it identifies."}
-                </DialogDescription>
+                {/* One verifiable report in this view: the button sits top right, beside the
+                    close X, so it is on screen without scrolling past the scan. */}
+                <div className="flex items-start justify-between gap-x-3">
+                  <div className="min-w-0">
+                    <DialogTitle>
+                      {viewed.product.name} —{" "}
+                      {showingPrevious ? "Previous certificate" : "Certificate of Analysis"}
+                    </DialogTitle>
+                    <DialogDescription className="mt-2">
+                      {formatStrength(viewed.product.strengthMg, viewed.product.strengthUnit)} per
+                      vial.{" "}
+                      {showingPrevious
+                        ? "An earlier report with its own lot. It does not describe the current lot."
+                        : "A certificate applies only to the lot it identifies."}
+                    </DialogDescription>
+                  </div>
+                  {headerReport ? <VerifyWithLabLink report={headerReport} /> : null}
+                </div>
               </DialogHeader>
 
               <div className="space-y-4 p-5">
-                {showingPrevious && previous ? (
-                  <HostedReport product={viewed.product} report={previous} />
-                ) : isLinkOnly(viewed.entry) ? (
-                  viewed.entry.current.map((report) => (
-                    <CoaReportDetails
-                      key={report.verification?.reportId ?? report.file}
-                      report={report}
-                    />
-                  ))
-                ) : (
-                  viewed.entry.current.map((report) => (
-                    <HostedReport
-                      key={report.file}
-                      product={viewed.product}
-                      report={report}
-                      extra={
-                        previous && !showingPrevious ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="min-h-11 sm:min-h-9"
-                            onClick={() => setView("previous")}
-                          >
-                            <HistoryIcon aria-hidden="true" />
-                            {previous.label ?? DEFAULT_PREVIOUS_LABEL}
-                          </Button>
-                        ) : null
-                      }
-                    />
-                  ))
-                )}
+                {reports.map((report) => (
+                  <ReportView
+                    key={report.verification?.reportId ?? report.file}
+                    product={viewed.product}
+                    report={report}
+                    showVerify={headerReport === null}
+                  />
+                ))}
 
-                {showingPrevious ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="min-h-11 sm:min-h-9"
-                    onClick={() => setView("current")}
-                  >
-                    <Undo2Icon aria-hidden="true" />
-                    Back to current certificate
-                  </Button>
-                ) : null}
+                <div className="flex flex-wrap gap-3 empty:hidden">
+                  {hostedFile ? <OpenFileLink file={hostedFile} /> : null}
+                  {previous && !showingPrevious ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="min-h-11 sm:min-h-9"
+                      onClick={() => setView("previous")}
+                    >
+                      <HistoryIcon aria-hidden="true" />
+                      {previous.label ?? DEFAULT_PREVIOUS_LABEL}
+                    </Button>
+                  ) : null}
+                  {showingPrevious ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="min-h-11 sm:min-h-9"
+                      onClick={() => setView("current")}
+                    >
+                      <Undo2Icon aria-hidden="true" />
+                      Back to current certificate
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             </>
           ) : null}
@@ -220,21 +226,22 @@ export function CoaLibrary({ products }: CoaLibraryProps) {
   );
 }
 
-interface HostedReportProps {
+interface ReportViewProps {
   product: Product;
   report: CoaReport;
-  /** Another button beside the file and verify buttons. */
-  extra?: React.ReactNode;
+  /** Put "Verify with lab" inside this report's facts (two or more reports in the view). */
+  showVerify: boolean;
 }
 
-/** A report whose file lives on this site: the scan inline, or a PDF to open in a new tab. */
-function HostedReport({ product, report, extra }: HostedReportProps) {
-  const file = report.file ?? "";
-  const pdf = isPdf(file);
+/** One report: its facts first, then the scan if it is an image hosted on this site. */
+function ReportView({ product, report, showVerify }: ReportViewProps) {
+  const file = report.file;
 
   return (
     <>
-      {pdf ? null : (
+      <CoaFacts report={report} showVerify={showVerify} />
+
+      {file && !isPdf(file) ? (
         <div
           className={cn(
             "border-ink-200 relative w-full overflow-hidden rounded-lg border bg-white",
@@ -250,24 +257,20 @@ function HostedReport({ product, report, extra }: HostedReportProps) {
             className="object-contain"
           />
         </div>
-      )}
-
-      <CoaReportDetails
-        report={report}
-        actions={
-          <>
-            <Button asChild variant="outline" size="sm" className="min-h-11 sm:min-h-9">
-              {/* Escape hatch for anyone who wants to zoom, print or save it. */}
-              <a href={file} target="_blank" rel="noopener noreferrer">
-                <ExternalLinkIcon aria-hidden="true" />
-                {pdf ? "Open PDF" : "Open full size"}
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>
-            </Button>
-            {extra}
-          </>
-        }
-      />
+      ) : null}
     </>
+  );
+}
+
+/** Escape hatch for anyone who wants to zoom, print or save the file. */
+function OpenFileLink({ file }: { file: string }) {
+  return (
+    <Button asChild variant="outline" size="sm" className="min-h-11 sm:min-h-9">
+      <a href={file} target="_blank" rel="noopener noreferrer">
+        <ExternalLinkIcon aria-hidden="true" />
+        {isPdf(file) ? "Open PDF" : "Open full size"}
+        <span className="sr-only"> (opens in a new tab)</span>
+      </a>
+    </Button>
   );
 }

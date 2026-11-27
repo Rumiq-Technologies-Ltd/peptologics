@@ -15,7 +15,15 @@ const products = [
   makeProduct({ id: "p2", slug: "pl3-30mg", name: "PL3", strengthMg: 30 }),
   makeProduct({ id: "p3", slug: "mots-c-10mg", name: "MOTS-c", strengthMg: 10 }),
   makeProduct({ id: "p4", slug: "no-coa-5mg", name: "NoCoa", strengthMg: 5 }),
+  makeProduct({ id: "p5", slug: "bpc-157-10mg", name: "BPC-157", strengthMg: 10 }),
+  makeProduct({ id: "p6", slug: "pl3-10mg", name: "PL3", strengthMg: 10 }),
+  makeProduct({ id: "p7", slug: "ss-31-10mg", name: "PL-31SS", strengthMg: 10 }),
 ];
+
+/** The sticky header, where the one "Verify with lab" button lives beside the close X. */
+function header(dialog: HTMLElement): HTMLElement {
+  return dialog.querySelector<HTMLElement>('[data-slot="dialog-header"]')!;
+}
 
 function open(name: RegExp) {
   render(<CoaLibrary products={products} />);
@@ -28,7 +36,7 @@ describe("CoaLibrary", () => {
   it("lists only products with a COA entry", () => {
     render(<CoaLibrary products={products} />);
 
-    expect(screen.getAllByRole("button", { name: /^View COA/ })).toHaveLength(3);
+    expect(screen.getAllByRole("button", { name: /^View COA/ })).toHaveLength(6);
     expect(screen.queryByText("NoCoa")).not.toBeInTheDocument();
   });
 
@@ -62,7 +70,7 @@ describe("CoaLibrary", () => {
   });
 
   it("shows link-only reports with copyable codes, no file and no previous certificate", async () => {
-    const { user, trigger } = open(/^View COA\s*for PL3/);
+    const { user, trigger } = open(/^View COA\s*for PL3 30 mg/);
     await user.click(trigger);
 
     const dialog = screen.getByRole("dialog");
@@ -78,7 +86,7 @@ describe("CoaLibrary", () => {
   });
 
   it("is labelled, closes on Escape, and returns focus to the row button", async () => {
-    const { user, trigger } = open(/^View COA\s*for PL3/);
+    const { user, trigger } = open(/^View COA\s*for PL3 30 mg/);
     await user.click(trigger);
 
     expect(screen.getByRole("dialog", { name: /PL3 — Certificate of Analysis/ })).toBeVisible();
@@ -89,7 +97,7 @@ describe("CoaLibrary", () => {
   });
 
   it("keeps focus inside the dialog when tabbing", async () => {
-    const { user, trigger } = open(/^View COA\s*for PL3/);
+    const { user, trigger } = open(/^View COA\s*for PL3 30 mg/);
     await user.click(trigger);
 
     const dialog = screen.getByRole("dialog");
@@ -97,5 +105,80 @@ describe("CoaLibrary", () => {
       await user.tab();
       expect(dialog.contains(document.activeElement)).toBe(true);
     }
+  });
+
+  describe("where Verify with lab appears", () => {
+    it("hosted scan: header button, facts before the scan, then Open full size", async () => {
+      const { user, trigger } = open(/^View COA\s*for BPC-157/);
+      await user.click(trigger);
+
+      const dialog = screen.getByRole("dialog");
+      expect(within(header(dialog)).getAllByRole("link", { name: /Verify with lab/ })).toHaveLength(
+        1,
+      );
+      expect(within(dialog).getAllByRole("link", { name: /Verify with lab/ })).toHaveLength(1);
+
+      const facts = within(dialog).getByRole("heading", { name: "Bioviridian" });
+      const scan = within(dialog).getByRole("img", { name: /Certificate of Analysis for BPC-157/ });
+      expect(facts.compareDocumentPosition(scan) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(within(dialog).getByRole("link", { name: /Open full size/ })).toBeInTheDocument();
+    });
+
+    it("hosted PDF: header button, no scan, Open PDF", async () => {
+      const { user, trigger } = open(/^View COA\s*for MOTS-c/);
+      await user.click(trigger);
+
+      const dialog = screen.getByRole("dialog");
+      expect(within(header(dialog)).getAllByRole("link", { name: /Verify with lab/ })).toHaveLength(
+        1,
+      );
+      expect(within(dialog).getByRole("link", { name: /Open PDF/ })).toBeInTheDocument();
+      expect(within(dialog).queryByRole("img")).not.toBeInTheDocument();
+    });
+
+    it("previous certificate view: header button for its own lab", async () => {
+      const { user, trigger } = open(/^View COA\s*for Tesamorelin/);
+      await user.click(trigger);
+      await user.click(screen.getByRole("button", { name: /Previous certificate/ }));
+
+      const dialog = screen.getByRole("dialog");
+      const link = within(header(dialog)).getByRole("link", {
+        name: /Verify with lab, Bioviridian/,
+      });
+      expect(link).toHaveAttribute("href", "https://bioviridians.com/coa-search.html");
+    });
+
+    it("link-only, one lab: header button, facts only", async () => {
+      const { user, trigger } = open(/^View COA\s*for PL3 10 mg/);
+      await user.click(trigger);
+
+      const dialog = screen.getByRole("dialog");
+      expect(within(header(dialog)).getAllByRole("link", { name: /Verify with lab/ })).toHaveLength(
+        1,
+      );
+      expect(within(dialog).getAllByRole("link", { name: /Verify with lab/ })).toHaveLength(1);
+      expect(within(dialog).queryByRole("img")).not.toBeInTheDocument();
+      expect(within(dialog).queryByRole("link", { name: /Open (PDF|full size)/ })).toBeNull();
+    });
+
+    it("link-only, two labs: none in the header, one per lab strip", async () => {
+      const { user, trigger } = open(/^View COA\s*for PL3 30 mg/);
+      await user.click(trigger);
+
+      const dialog = screen.getByRole("dialog");
+      expect(within(header(dialog)).queryByRole("link", { name: /Verify with lab/ })).toBeNull();
+      expect(within(dialog).getAllByRole("link", { name: /Verify with lab/ })).toHaveLength(2);
+    });
+
+    it("other-company report: no Verify anywhere, scan as today", async () => {
+      const { user, trigger } = open(/^View COA\s*for PL-31SS/);
+      await user.click(trigger);
+
+      const dialog = screen.getByRole("dialog");
+      expect(within(dialog).queryByRole("link", { name: /Verify with lab/ })).toBeNull();
+      expect(
+        within(dialog).getByRole("img", { name: /Certificate of Analysis/ }),
+      ).toBeInTheDocument();
+    });
   });
 });

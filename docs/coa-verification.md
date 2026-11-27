@@ -17,24 +17,34 @@ longer read it, `/lab-testing` is built from the catalog plus this file, and the
 attribute is no longer read or written (any leftover attribute on a staging or prod item is ignored
 and can be removed). The Supabase column stays until Supabase is retired.
 
-| What                             | File                                               |
-| -------------------------------- | -------------------------------------------------- |
-| The laboratories and their URL   | `src/features/coa/constants/labs.ts`               |
-| Every COA (lab, code, lot, file) | `src/features/coa/constants/coaReports.ts`         |
-| The report card in the dialog    | `src/features/coa/components/CoaReportDetails.tsx` |
-| The library and dialog           | `src/features/products/components/CoaLibrary.tsx`  |
+| What                             | File                                              |
+| -------------------------------- | ------------------------------------------------- |
+| The laboratories and their URL   | `src/features/coa/constants/labs.ts`              |
+| Every COA (lab, code, lot, file) | `src/features/coa/constants/coaReports.ts`        |
+| The facts strip and Verify link  | `src/features/coa/components/CoaFacts.tsx`        |
+| The library and dialog           | `src/features/products/components/CoaLibrary.tsx` |
 
-## Three kinds of entry
+## One dialog that adapts to each report
 
-- **Hosted image scan** (Bioviridian scans): the scan shows in the dialog, with **Open full size**.
-- **Hosted PDF** (the four Axiom reports): the dialog shows lab, lot and purity, with **Open PDF** (new
-  tab), **Verify with lab**, and **Previous certificate** where the rule below applies.
-- **Link-only** (PL3, PL2): no scan, image or PDF is shown or stored. The dialog lists each lab report
-  with its code and **Verify with lab**.
+Every COA opens the same dialog. What shows is derived from the entry in `coaReports.ts`; there is
+no per-product code.
 
-**Verify with lab** opens `https://axiomanalyticslab.com/verify?coa=<id>` (the ID URL-encoded) for
-Axiom. Bioviridian has no per-report link, so it opens its COA search page and the customer pastes
-the code there.
+| COA type             | Header button   | Body                                          |
+| -------------------- | --------------- | --------------------------------------------- |
+| Hosted scan          | Verify with lab | facts, then the scan, then Open full size     |
+| Hosted PDF           | Verify with lab | facts, then Open PDF (+ Previous certificate) |
+| Link-only, one lab   | Verify with lab | facts only                                    |
+| Link-only, two labs  | none            | one facts strip per lab, each with Verify     |
+| Other-company report | none            | the scan, no Verify                           |
+
+- The **facts strip** (lab, its warning, lot, purity, code with **Copy code**, one-line instruction)
+  always sits above any scan.
+- **Verify with lab** sits top right beside the close button when the current view has exactly one
+  verifiable report, so it never scrolls out of sight. On a phone it shows as a shield and "Verify".
+  The "Previous certificate" view counts as its own view with its own lab.
+- Axiom opens `https://axiomanalyticslab.com/verify?coa=<id>` (the ID URL-encoded). Bioviridian has no
+  per-report link, so it opens its COA search page and the customer pastes the code there.
+- PL3 and PL2 are link-only: no scan, image or PDF is shown or stored.
 
 ## "Previous certificate"
 

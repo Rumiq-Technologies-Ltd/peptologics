@@ -37,7 +37,7 @@ test("lists a row per documented compound and opens its certificate in a dialog"
   await expect(scan).toBeVisible();
   // The scans are a mix of formats (the seed refreshed several to .webp), so the assertion
   // is that the link points into the certificate folder, not at one extension.
-  await expect(dialog.getByRole("link", { name: "Open full size" })).toHaveAttribute(
+  await expect(dialog.getByRole("link", { name: /Open full size/ })).toHaveAttribute(
     "href",
     /^\/coa\/.+\.(jpe?g|png|webp)$/,
   );
@@ -52,7 +52,7 @@ test("the certificate image actually resolves, rather than 404ing behind the dia
     .first()
     .click();
 
-  const href = await page.getByRole("link", { name: "Open full size" }).getAttribute("href");
+  const href = await page.getByRole("link", { name: /Open full size/ }).getAttribute("href");
   expect(href).toBeTruthy();
 
   const response = await request.get(href!);
@@ -107,6 +107,24 @@ async function openCertificate(page: import("@playwright/test").Page, name: RegE
 }
 
 test.describe("Verify with lab", () => {
+  test("sits top right of the header, beside the close button, and stays on screen without scrolling", async ({
+    page,
+  }) => {
+    const dialog = await openCertificate(page, /^View COA for BPC-157 10 mg/);
+
+    const button = dialog.getByRole("link", { name: /Verify with lab/ });
+    const [dialogBox, buttonBox, closeBox] = await Promise.all([
+      dialog.boundingBox(),
+      button.boundingBox(),
+      dialog.getByRole("button", { name: "Close" }).boundingBox(),
+    ]);
+
+    // Right half of the dialog, inside its header, and clear of the close X.
+    expect(buttonBox!.x).toBeGreaterThan(dialogBox!.x + dialogBox!.width / 2);
+    expect(buttonBox!.y).toBeLessThan(dialogBox!.y + 130);
+    expect(buttonBox!.x + buttonBox!.width).toBeLessThanOrEqual(closeBox!.x);
+  });
+
   test("an image scan shows lab, code, Copy code and a link to the lab's search page", async ({
     page,
     context,

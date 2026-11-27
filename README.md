@@ -1,7 +1,8 @@
 # PeptoLogics
 
 Lead-generation website for research peptides. Visitors browse the catalog, build an inquiry list, and
-submit their details; the company is notified by email and WhatsApp and follows up manually.
+submit their details; the company is notified by email and follows up manually. A separate contact form (`/contact`) sends a
+message to the company by email and a confirmation to the visitor; see [docs/api.md](docs/api.md).
 
 **This is not an e-commerce site.** No payments are processed. The collection is an _inquiry list_,
 the outcome is a _quotation_.
@@ -12,16 +13,22 @@ All products are supplied for laboratory research use only and are not for human
 
 ## Stack
 
-| Concern   | Choice                                                       |
-| --------- | ------------------------------------------------------------ |
-| Framework | Next.js 16.3 (App Router), React 19.2                        |
-| Language  | TypeScript, strict                                           |
-| Styling   | Tailwind CSS v4 (CSS-first config), shadcn/ui                |
-| Forms     | React Hook Form + Zod v4                                     |
-| Database  | Supabase PostgreSQL                                          |
-| Email     | Resend                                                       |
-| WhatsApp  | Meta Cloud API (env-gated; `wa.me` deep link until approved) |
-| Hosting   | AWS Amplify Hosting (Vercel is no longer used)               |
+| Concern   | Choice                                        |
+| --------- | --------------------------------------------- |
+| Framework | Next.js 16.3 (App Router), React 19.2         |
+| Language  | TypeScript, strict                            |
+| Styling   | Tailwind CSS v4 (CSS-first config), shadcn/ui |
+| Forms     | React Hook Form + Zod v4                      |
+| Database  | Supabase PostgreSQL                           |
+| Email     | Resend                                        |
+| Hosting   | AWS Amplify Hosting                           |
+
+Production runs on Supabase and Resend today; staging runs on DynamoDB. See
+[docs/deployment.md](docs/deployment.md) for the current state and the planned moves.
+
+Certificates of analysis are listed in `src/features/coa/constants/coaReports.ts`; see
+[docs/coa-verification.md](docs/coa-verification.md). Two compounds must not be named in the site, code,
+docs or file names (decisions D23 and D25); `CLAUDE.md` has the rule.
 
 ## Getting started
 
@@ -32,8 +39,8 @@ npm run dev
 ```
 
 Three variables are required for the app to boot: `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
-`SUPABASE_SERVICE_ROLE_KEY`. Everything else is optional — missing Resend or WhatsApp credentials
-degrade the relevant notification channel to `skipped` rather than throwing, so the full inquiry flow
+`SUPABASE_SERVICE_ROLE_KEY`. Everything else is optional — missing email credentials
+degrade the notification channel to `skipped` rather than throwing, so the full inquiry flow
 works locally without them.
 
 ## Scripts

@@ -1,12 +1,26 @@
 # Deployment — PeptoLogics
 
-**Today:** AWS Amplify Hosting (Next.js SSR, `WEB_COMPUTE`) + Supabase (PostgreSQL) + Resend (email).
-**Planned:** Amplify in `us-east-1` with a `staging` and a `main` site ([ADR-033](./decisions.md)),
-DynamoDB instead of Supabase (ADR-035, written by the DynamoDB workstream) and Amazon SES instead of
-Resend (ADR-037, written by the SES workstream).
+**Today:** AWS Amplify Hosting (Next.js SSR, `WEB_COMPUTE`). Production runs on Supabase (PostgreSQL) and
+Resend (email); staging runs on DynamoDB.
+**Planned:** production moves to the `us-east-1` Amplify app ([ADR-033](./decisions.md)), DynamoDB replaces
+Supabase (ADR-035) and Amazon SES replaces Resend (ADR-037).
 
-> **Vercel is no longer used.** Earlier versions of this document described a Vercel setup. Nothing
-> here depends on it. ADR-033 records the move.
+> **The previous host is no longer used.** Earlier versions of this document described its setup.
+> Nothing here depends on it. ADR-033 records the move.
+
+## Current state (2026-11-27)
+
+| Area     | Production (live)                                                                                                                                                                           | Staging                                                                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hosting  | Amplify app `peptologics` (`d1zqn3kd1eopzq`), **eu-north-1**, branch `main`. Moves to the `us-east-1` app in Stage 2                                                                        | Amplify app `d10n0qgtlyryh5`, **us-east-1**, branch `staging`, <https://staging.d10n0qgtlyryh5.amplifyapp.com> (live, `APP_ENV=staging`, not indexed) |
+| Database | Supabase (`INQUIRY_DATA_STORE` default). DynamoDB `peptologics-prod` arrives in Stage 4                                                                                                     | DynamoDB `peptologics-staging` (`INQUIRY_DATA_STORE=dynamodb`). Dev: `peptologics-dev`, used by local machines                                        |
+| Email    | Resend (`INQUIRY_EMAIL_PROVIDER` default). **SES production access is granted** (`us-east-1`, domain `peptologics.com`, configuration set `peptologics-prod`). The switch to SES is Stage 3 | **Off** by default (no email variables). Turned on briefly for testing on 2026-11-27, then off again                                                  |
+
+Branches: `staging` (default) → `main` (see [Branches and promotion](#branches-and-promotion)).
+
+Related: the contact form (`/contact`, `POST /api/contact`, email only) is described in
+[api.md](./api.md). COAs are listed in `src/features/coa/constants/coaReports.ts` and explained in
+[coa-verification.md](./coa-verification.md).
 
 Domain: **peptologics.com**. DNS is hosted in **Route 53**. Mailboxes are on **Namecheap Private
 Email**, so the `MX` records and the root SPF record must never be touched when changing the web or
@@ -19,26 +33,30 @@ the control chat. Workers do not run AWS commands.
 
 ## Hosting
 
-| Item          | Today                                                                    | Planned ([ADR-033](./decisions.md))                           |
-| ------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------- |
-| Service       | AWS Amplify Hosting, `WEB_COMPUTE` (Next.js SSR)                         | unchanged                                                     |
-| App           | `peptologics` (id `d1zqn3kd1eopzq`)                                      | a new app with the same name                                  |
-| Region        | `eu-north-1`                                                             | `us-east-1`                                                   |
-| Branch builds | `main` only                                                              | two branch sites: `staging` and `main`. There is no dev site. |
-| Previews      | none (the Vercel previews are gone). Amplify branch deploys replace them | the `staging` site                                            |
+| Item          | Today                                                                             | Planned ([ADR-033](./decisions.md))                                  |
+| ------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Service       | AWS Amplify Hosting, `WEB_COMPUTE` (Next.js SSR)                                  | unchanged                                                            |
+| App           | `peptologics` (id `d1zqn3kd1eopzq`)                                               | a new app with the same name                                         |
+| Region        | `eu-north-1`                                                                      | `us-east-1`                                                          |
+| Branch builds | `main` only                                                                       | two branch sites: `staging` (live) and `main`. There is no dev site. |
+| Previews      | none (the previous host's previews are gone). Amplify branch deploys replace them | the `staging` site                                                   |
 
 Amplify builds a branch when it receives a push. Merging a PR into `main` deploys production.
 
-TODO(control-chat): the exact steps to create the `us-east-1` app, connect it to the repository, set
-per-branch variables and cut the domain over.
+The `us-east-1` app is half done. Staging exists: app `d10n0qgtlyryh5`, `WEB_COMPUTE`, branch `staging`,
+compute role `peptologics-amplify-compute-staging`. The build (service) role
+`AmplifySSRLoggingRole-b72c4fed-…` has a read-only DynamoDB policy, because builds prerender pages.
+
+TODO(control-chat): add the `main` branch (Stage 2): the exact steps to connect it, set per-branch
+variables and cut the domain over.
 
 ## Environments
 
-| Environment | Where it runs                      | Database today           | Database planned (ADR-035)                    | `APP_ENV`    | `NEXT_PUBLIC_SITE_URL`     | Indexed |
-| ----------- | ---------------------------------- | ------------------------ | --------------------------------------------- | ------------ | -------------------------- | ------- |
-| Development | a developer's machine              | the one Supabase project | `peptologics-dev` table                       | unset        | `http://localhost:3000`    | n/a     |
-| Staging     | Amplify branch `staging` (planned) | the one Supabase project | `peptologics-staging` table, seeded from prod | `staging`    | the staging site's own URL | **no**  |
-| Production  | Amplify branch `main`              | the one Supabase project | `peptologics-prod` table                      | `production` | `https://peptologics.com`  | yes     |
+| Environment | Where it runs                   | Database today                   | Database planned (ADR-035)                    | `APP_ENV`    | `NEXT_PUBLIC_SITE_URL`     | Indexed |
+| ----------- | ------------------------------- | -------------------------------- | --------------------------------------------- | ------------ | -------------------------- | ------- |
+| Development | a developer's machine           | the one Supabase project         | `peptologics-dev` table                       | unset        | `http://localhost:3000`    | n/a     |
+| Staging     | Amplify branch `staging` (live) | `peptologics-staging` (DynamoDB) | `peptologics-staging` table, seeded from prod | `staging`    | the staging site's own URL | **no**  |
+| Production  | Amplify branch `main`           | the one Supabase project         | `peptologics-prod` table                      | `production` | `https://peptologics.com`  | yes     |
 
 > **One Supabase project serves every environment today.** A developer's laptop writes orders to the
 > database production reads. The DynamoDB move (planned, ADR-035) separates them into three tables,
@@ -85,9 +103,18 @@ branch.** `dev` is retired (tag `archive/dev`). The reasoning is in [ADR-034](./
   `main-protection` does not, so a promotion never needs a back-merge first.
 - Never commit directly to `main` or `staging`.
 
-**Known issue.** The dead Vercel GitHub App still posts a failing check on every PR. Removing it needs
-a GitHub organisation owner: Organisation settings → GitHub Apps → Vercel → Configure → uninstall, or
-restrict it to repositories that exclude `peptologics`. It does not block merges.
+---
+
+## Production release order (pending migrations)
+
+Product pages are built only at build time (`dynamicParams = false`), so the renamed product slugs exist
+only after a build that sees the renamed data. Release in this order:
+
+1. Apply migration `20261127120000` to the production database.
+2. Apply migration `20261127130000`.
+3. Start the `main` build straight away.
+
+Start the build straight after step 2, not after the deploy of any other change.
 
 ---
 
@@ -162,7 +189,8 @@ Do these in order. The domain only enters at step 5.
 
 1. **Create the app.** Amplify Hosting, platform `WEB_COMPUTE`, connected to
    `Rumiq-Technologies-Ltd/peptologics`. Framework preset Next.js; the repo needs no build overrides.
-   TODO(control-chat): exact steps, region `us-east-1`, app tags.
+   Done for staging (app `d10n0qgtlyryh5`, see [Hosting](#hosting)). TODO(control-chat): the same for
+   `main` (Stage 2), with the app tags.
 2. **Set the environment variables** from the table above, per branch.
 3. **Deploy a branch and check it.** Against the branch URL:
 
@@ -195,7 +223,10 @@ nslookup peptologics.com
 nslookup www.peptologics.com
 ```
 
-TODO(control-chat): the exact records Amplify and SES need, and who creates them.
+**Done for SES (2026-11-24, by the control chat).** Route 53 hosted zone `Z0694272NS6QYEAVUGQR` holds
+the 3 SES Easy DKIM `CNAME` records for `peptologics.com`, plus the custom MAIL FROM domain
+`mail.peptologics.com` (its `MX` and SPF records). The mailbox `MX` records (Namecheap Private Email)
+and the root SPF record were not touched.
 
 ### Sending domain for email
 
@@ -263,7 +294,7 @@ curl -sI https://peptologics.com | grep -Ei "content-security|strict-transport|x
 > truth.
 
 All twelve migrations are applied to project `pmbatptoffscqtnfmhbz`, including
-`create_inquiry_email_only` from the WhatsApp removal.
+`create_inquiry_email_only` from the removal of the second notification channel.
 
 **Planned (ADR-035).** DynamoDB replaces Supabase, so this section is rewritten by the DynamoDB
 workstream together with `docs/database.md`.
@@ -275,8 +306,10 @@ Inserting a row into `products` is **not** enough to make its page reachable. `/
 inserting a product:
 
 1. Insert the row (via a seed edit and re-run, or Supabase Studio).
-2. **Trigger a redeploy** so `generateStaticParams` picks up the new slug. TODO(control-chat): an
-   Amplify build hook that a database event could call, if automation is wanted.
+2. **Trigger a redeploy** so `generateStaticParams` picks up the new slug: in the Amplify console open
+   the app, then the branch, then **Redeploy this version**, or ask the control chat to start a
+   `RELEASE` job. A redeploy is needed because product pages are built only during a build
+   (`dynamicParams = false`).
 3. `POST /api/revalidate` refreshes the catalog listing, but does **not** create the new detail page.
 
 Editing an existing product, including its price, needs no redeploy. It propagates within the hour,
@@ -300,12 +333,12 @@ places and a certificate in a fourth, and they must not disagree. Full contract 
 
 ## Notification channels
 
-**Email is the only channel.** WhatsApp was removed at the client's request (ADR-023). There are no
-Meta credentials to obtain and nothing in the deploy checklist that waits on Meta.
+**Email is the only channel.** A second channel was removed at the client's request (ADR-023). There
+are no Meta credentials to obtain and nothing in the deploy checklist that waits on Meta.
 
 If it is ever wanted back, the work is an adapter plus one entry in `NotificationService.dispatch`:
 `notification_log` and its repository are already channel-generic, and the table's CHECK constraint
-still permits a `whatsapp` channel value.
+still permits that channel's value.
 
 Watch `notification_log` for the dead-letter list. Anything left `pending` or `failed` is a lead
 nobody was told about:

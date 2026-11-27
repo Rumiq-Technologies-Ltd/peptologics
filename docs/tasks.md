@@ -114,7 +114,7 @@ Commit `feat: add design system, site shell and research-use-only gate`
 - [!] Client: the wordmark typeface name — Inter cannot substitute it at display sizes
 - [!] Client: counsel-reviewed Research-Use-Only text (drafted and marked `TODO(legal)`)
 - [!] Client: confirm you can substantiate the five trust-badge claims, especially "third-party tested" and "cold-chain handling"
-- [!] Client: `NEXT_PUBLIC_WHATSAPP_NUMBER` and `NEXT_PUBLIC_CONTACT_EMAIL` — the footer and contact page show "coming soon" until set
+- [!] Client: the second channel's public number variable and `NEXT_PUBLIC_CONTACT_EMAIL` — the footer and contact page show "coming soon" until set
 
 ---
 
@@ -163,7 +163,7 @@ Commit `feat: add inquiry submission with atomic persistence and email notificat
 - [x] **No `/inquiry/loading.tsx`** — prerendered route, same reasoning as `/cart` (ADR-017)
 - [x] `/cart` CTA now points at `/inquiry`; the Phase 4 `TODO(phase-5)` is gone
 - [x] `docs/api.md` — full endpoint contract; `docs/architecture.md` §4 corrected to match the built flow; ADR-021 and ADR-022 added
-- [x] Verify: real submission through the UI created **1 order + 2 items + 2 notification rows**, email `sent` with a provider id on attempt 1, WhatsApp `skipped`; sanitisation held (`"  Dr Ada   Lovelace  "` stored as `Dr Ada Lovelace`, email lowercased, triple newline collapsed); `ruo_acknowledged_at` recorded
+- [x] Verify: real submission through the UI created **1 order + 2 items + 2 notification rows**, email `sent` with a provider id on attempt 1, the second channel `skipped`; sanitisation held (`"  Dr Ada   Lovelace  "` stored as `Dr Ada Lovelace`, email lowercased, triple newline collapsed); `ruo_acknowledged_at` recorded
 - [x] Verify: three POSTs with one `Idempotency-Key` → **one order**, `created` true then false twice, one email row with `attempts: 1`
 - [x] Verify: injected `unitPriceCents/priceCents/subtotalCents: 1` ignored — stored `6000` from the catalog
 - [x] Verify: filled honeypot, `formStartedAt` of now, and a missing `formStartedAt` each returned **201 with `orderNumber: null`** and persisted nothing
@@ -172,26 +172,26 @@ Commit `feat: add inquiry submission with atomic persistence and email notificat
 - [x] Test rows removed afterwards: orders, items, notification rows and the rate-limit bucket are all back to zero; 12 products untouched
 - [x] Client supplied `RESEND_API_KEY`, `INQUIRY_NOTIFICATION_FROM` and `INQUIRY_NOTIFICATION_TO` — a live email was delivered during verification
 - [!] Client: confirm whether `peptologics.com` is verified in Resend (SPF/DKIM). If the From address is still `onboarding@resend.dev`, delivery works only to your own Resend account inbox and must not go to production
-- [!] Client: `NEXT_PUBLIC_WHATSAPP_NUMBER` — the success page's WhatsApp CTA is hidden until it is set
+- [!] Client: The second channel's public number variable — the success page's CTA for it is hidden until it is set
 - [!] Client: `NEXT_PUBLIC_CONTACT_EMAIL` — the success page's email CTA is hidden until it is set
 
 ---
 
-## Phase 6 — ~~WhatsApp~~ **cancelled; WhatsApp removed instead**
+## Phase 6 — ~~Second notification channel~~ **cancelled; the channel was removed instead**
 
-Branch `refactor/remove-whatsapp`
-Commit `refactor: remove WhatsApp notifications in favour of email only`
+Branch `refactor/remove-second-channel`
+Commit `refactor: remove the second notification channel in favour of email only`
 
-The client dropped WhatsApp on 7 August 2026 rather than take on the Meta account work. Email already
+The client dropped the second channel on 7 August 2026 rather than take on the Meta account work. Email already
 delivers every lead. Recorded in ADR-023, which supersedes ADR-007.
 
-- [x] Removed `WhatsAppService`, the null-adapter branch, and the WhatsApp dispatch from `NotificationService`
-- [x] Removed six `WHATSAPP_*` server env vars, `isWhatsAppConfigured`, `WHATSAPP_TIMEOUT_MS`, `NEXT_PUBLIC_WHATSAPP_NUMBER` and `whatsAppDeepLinkNumber`
-- [x] Removed the `wa.me` buttons from the success page, footer and contact page, and every copy line promising WhatsApp contact
+- [x] Removed the second channel's service, the null-adapter branch, and the second channel's dispatch from `NotificationService`
+- [x] Removed six server env vars for that channel, its configured-check, its timeout constant, its public number variable and the deep-link accessor
+- [x] Removed the `wa.me` buttons from the success page, footer and contact page, and every copy line promising contact over it
 - [x] Migration `20260807120000_create_inquiry_email_only` — the RPC writes one notification intent, for email
-- [x] `notification_log.channel` still permits `'whatsapp'`, and the dispatcher still loops over channel results: re-adding one is an adapter plus one array entry, no schema change
+- [x] `notification_log.channel` still permits the second channel's value, and the dispatcher still loops over channel results: re-adding one is an adapter plus one array entry, no schema change
 - [x] Docs: ADR-023 added, ADR-007 marked superseded, deployment runbook replaced, architecture, api and the brief's decision table updated
-- [x] Verify: a live submission produced **1 notification row** (`email`, `sent`) and no `whatsapp` row; `/api/health` no longer reports a whatsapp channel; the site contains no `wa.me` link
+- [x] Verify: a live submission produced **1 notification row** (`email`, `sent`) and no row for the second channel; `/api/health` no longer reports it; the site contains no `wa.me` link
 
 ---
 
@@ -212,7 +212,7 @@ Commit `feat: add metadata, structured data, sitemap and OG images`
 - [x] `POST /api/revalidate` — constant-time bearer comparison, always purges `/` and `/products`, optional `slug`
 - [x] `next.config.ts`: `images.remotePatterns` derived from `SUPABASE_URL`, AVIF/WebP, `poweredByHeader: false`
 - [x] Verify: sitemap has 21 URLs including all 12 products with `lastmod`, and none of the noindex routes; robots.txt matches; `Product` JSON-LD parses and contains no `offers` key; OG images, icon and apple-icon all return `200 image/png` and were rendered and eyeballed; revalidate returns 401 / 401 / 200 / 405 / 422 across no-token, wrong-token, valid-token, GET and bad-slug
-- [!] **Lighthouse not run** — no Chrome-driving CLI in this environment. Run it against the live site (the Vercel preview is gone), before the production promotion
+- [!] **Lighthouse not run** — no Chrome-driving CLI in this environment. Run it against the live site (the previous host's preview is gone), before the production promotion
 - [!] Rich Results Test needs a public URL, so it also waits for the preview deployment
 
 ---
@@ -248,7 +248,7 @@ Commit `test: add unit and e2e coverage for the inquiry path`
 ## Phase 9 — Deployment
 
 Branch `chore/deployment`
-Commit `chore: configure vercel deployment and production environment` _(Vercel is obsolete: the site runs on AWS Amplify, ADR-033)_
+Commit `chore: configure previous-host deployment and production environment` _(the previous host is obsolete: the site runs on AWS Amplify, ADR-033)_
 
 - [x] Security headers in `next.config.ts`: CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`; `X-Powered-By` suppressed
 - [x] CSP keeps `'unsafe-inline'` on `script-src`, deliberately and with the reasoning in the config: a nonce is per-request, which makes every page dynamic and discards the static prerendering, and the gate's pre-paint script cannot wait for React to attach one. Hash-based fails on per-page JSON-LD
@@ -256,9 +256,9 @@ Commit `chore: configure vercel deployment and production environment` _(Vercel 
 - [x] Verified CSP does not break anything: fresh-profile browser shows the gate, 2 JSON-LD blocks, 12 hydrated rows, **zero console violations**; all 11 Playwright specs pass against the CSP build (the gate specs exercise the pre-paint script)
 - [x] Production Supabase migrations applied — all 12 present on `pmbatptoffscqtnfmhbz`, including `create_inquiry_email_only`
 - [x] Found: the remote migration ledger was written by the MCP tooling, so its versions do not match the local filenames. A plain `supabase db push` would try to re-create existing tables. Reconciliation procedure (`migration repair --status applied`) documented before it bites
-- [x] _(obsolete, rewritten for Amplify in the docs migration task)_ `docs/deployment.md` rewritten: env matrix per Vercel environment, first-time setup, exact DNS records, Resend zone records, headers, migrations, rollback (deployment / env var / database, each separately), and a 14-item post-deploy checklist
+- [x] _(obsolete, rewritten for Amplify in the docs migration task)_ `docs/deployment.md` rewritten: env matrix per previous-host environment, first-time setup, exact DNS records, Resend zone records, headers, migrations, rollback (deployment / env var / database, each separately), and a 14-item post-deploy checklist
 - [x] Fixed an E2E strict-mode ambiguity found in passing: two "Browse the catalog" links exist once the summary panel hydrates
-- [ ] ~~**Client: Vercel project not created yet.**~~ **Obsolete:** Vercel is not used. **Original text:** No Vercel CLI or account access in this environment — the dashboard steps, the env matrix and the DNS records are in `docs/deployment.md`, ready to follow
+- [ ] ~~**Client: previous-host project not created yet.**~~ **Obsolete:** the previous host is not used. **Original text:** No CLI or account access for it in this environment — the dashboard steps, the env matrix and the DNS records are in `docs/deployment.md`, ready to follow
 - [!] **Client: Resend domain not verified.** The sender is still the sandbox `onboarding@resend.dev`, which delivers only to the Resend account owner. **Launch blocker** — real inquiries would reach nobody else
 - [!] Client: `NEXT_PUBLIC_CONTACT_EMAIL` still unset, so the footer and contact page hide the email CTA
 - [!] One Supabase project serves development, preview and production. Acceptable now, not once real leads arrive — see the note at the top of `docs/deployment.md`
@@ -271,7 +271,7 @@ Commit `chore: configure vercel deployment and production environment` _(Vercel 
 Decided after launch, on the client's call, with production measured rather than guessed
 (ADR-008 revisited and confirmed):
 
-- Every route on the live site served `X-Vercel-Cache: PRERENDER` (measured on Vercel, historical) — static HTML from the CDN. There
+- Every route on the live site served the previous host's `PRERENDER` cache header (measured there, historical) — static HTML from the CDN. There
   is no per-request work left for Cache Components to make faster.
 - What it actually buys is streaming per-request personalisation into a static shell. This site has
   no authentication, no personalisation, and a cart that lives in the visitor's own browser. There
@@ -295,8 +295,8 @@ or personalised content. The original tasks are kept below so the work is not re
 The launch is done; these are what remain.
 
 - [!] **Client, urgent:** set `NEXT_PUBLIC_SITE_URL` and the three Resend variables in Amplify
-  production (originally written for Vercel), then redeploy. Until then the live site notifies nobody about a lead and every
-  canonical names the `*.vercel.app` host (ADR-025 guards both against recurrence, but cannot fix
+  production (originally written for the previous host), then redeploy. Until then the live site notifies nobody about a lead and every
+  canonical names the previous host's default domain (ADR-025 guards both against recurrence, but cannot fix
   a deployment that already shipped)
 - [ ] Lighthouse ≥ 95 on all four categories, against the live domain
 - [ ] Rich Results Test on a product page and on the home page's FAQ
@@ -372,19 +372,18 @@ The launch is done; these are what remain.
 
 ---
 
-## AWS migration (Vercel → Amplify, Supabase → DynamoDB, Resend → SES)
+## AWS migration (previous host → Amplify, Supabase → DynamoDB, Resend → SES)
 
-Vercel is no longer used; see ADR-033 and ADR-034. Workstreams are tracked in
+The previous host is no longer used; see ADR-033 and ADR-034. Workstreams are tracked in
 [handoffs/00-README.md](./handoffs/00-README.md).
 
-- [x] Chat 01: `APP_ENV` replaces `VERCEL_ENV`; robots and indexing fixed (ADR-032, PR #48)
+- [x] Chat 01: `APP_ENV` replaces the previous host's environment flag; robots and indexing fixed (ADR-032, PR #48)
 - [x] Chat 02: Next.js 16.4.6 and Zod 4.6.6 security patches (PR #49)
 - [x] Chat 03: rate-limit key uses the visitor address behind CloudFront (PR #50)
 - [x] Chat 04 (Git workstream): `staging` branch, rulesets, CI, first promotion (PRs #52, #53; ADR-034)
-- [ ] Chat 05 (Docs workstream): docs and `CLAUDE.md` no longer describe Vercel (ADR-033, ADR-034). This change
+- [ ] Chat 05 (Docs workstream): docs and `CLAUDE.md` no longer describe the previous host (ADR-033, ADR-034). This change
 - [ ] SES workstream: replace Resend with SES v2 (ADR-037, planned)
 - [ ] DynamoDB workstream: repositories, order transaction, rate limit, data migration (ADR-035, planned)
 - [ ] Admin page: private page listing inquiries behind a login (not yet written)
 - [ ] Add a `build` step to CI after the DynamoDB workstream
 - [ ] Control chat: Amplify in `us-east-1` with `staging` and `main` sites; recreate the www → apex redirect rules
-- [ ] Owner/GitHub org owner: remove the dead Vercel GitHub App

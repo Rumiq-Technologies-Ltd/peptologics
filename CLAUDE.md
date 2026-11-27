@@ -6,10 +6,10 @@
 > UI Library: React
 > Styling: Tailwind CSS + shadcn/ui
 > Database: Supabase PostgreSQL (migrating to DynamoDB, planned: ADR-035)
-> Deployment: AWS Amplify Hosting (Vercel is no longer used; ADR-033)
+> Deployment: AWS Amplify Hosting (ADR-033)
 > AI Assistant: Claude Code
 > Version: 1.0
-> Last Updated: August 2026
+> Last Updated: November 2026
 
 ---
 
@@ -54,7 +54,7 @@ Customers will:
 - Browse research peptide products.
 - View detailed product information.
 - Add products to cart.
-- Submit an inquiry.
+- Submit an inquiry, or send a message through the contact form (`/contact`, email only).
 - Receive manual follow-up from company representatives.
 
 Company representatives will:
@@ -62,6 +62,11 @@ Company representatives will:
 - Receive inquiries via Email (the only notification channel, ADR-023).
 - Contact customers manually.
 - Complete orders outside the website.
+
+Content rules:
+
+- Certificates of analysis (COAs): `src/features/coa/constants/coaReports.ts` is the single source of truth. `products.coa_url` is unused. See `docs/coa-verification.md`.
+- Naming rule (D23, D25): the generic compound names behind PL3 and PL2, and their short forms, must not appear in the site, code, docs or file names. The only exceptions are the redirect lines in `next.config.ts`, two migrations and `public/assets/`.
 
 The website should maximize trust, simplicity, speed, and conversion.
 
@@ -461,40 +466,46 @@ Claude must not replace technologies without approval.
 
 ## Database
 
-Supabase PostgreSQL today.
+Production runs on Supabase PostgreSQL (the `INQUIRY_DATA_STORE` default).
 
-Planned (ADR-035): DynamoDB, with a dev table (local machines only), a staging table and a prod table.
+Staging runs on DynamoDB (`peptologics-staging`, `INQUIRY_DATA_STORE=dynamodb`). Local machines use the `peptologics-dev` table (ADR-035).
+
+Planned (ADR-035): the `peptologics-prod` table and the production cutover (Stage 4), after which Supabase is retired and this section is rewritten for DynamoDB.
 
 ---
 
 ## Backend Services
 
-- Supabase (planned: replaced by DynamoDB, ADR-035)
+- Supabase (production today; staging already runs on DynamoDB, ADR-035)
 - Next.js Route Handlers
 
 ---
 
 ## Email
 
-Resend today.
+Resend today on production.
 
-Planned (ADR-037): Amazon SES in `us-east-1`.
+Amazon SES production access is granted (`us-east-1`, domain `peptologics.com`, configuration set `peptologics-prod`). Planned (ADR-037): switch production to SES (Stage 3). Staging has email off by default.
 
 ---
 
 ## Notifications
 
-Email is the only notification channel (ADR-023). WhatsApp was dropped and is not used.
+Email is the only notification channel (ADR-023). A second notification channel was dropped and is not used.
+
+The contact form (D33, `/contact`, `POST /api/contact`) is email only: it emails the company inbox and sends the visitor a fixed-text confirmation. It stores nothing in the database. See `docs/api.md`.
 
 ---
 
 ## Hosting
 
-AWS Amplify Hosting (`WEB_COMPUTE`, Next.js SSR). Today: app `peptologics` in `eu-north-1`, built from `main`.
+AWS Amplify Hosting (`WEB_COMPUTE`, Next.js SSR). Production: app `peptologics` (`d1zqn3kd1eopzq`) in `eu-north-1`, built from `main`.
 
-Planned (ADR-033): Amplify in `us-east-1` with two branch sites, `staging` and `main`, and no dev site.
+Staging: app `d10n0qgtlyryh5` in `us-east-1`, branch `staging`, live and not indexed (`APP_ENV=staging`).
 
-Vercel is no longer used.
+Planned (ADR-033): production moves to the `us-east-1` app (Stage 2). There is no dev site.
+
+The previous host is no longer used.
 
 ---
 
@@ -2790,8 +2801,6 @@ supabase/
 
 resend/
 
-whatsapp/
-
 logger/
 
 validation/
@@ -4118,10 +4127,6 @@ Send email
 
 ↓
 
-Send WhatsApp notification
-
-↓
-
 Return success
 
 ---
@@ -4336,8 +4341,6 @@ Examples:
 ```
 EmailService
 
-WhatsAppService
-
 AnalyticsService
 
 StorageService
@@ -4349,7 +4352,7 @@ The rest of the application should not know implementation details.
 
 # Notifications
 
-Email and WhatsApp notifications should be independent.
+Notifications (the company email and the customer confirmation) should be independent.
 
 Failure to send one notification should not corrupt the order itself.
 
@@ -4378,7 +4381,6 @@ Temporary external failures should support retries.
 Examples:
 
 - Email provider timeout
-- WhatsApp API unavailable
 - Network interruption
 
 Do not retry validation failures.
@@ -4437,7 +4439,6 @@ Examples:
 
 - Inquiry created
 - Email sent
-- WhatsApp sent
 - Validation failed
 
 Never log sensitive personal information unnecessarily.
@@ -6113,7 +6114,6 @@ Verify:
 - Network failures
 - Database failures
 - Email failures
-- WhatsApp failures
 - Invalid requests
 
 Applications should fail gracefully.
@@ -6195,7 +6195,6 @@ Mock external dependencies when appropriate.
 Examples:
 
 - Email provider
-- WhatsApp API
 - Analytics
 - Third-party services
 
@@ -6476,7 +6475,7 @@ Maintain separate environment configurations for:
 
 Development (a developer's machine; no dev site)
 
-Staging (the Amplify `staging` branch site, planned: ADR-033)
+Staging (the Amplify `staging` branch site, live; ADR-033)
 
 Production (the Amplify `main` branch site)
 
@@ -6502,8 +6501,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
 RESEND_API_KEY=
-
-WHATSAPP_ACCESS_TOKEN=
 ```
 
 Amplify rules: environment variables are set per branch in Amplify and written into `.env.production` at build time. Amplify does **not** allow variable names starting with `AWS_`. The build spec passes only variables prefixed `SUPABASE_`, `RESEND_`, `INQUIRY_`, `CUSTOMER_`, `NEXT_PUBLIC_`, `REVALIDATE_`, `RATE_LIMIT_` or `APP_ENV` to the server runtime, so a new variable with another prefix silently never reaches the live site. See `docs/deployment.md`.
@@ -6566,7 +6563,7 @@ Secrets belong only in:
 - Amplify environment variables
 - Secure secret managers (SSM Parameter Store is under consideration)
 
-Planned (ADR-033): DynamoDB and SES are reached through the Amplify app's IAM role, with no access keys.
+DynamoDB and SES are reached through the Amplify app's IAM role, with no access keys (ADR-033). Staging DynamoDB already works this way; production and SES are planned.
 
 Never store secrets:
 
@@ -6598,7 +6595,6 @@ Monitor production for:
 - API failures
 - Database availability
 - Email failures
-- WhatsApp failures
 - Performance regressions
 
 Critical failures should be investigated promptly.
@@ -6650,7 +6646,7 @@ Only after these checks should production deployment proceed.
 
 # Amplify Deployment
 
-Production deployments use AWS Amplify Hosting (Vercel is no longer used; ADR-033). Amplify builds `main` for production. A `staging` branch site is planned.
+Production deployments use AWS Amplify Hosting (ADR-033). Amplify builds `main` for production. The `staging` branch site is live in `us-east-1`.
 
 Deployment configuration should remain consistent across environments.
 

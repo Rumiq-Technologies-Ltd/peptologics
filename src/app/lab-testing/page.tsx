@@ -27,7 +27,7 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Lab Testing & COAs",
-  description: `How ${SITE_NAME} analyzes production lots by HPLC and mass spectrometry, and how to request a lot-specific Certificate of Analysis.`,
+  description: `The laboratory reports ${SITE_NAME} publishes, how to read one, and how to verify it with the lab that issued it.`,
   alternates: { canonical: ROUTES.labTesting },
 };
 
@@ -61,7 +61,7 @@ export default async function LabTestingPage() {
       <PageHero
         eyebrow="Analytical standards"
         title="Lab testing and Certificates of Analysis"
-        lead="A vial is only as good as the paperwork that describes it. Production lots are analyzed for purity and identity, and the results are recorded on a lot-specific Certificate of Analysis available on request."
+        lead="A vial is only as good as the paperwork that describes it. The laboratory reports below state purity and identity results for the lots they identify, and each can be verified with the lab that issued it."
       />
 
       <Section surface="muted" reveal aria-labelledby="panel-heading">

@@ -92,9 +92,9 @@ export default function ResearchUseOnlyPage() {
 
       <h2>Analytical documentation</h2>
       <p>
-        A Certificate of Analysis is available for production lots on request. A Certificate of
-        Analysis applies only to the specific lot it identifies. Independent verification remains
-        the responsibility of the purchaser.
+        Laboratory reports are published on the Lab Testing page. Documentation for a specific lot
+        may be requested. A Certificate of Analysis applies only to the specific lot it identifies.
+        Independent verification remains the responsibility of the purchaser.
       </p>
 
       <h2>Pricing and orders</h2>

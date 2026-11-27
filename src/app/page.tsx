@@ -70,7 +70,7 @@ const FAQS = [
   {
     question: "Can I see a Certificate of Analysis before ordering?",
     answer:
-      "Ask and we will provide the lot-specific Certificate of Analysis for your order. A COA applies only to the lot it identifies.",
+      "Published laboratory reports are on the Lab Testing page. Ask a representative about documentation for a specific lot. A COA applies only to the lot it identifies.",
   },
   {
     question: "What is cost per milligram, and why do you show it?",
@@ -238,20 +238,19 @@ export default async function HomePage() {
             </h2>
 
             <p className="text-ink-300 mt-5 max-w-2xl">
-              Production lots are analyzed by high-performance liquid chromatography for purity and
-              by mass spectrometry for identity. Results are recorded on a lot-specific Certificate
-              of Analysis.
+              Published reports describe HPLC purity and mass-spectrometry identity results for the
+              lots they identify.
             </p>
 
             {/*
-          Non-numeric deliberately. A figure like "≥99% purity" is a substantiable
-          claim the client must be able to evidence; these state what is done, not
-          what result is guaranteed. Open question 2.
+          Non-numeric deliberately: these state what is done, not what result is
+          guaranteed. Measured purity appears beside each published report, as the
+          laboratory states it.
         */}
             <dl className="mt-10 grid gap-6 sm:grid-cols-3">
               {[
                 { figure: "HPLC + MS", label: "Standard analytical panel" },
-                { figure: "Per lot", label: "Certificate of Analysis" },
+                { figure: "Published", label: "Laboratory reports" },
                 { figure: "Lyophilized", label: "Supplied as sealed powder" },
               ].map((stat) => (
                 <div

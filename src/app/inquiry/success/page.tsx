@@ -30,7 +30,8 @@ const ORDER_NUMBER_PATTERN = /^PL-\d{6}$/;
 const NEXT_STEPS = [
   {
     title: "We review availability",
-    detail: "A representative checks stock and lot documentation for every compound on your list.",
+    detail:
+      "A representative checks stock and any available lot documentation for each compound on your list.",
   },
   {
     title: "We contact you",

@@ -157,10 +157,11 @@ export default async function HomePage() {
             removed from the shortest path on the site.
           */}
           {/*
-            Three across, not four. There are five featured products, and a four-column
-            grid leaves the fifth alone on its own row looking like a mistake; three
-            wraps to 3 + 2, which reads as a grid rather than an orphan. Revisit if the
-            client features a multiple of four.
+            The strip shows at most FEATURED_PRODUCT_LIMIT (3) products, which fills one
+            row of the three-column grid exactly, so no card is left alone on a second
+            row. The service enforces the cap, so flagging more products as featured
+            does not grow the strip. Below `lg` the grid is two across and a third card
+            wraps; that is accepted for a three-card strip.
           */}
           <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((product) => (

@@ -118,6 +118,27 @@ describe("listFeatured", () => {
     expect(findActive).not.toHaveBeenCalled();
   });
 
+  it("never returns more than FEATURED_PRODUCT_LIMIT, even if the repository does", async () => {
+    // The home page renders one card per product returned, so the cap lives here.
+    const { service, findFeatured, findActive } = makeHarness();
+    const many = Array.from({ length: FEATURED_PRODUCT_LIMIT + 4 }, (_, index) =>
+      makeProduct({ id: `featured-${index}`, slug: `featured-${index}` }),
+    );
+    findFeatured.mockResolvedValueOnce(many);
+
+    const featured = await service.listFeatured();
+
+    expect(featured.success && featured.data).toHaveLength(FEATURED_PRODUCT_LIMIT);
+    expect(featured.success && featured.data.map((product) => product.id)).toEqual(
+      many.slice(0, FEATURED_PRODUCT_LIMIT).map((product) => product.id),
+    );
+
+    findFeatured.mockResolvedValueOnce([]);
+    findActive.mockResolvedValueOnce(many);
+    const fallback = await service.listFeatured();
+    expect(fallback.success && fallback.data).toHaveLength(FEATURED_PRODUCT_LIMIT);
+  });
+
   it("falls back to the top of the default order when nothing is flagged", async () => {
     // Otherwise the home page ships with an empty section, which is worse than showing
     // the first few products.

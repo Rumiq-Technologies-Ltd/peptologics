@@ -57,5 +57,8 @@ export const NOTIFICATION_RETRY_ATTEMPTS = 3 as const;
  * with a comment; this note records why it is duplicated rather than shared.
  */
 
-/** Products shown in the featured strip on the home page. */
-export const FEATURED_PRODUCT_LIMIT = 6 as const;
+/**
+ * Products shown in the featured strip on the home page. Three fills one row of the
+ * three-column grid exactly, so the strip never ends on a lone card.
+ */
+export const FEATURED_PRODUCT_LIMIT = 3 as const;

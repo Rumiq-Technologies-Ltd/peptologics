@@ -186,9 +186,11 @@ export default async function HomePage() {
             ))}
           </ul>
 
-          <Button asChild variant="outline" className="mt-8">
-            <Link href={ROUTES.products}>View all products</Link>
-          </Button>
+          <div className="mt-8 flex justify-center">
+            <Button asChild variant="outline">
+              <Link href={ROUTES.products}>View all products</Link>
+            </Button>
+          </div>
         </Section>
       ) : null}
 

@@ -69,7 +69,12 @@ export const COA_ENTRIES: Readonly<Record<string, CoaEntry>> = {
         file: "/coa/AX-2026-3736-HDRU.pdf",
       },
     ],
-    previous: { verification: bio("COA9409"), file: "/coa/ipamorelin-10mg.webp" },
+    previous: {
+      verification: bio("COA9409"),
+      lot: "IPA10-260101-060",
+      purity: "99.72%",
+      file: "/coa/ipamorelin-10mg.webp",
+    },
   },
   "tesamorelin-20mg": {
     current: [
@@ -83,6 +88,7 @@ export const COA_ENTRIES: Readonly<Record<string, CoaEntry>> = {
     previous: {
       verification: bio("COA9403"),
       lot: "Tesa10-260101-054",
+      purity: "99.73%",
       file: "/coa/tesamorelin-10mg.webp",
       label: "Previous certificate · 10 mg lot",
     },
@@ -116,12 +122,55 @@ export const COA_ENTRIES: Readonly<Record<string, CoaEntry>> = {
   },
 
   // Hosted Bioviridian scans.
-  "bpc-157-10mg": { current: [{ verification: bio("COA9405"), file: "/coa/bpc-157-10mg.webp" }] },
-  "mots-c-40mg": { current: [{ verification: bio("COA9404"), file: "/coa/mots-c-40mg.webp" }] },
-  "ghk-cu-100mg": { current: [{ verification: bio("COA9406"), file: "/coa/ghk-cu-100mg.webp" }] },
-  "kpv-10mg": { current: [{ verification: bio("COA9407"), file: "/coa/kpv-10mg.webp" }] },
+  "bpc-157-10mg": {
+    current: [
+      {
+        verification: bio("COA9405"),
+        lot: "BPC10-260101-057",
+        purity: "99.78%",
+        file: "/coa/bpc-157-10mg.webp",
+      },
+    ],
+  },
+  "mots-c-40mg": {
+    current: [
+      {
+        verification: bio("COA9404"),
+        lot: "MS40-260101-058",
+        purity: "99.76%",
+        file: "/coa/mots-c-40mg.webp",
+      },
+    ],
+  },
+  "ghk-cu-100mg": {
+    current: [
+      {
+        verification: bio("COA9406"),
+        lot: "GHK100-260101-060",
+        purity: "99.68%",
+        file: "/coa/ghk-cu-100mg.webp",
+      },
+    ],
+  },
+  "kpv-10mg": {
+    current: [
+      {
+        verification: bio("COA9407"),
+        lot: "KPV10-260101-055",
+        purity: "99.78%",
+        file: "/coa/kpv-10mg.webp",
+      },
+    ],
+  },
   "wolverine-20mg": {
-    current: [{ verification: bio("COA9408"), file: "/coa/wolverine-20mg.webp" }],
+    current: [
+      {
+        verification: bio("COA9408"),
+        lot: "WOLV20-260101-058",
+        purity: "99.74%",
+        file: "/coa/wolverine-20mg.webp",
+      },
+    ],
   },
 
   // Reports issued to other companies. They stay as they are today, pending the owner's

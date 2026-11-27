@@ -44,6 +44,17 @@ describe("COA entries", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("gives every report with a verification code a lot and a purity, except the other-company reports", () => {
+    const otherCompany = new Set(["ss-31-10mg", "nad-plus-500mg"]);
+
+    for (const [slug, report] of allReports) {
+      if (!report.verification || otherCompany.has(slug)) continue;
+      const label = `${slug} ${report.verification.reportId}`;
+      expect(report.lot, label).toBeTruthy();
+      expect(report.purity, label).toMatch(/^\d{2}\.\d{1,2}%/);
+    }
+  });
+
   it("gives every link-only report a lab and a code, since the lab is all it has", () => {
     for (const [slug, entry] of Object.entries(COA_ENTRIES)) {
       if (!isLinkOnly(entry)) continue;

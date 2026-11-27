@@ -8,16 +8,20 @@ import { Button } from "@/components/ui/button";
 import { HexFrame } from "@/components/ui/HexFrame";
 import { ROUTES } from "@/constants/routes";
 import { SITE_NAME } from "@/constants/site";
+import { ContactForm } from "@/features/contact/components/ContactForm";
 import { contactEmail } from "@/lib/env.client";
 
 /**
  * Contact page.
  *
- * No contact form yet, on purpose. A second form would need its own validation,
- * rate limiting, spam defence and notification path — all of which the inquiry
- * pipeline builds in Phase 5. Adding a throwaway form now would mean two
- * submission paths to maintain and secure. Until then this page routes people to
- * the channels that actually work.
+ * A short message form (name, email, message) sits above the other ways to reach us. It is
+ * email only: nothing is stored, the company is emailed with Reply-To set to the visitor,
+ * and the visitor gets a fixed-text confirmation (D33). It reuses the inquiry form's
+ * validation, honeypot, dwell-time check, rate limiter (own bucket) and email layer rather
+ * than adding a second pipeline. The quotation and email cards stay below as the fallback
+ * when the form cannot send.
+ *
+ * The page is a Server Component; `ContactForm` is the only client boundary.
  */
 export const metadata: Metadata = {
   title: "Contact",
@@ -31,8 +35,19 @@ export default function ContactPage() {
       <PageHero
         eyebrow="Get in touch"
         title="Contact us"
-        lead="Questions about availability, vial sizes, or lot documentation are welcome before you order. A representative answers every inquiry personally."
+        lead="Questions about availability, vial sizes, or lot documentation are welcome before you order. Send us a message below and a representative will answer it personally."
       />
+
+      <Section aria-labelledby="message-heading">
+        <div className="max-w-2xl">
+          <h2 id="message-heading" className="text-h2 text-ink-950 font-bold">
+            Send us a message
+          </h2>
+          <div className="mt-6">
+            <ContactForm />
+          </div>
+        </div>
+      </Section>
 
       <Section surface="muted" reveal aria-labelledby="channels-heading">
         <h2 id="channels-heading" className="sr-only">

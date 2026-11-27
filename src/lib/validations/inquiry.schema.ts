@@ -40,7 +40,7 @@ import {
  * a non-empty string and pass `min(1)`, but sanitising strips them all and leaves
  * `""` — which would store an empty name. The `.pipe()` catches exactly that.
  */
-function sanitizedText(options: {
+export function sanitizedText(options: {
   min: number;
   max: number;
   requiredError: string;

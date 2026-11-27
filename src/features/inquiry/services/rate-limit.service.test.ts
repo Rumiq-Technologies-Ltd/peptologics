@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { INQUIRY_RATE_LIMIT_MAX, INQUIRY_RATE_LIMIT_WINDOW_SECONDS } from "@/constants/business";
+import {
+  CONTACT_RATE_LIMIT_MAX,
+  CONTACT_RATE_LIMIT_WINDOW_SECONDS,
+  INQUIRY_RATE_LIMIT_MAX,
+  INQUIRY_RATE_LIMIT_WINDOW_SECONDS,
+} from "@/constants/business";
 import type { RateLimitRepository } from "@/features/inquiry/services/rate-limit.repository";
 import { createRateLimitService } from "@/features/inquiry/services/rate-limit.service";
 
@@ -69,5 +74,31 @@ describe("checkInquiry", () => {
      */
     expect(verdict.allowed).toBe(true);
     expect(verdict.retryAfterSeconds).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("checkContact", () => {
+  it("counts in its own contact: bucket, apart from the inquiry bucket", async () => {
+    const { service, hit } = makeHarness();
+
+    await service.checkContact("hashed-ip");
+
+    expect(hit).toHaveBeenCalledWith(
+      "contact:hashed-ip",
+      CONTACT_RATE_LIMIT_MAX,
+      CONTACT_RATE_LIMIT_WINDOW_SECONDS,
+    );
+    expect(hit).not.toHaveBeenCalledWith("inquiry:hashed-ip", expect.anything(), expect.anything());
+  });
+
+  it("fails open when the counter is unreachable", async () => {
+    const { service } = makeHarness(async () => {
+      throw new Error("database unreachable");
+    });
+
+    await expect(service.checkContact("hashed-ip")).resolves.toMatchObject({
+      allowed: true,
+      limit: CONTACT_RATE_LIMIT_MAX,
+    });
   });
 });

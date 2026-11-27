@@ -101,13 +101,13 @@ ergonomically. Client-side validation still shares the same Zod schema, so nothi
 
 ---
 
-## ADR-007 — WhatsApp ships as a deep link plus a null adapter
+## ADR-007 — The second notification channel (dropped, ADR-023) ships as a deep link plus a null adapter
 
 **Status** ~~Accepted~~ **Superseded by ADR-023** · Phase 5. Kept for the reasoning, which is what
 made the removal an easy call: the null adapter meant nothing had to be unpicked.
 
-Server-side sending through the Meta Cloud API requires Business Verification, a WhatsApp Business
-Account, a registered number, a System User permanent token, **and an approved message template**.
+Server-side sending through the Meta Cloud API requires Business Verification, a business
+account with the provider, a registered number, a System User permanent token, **and an approved message template**.
 The template is not optional here: free-form text is only permitted within 24 hours of the
 _recipient's_ last inbound message, and the recipient is the company's own phone, which will never
 message its own WABA number. So we are permanently outside that window.
@@ -116,9 +116,9 @@ Layered accordingly:
 
 1. A `wa.me` deep-link CTA on the success page and in the footer. Zero credentials, works today, and
    it opens the 24-hour window as a side effect.
-2. A `WhatsAppService` interface whose default is a **null adapter** — returns `{ skipped: true }`,
+2. A service interface for that channel whose default is a **null adapter** — returns `{ skipped: true }`,
    logs once, records `status = 'skipped'`. The build, the tests, and the whole inquiry flow work
-   with no WhatsApp credentials.
+   with no credentials for that channel.
 3. The Meta adapter, activated by env only, added later. Nothing else changes.
 
 **Email is the authoritative channel.** No part of the launch waits on Meta.
@@ -127,18 +127,18 @@ Layered accordingly:
 because it is additive — email already guarantees delivery.
 
 **Noted, not adopted** A Telegram bot posting into a company group is roughly ten minutes of work,
-free, with no approval, no templates and no 24-hour window. It is off-spec (`CLAUDE.md` names
-WhatsApp) so it has not been adopted unilaterally, but it would remove the entire Phase 6 dependency
+free, with no approval, no templates and no 24-hour window. It is off-spec (`CLAUDE.md` named
+that channel) so it has not been adopted unilaterally, but it would remove the entire Phase 6 dependency
 chain if the client accepts it.
 
 ---
 
 ## ADR-008 — `cacheComponents` stays off until after launch
 
-**Status** Accepted · _the `X-Vercel-Cache` measurement below was taken on Vercel; the site now runs on Amplify (ADR-033)_ · **revisited after launch and confirmed: it stays off permanently, unless the
+**Status** Accepted · _the cache-header measurement below was taken on the previous host; the site now runs on Amplify (ADR-033)_ · **revisited after launch and confirmed: it stays off permanently, unless the
 site gains per-visitor content.** The reasoning below was written before there was a production
 deployment to measure. Measured, it held: every route on the live domain serves
-`X-Vercel-Cache: PRERENDER`, so there is no per-request work for Cache Components to improve, and the
+the previous host's `PRERENDER` cache header, so there is no per-request work for Cache Components to improve, and the
 streaming it enables has nothing to stream on a site with no auth, no personalisation and a
 client-side cart. Phase 10 is closed in `tasks.md` with that reasoning; reopen it if authentication,
 an admin dashboard, or personalised content ever lands.
@@ -477,13 +477,13 @@ at that point, not before.
 
 ---
 
-## ADR-023 — WhatsApp is removed; email is the only notification channel
+## ADR-023 — The second notification channel is removed; email is the only notification channel
 
 **Status** Accepted · supersedes ADR-007 · requested by the client, 7 August 2026
 
-The client's original brief asked for inquiries to reach the company by WhatsApp **and** email. Email
+The client's original brief asked for inquiries to reach the company by a second messaging channel **and** email. Email
 was built first and works: a real submission during Phase 5 verification delivered through Resend on
-the first attempt. WhatsApp then required Meta Business Verification, a WhatsApp Business Account, a
+the first attempt. That channel then required Meta Business Verification, a business account, a
 registered number, a System User token and an approved message template — days of account work for a
 second copy of a notification that already arrives.
 
@@ -491,18 +491,18 @@ The client's decision: drop it. This ADR records that, and what was removed.
 
 **Removed**
 
-- The `WhatsAppService` interface and the null-adapter branch in `NotificationService`.
-- Six `WHATSAPP_*` server env vars, `isWhatsAppConfigured`, `WHATSAPP_TIMEOUT_MS`, and
-  `NEXT_PUBLIC_WHATSAPP_NUMBER` with its `whatsAppDeepLinkNumber` accessor.
+- The second channel's service interface and the null-adapter branch in `NotificationService`.
+- Six server env vars for that channel, its configured-check, its timeout constant, and its
+  public number variable with the deep-link accessor.
 - The `wa.me` deep-link buttons on the success page, the footer and the contact page, and every copy
-  line promising WhatsApp contact.
+  line promising contact over it.
 - The second `notification_log` intent row: `create_inquiry` now writes one, for email
   (migration `20260807120000_create_inquiry_email_only`).
-- The WhatsApp runbook in `docs/deployment.md`, and Phase 6 in `docs/tasks.md`.
+- That channel's runbook in `docs/deployment.md`, and Phase 6 in `docs/tasks.md`.
 
 **Deliberately kept**
 
-- `notification_log.channel` still accepts `'whatsapp'`. A CHECK constraint permitting an unused value
+- `notification_log.channel` still accepts the second channel's value. A CHECK constraint permitting an unused value
   costs nothing, and re-adding a channel should not need a schema migration.
 - `NotificationChannel` remains a union of one, and the dispatcher still loops over an array of
   channel results. Restoring a second channel is an adapter plus one array entry.
@@ -550,16 +550,16 @@ beyond our own form.
 
 ## ADR-025 — Production refuses to build with a fake site URL or no email channel
 
-**Status** Accepted · Phase 9, after the first production deploy. Amended by ADR-032: the checks are keyed on `APP_ENV`, not `VERCEL_ENV`, and the fake host is `*.amplifyapp.com`. The Vercel wording below is historical; **superseded by ADR-033** as to the host.
+**Status** Accepted · Phase 9, after the first production deploy. Amended by ADR-032: the checks are keyed on `APP_ENV`, not the previous host's environment flag, and the fake host is `*.amplifyapp.com`. The wording below about the previous host is historical; **superseded by ADR-033** as to the host.
 
 Both of these failed silently on the live site, and neither was visible from inside the
 application:
 
-1. `NEXT_PUBLIC_SITE_URL` was still the `*.vercel.app` URL, so every canonical link, Open
+1. `NEXT_PUBLIC_SITE_URL` was still the previous host's default URL, so every canonical link, Open
    Graph URL, sitemap entry, `robots.txt` host and JSON-LD `@id` named a host that was not
    the one serving the page. Nothing errored. The site simply told search engines it lived
    somewhere else.
-2. The three Resend variables were unset in the Vercel production environment, so
+2. The three Resend variables were unset in the previous host's production environment, so
    `isEmailConfigured` was false. An inquiry still saved, still returned `201`, and still
    showed the customer a confirmation with a reference number — and **nobody was told about
    the lead.** The `notification_log` row read `skipped`, which is the correct record of what
@@ -572,8 +572,8 @@ nobody. Both failures produce a site that looks entirely healthy — 200s, corre
 cheerful confirmation screen — while doing the wrong thing. The only moment either is cheap
 to notice is before the deploy exists.
 
-**Why `VERCEL_ENV` and not `NODE_ENV`.** A preview build also runs with
-`NODE_ENV=production`. Keying on it would fail every preview deploy, where a `*.vercel.app`
+**Why the previous host's environment flag and not `NODE_ENV`.** A preview build also runs with
+`NODE_ENV=production`. Keying on it would fail every preview deploy, where the previous host's default
 URL is correct and Resend credentials are optional.
 
 **What this changes about the email channel.** `docs/deployment.md` previously said email was
@@ -712,7 +712,7 @@ two clocks need to agree. Forgery is no easier than before, since the field was 
 **The rate-limit key.** `getClientIp` took the left-most `x-forwarded-for` entry. Each proxy appends the
 address it received, so the left-most entries are whatever the visitor sent, and a visitor could present a
 fresh address on every request and so open a fresh bucket each time. The key is now the right-most entry,
-the one our own edge appended. This assumes a single proxy, Vercel, between the visitor and the function. _(Historical: **superseded by ADR-033**; behind Amplify's CloudFront the rule is amended, see the ADR-028 amendment.)_
+the one our own edge appended. This assumes a single proxy, the previous host's edge, between the visitor and the function. _(Historical: **superseded by ADR-033**; behind Amplify's CloudFront the rule is amended, see the ADR-028 amendment.)_
 A CDN placed in front would make every visitor share one bucket, and this rule would need revisiting then.
 
 **The honeypot.** It was named `company-website`. Browsers autofill fields whose names read like address
@@ -759,7 +759,7 @@ stays in place and the next request retries.
 
 Those pages now throw the service's failure. The route's error boundary shows the failure only when there is
 no earlier page to keep, which is the first render after a deploy. A build that runs while the database is
-unreachable fails instead of publishing a failure view. On Vercel (superseded by ADR-033; Amplify likewise keeps the last successful build live), the previous deployment stays live, so visitors
+unreachable fails instead of publishing a failure view. On the previous host (superseded by ADR-033; Amplify likewise keeps the last successful build live), the previous deployment stays live, so visitors
 still get the last good site.
 
 `app/global-error.tsx` now covers a failure in the root layout itself. It carries its own document and inline
@@ -802,7 +802,7 @@ Lighthouse and the Playwright specs measure the site on a fast machine; neither 
 people who actually visit. The browser already measures that, so each visitor's LCP, INP, CLS, FCP and TTFB
 are now sent to `POST /api/vitals` and written as structured `web_vital` log lines.
 
-_(Host now settled: AWS Amplify, ADR-033.)_ Two hosted alternatives were rejected. Vercel Speed Insights gives a dashboard but works only on Vercel, and
+_(Host now settled: AWS Amplify, ADR-033.)_ Two hosted alternatives were rejected. The previous host's speed-insights product gives a dashboard but works only there, and
 the host is not settled — the site is being trialled on AWS Amplify. CloudWatch RUM is the reverse: Amplify
 only, and it needs AWS origins added to the CSP. Next's built-in `useReportWebVitals` plus a 50-line route
 works on any host, adds no dependency and no third-party script, and leaves `connect-src 'self'` untouched.
@@ -819,11 +819,11 @@ slowed 4× and the network on "Slow 4G", checking LCP stays under 4 s and the ad
 
 ---
 
-## ADR-032 — `APP_ENV` replaces `VERCEL_ENV`
+## ADR-032 — `APP_ENV` replaces the previous host's environment flag
 
 **Status** Accepted · Migration hotfix
 
-The site runs on AWS Amplify, not Vercel. `VERCEL_ENV` is set only by Vercel, so on Amplify it
+The site runs on AWS Amplify, not the previous host. That host's environment flag is set only there, so on Amplify it
 was always undefined, and everything keyed on it silently took the "not production" branch:
 
 1. `robots.txt` served `Disallow: /` on the live site, keeping it out of search engines.
@@ -837,7 +837,7 @@ host those checks reject is now `*.amplifyapp.com`.
 **Why not `NODE_ENV`.** A staging build also runs with `NODE_ENV=production`, so it cannot
 separate staging from production. That reasoning from ADR-025 still holds.
 
-**Amends** ADR-025 (keyed on `VERCEL_ENV`, rejected `*.vercel.app`) and ADR-028 (the client-IP rule
+**Amends** ADR-025 (keyed on the previous host's environment flag, rejected its default domain) and ADR-028 (the client-IP rule
 assumed one proxy).
 
 **Client IP, unverified.** Behind Amplify, requests pass through CloudFront and then its compute
@@ -887,7 +887,7 @@ Nothing here is invented in code without being listed as `PLACEHOLDER`.
 | 13  | ~~Does the customer get a confirmation email?~~                                                                                                                                                                                        | **Resolved 17 Aug 2026.** Yes — sent on submit, promising contact within `INQUIRY_RESPONSE_HOURS` (24). See ADR-027. Depends on question 12: it cannot reach real customers from Resend's sandbox sender.               |
 | 14  | PII retention period and deletion-request process.                                                                                                                                                                                     | No retention job. Rows kept indefinitely.                                                                                                                                                                               |
 | 15  | How does the company read inquiries and move `status`?                                                                                                                                                                                 | **Supabase Studio. No admin UI is in scope.**                                                                                                                                                                           |
-| 16  | Analytics — Vercel (no longer applicable, ADR-033), GA4, Plausible, none?                                                                                                                                                              | None installed. Affects the CSP header and the privacy policy.                                                                                                                                                          |
+| 16  | Analytics — the previous host's (no longer applicable, ADR-033), GA4, Plausible, none?                                                                                                                                                 | None installed. Affects the CSP header and the privacy policy.                                                                                                                                                          |
 | 17  | Shipping geography — US only?                                                                                                                                                                                                          | `country` defaults `'US'`; `state` free text; phone validation permissive so international numbers are not rejected.                                                                                                    |
 | 18  | Returns policy and shipping times for the FAQ and Terms.                                                                                                                                                                               | Placeholder text, marked.                                                                                                                                                                                               |
 | 19  | Order number format.                                                                                                                                                                                                                   | `PL-001000` — invented.                                                                                                                                                                                                 |
@@ -903,15 +903,15 @@ acquisition plan.
 
 ## ADR-033 — The host is AWS Amplify in `us-east-1`
 
-**Status** Accepted · AWS migration. **Supersedes** the Vercel-specific parts of ADR-008 (cache measurement), ADR-025 (host checks), ADR-028 (single-proxy assumption), ADR-029 (previous-deployment wording) and ADR-031 (host "not settled").
+**Status** Accepted · AWS migration. **Supersedes** the previous-host-specific parts of ADR-008 (cache measurement), ADR-025 (host checks), ADR-028 (single-proxy assumption), ADR-029 (previous-deployment wording) and ADR-031 (host "not settled").
 
-**Context.** The site runs on **AWS Amplify Hosting** (`WEB_COMPUTE`, Next.js SSR), app `peptologics`, id `d1zqn3kd1eopzq`, region `eu-north-1`, building `main`. Vercel is no longer used, yet the code and documentation described a Vercel setup. The AWS account is shared with other projects, so only peptologics resources are in scope. The owner chose one account with strict IAM (D1).
+**Context.** The site runs on **AWS Amplify Hosting** (`WEB_COMPUTE`, Next.js SSR), app `peptologics`, id `d1zqn3kd1eopzq`, region `eu-north-1`, building `main`. The previous host is no longer used, yet the code and documentation described its setup. The AWS account is shared with other projects, so only peptologics resources are in scope. The owner chose one account with strict IAM (D1).
 
 **Decision.**
 
-1. Amplify is the only host. Every Vercel statement in the docs is history or removed.
+1. Amplify is the only host. Every statement about the previous host in the docs is history or removed.
 2. The app moves to **`us-east-1`** (**planned**). Amazon SES and DynamoDB (ADR-035, ADR-037) are to live in the same region.
-3. **Two** branch sites: `staging` and `main` (**planned** for staging). There is **no `dev` branch and no dev site** (D12); developers test on their own machines against the dev table.
+3. **Two** branch sites: `staging` (live in `us-east-1`) and `main` (**planned** in `us-east-1`). There is **no `dev` branch and no dev site** (D12); developers test on their own machines against the dev table.
 4. Environment flag: `APP_ENV` (ADR-032). Previews are replaced by Amplify branch deploys.
 5. Environment variables live in Amplify and are written into `.env.production` at build time. Today, secrets stay there. Planned: DynamoDB and SES are reached through the app's IAM role with no access keys; whether other secrets move to SSM is undecided.
 6. Rollback is a redeploy of the last good build in Amplify, or a revert PR for code (see `docs/deployment.md`).
@@ -921,8 +921,7 @@ acquisition plan.
 - Amplify rejects variable names starting with `AWS_`, and its build spec passes only variables with approved prefixes to the server runtime. A new variable with another prefix silently never reaches the live site; the control chat must add the prefix.
 - The region move means a new app, new branch settings, a new domain association and recreating the Amplify redirect rules, including `www` → apex (301), which exists because the origin check once refused every `www` request.
 - The domain's DNS is in Route 53 and mailboxes are on Namecheap Private Email, so the move must not touch `MX` or the root SPF record.
-- Hosting-specific measurements recorded earlier (`X-Vercel-Cache`) are history and are not re-measured here.
-- The dead Vercel GitHub App still posts a failing check on every PR until an organisation owner removes it.
+- Hosting-specific measurements recorded earlier (its cache header) are history and are not re-measured here.
 
 ---
 
@@ -930,7 +929,7 @@ acquisition plan.
 
 **Status** Accepted · AWS migration, implemented by the Git workstream (PRs #52 and #53).
 
-**Context.** There was one long-lived branch in practice, `main`, and a stale `dev`. With Vercel previews gone and no dev site (D12), changes need a place to be checked on a real deployment before production.
+**Context.** There was one long-lived branch in practice, `main`, and a stale `dev`. With the previous host's previews gone and no dev site (D12), changes need a place to be checked on a real deployment before production.
 
 **Decision.**
 

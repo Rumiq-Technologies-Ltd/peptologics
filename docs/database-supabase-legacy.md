@@ -121,7 +121,7 @@ updates it afterwards. Nothing can throw back into the order transaction.
 `channel` is `email` \| `customer_email`. The first is the internal notification to the company; the
 second is the confirmation to the customer who submitted (ADR-027). They are separate rows rather than
 one send to two recipients precisely because this table is keyed `(order_id, channel)` — one row cannot
-record two verdicts, and an operator needs to know _which_ of the two went missing. `whatsapp` remains
+record two verdicts, and an operator needs to know _which_ of the two went missing. the second channel's value remains
 in the CHECK constraint for historical rows only and is unused (ADR-023).
 
 `status` is `pending` \| `sent` \| `failed` \| `skipped`. **`skipped` is a first-class outcome**, not an
@@ -265,7 +265,7 @@ Files under `supabase/migrations/`, in order:
 | `…100800_grants.sql`                                           | anon `SELECT` on products; revoke `TRUNCATE`/`TRIGGER`/`REFERENCES` |
 | `…100900_service_role_grants.sql`                              | Write-path DML for `service_role`                                   |
 | `…101000_harden_rls_auto_enable.sql`                           | Revoke `EXECUTE` on the pre-existing event-trigger function         |
-| `…120000_create_inquiry_email_only.sql` (7 Aug)                | Drops the WhatsApp intent row (ADR-023)                             |
+| `…120000_create_inquiry_email_only.sql` (7 Aug)                | Drops the second channel's intent row (ADR-023)                     |
 | `…190140_products_strength_unit.sql` (10 Aug)                  | `products.strength_unit` for supplies sold by volume                |
 | `…140431_orders_coupon_discount.sql` (11 Aug)                  | `orders.coupon_code`, `orders.discount_cents`                       |
 | `…140500_create_inquiry_with_coupon.sql` (11 Aug)              | Stores the coupon and discount the service computed                 |

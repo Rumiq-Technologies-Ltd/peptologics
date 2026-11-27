@@ -92,7 +92,7 @@ export interface InquiryNotification {
  * confirmation that never arrived is a customer wondering whether the form worked. The
  * dead-letter list has to be able to say which one happened.
  *
- * WhatsApp was removed in favour of email alone; see ADR-023.
+ * A second notification channel was removed in favour of email alone; see ADR-023.
  */
 export type NotificationChannel = "email" | "customer_email";
 

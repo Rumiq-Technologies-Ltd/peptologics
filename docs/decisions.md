@@ -1014,3 +1014,31 @@ acquisition plan.
 - **Retrying after a timeout or network error can send a duplicate email**, because SES may have accepted the first attempt. This is deliberate: a duplicate is preferable to a lost email.
 - Until SES production access is granted, SES delivers only to the verified domain, so customer confirmations cannot be live-tested before then.
 - Until the later cleanup PR, both transports and `RESEND_API_KEY` stay in the code base.
+
+---
+
+## ADR-038 — The admin lives at `/admin`, behind Cognito, with Owner and Editor roles
+
+**Status** Accepted (D35, D36, 2026-11-27) · Admin workstream, Phase 1 (Chat 11). On staging and developer machines now; **live only after Stage 4**. Until then it returns 404 in production.
+
+**Context.** Staff need to manage products, orders, lab reports and page content without a developer (this replaces D4). Until now the site was fully public and static. The admin is its first authenticated surface, so it sets the security model for every later phase.
+
+**Decision.**
+
+- **Login is Amazon Cognito managed login**: authorization-code flow with PKCE, email, password and a TOTP code. There is no sign-up path; an administrator creates users. MFA, password rules and lockout are Cognito's.
+- **Sessions are httpOnly, Secure, `SameSite=Strict` cookies** set by the `@aws-amplify/adapter-nextjs` route handlers at `/api/auth/*`. No token reaches JavaScript or localStorage. The callbacks are `/api/auth/sign-in-callback` and `/api/auth/sign-out-callback`.
+- **Strict works for the tokens; the state cookies are Lax.** The library sets the short-lived state and PKCE cookies `SameSite=Lax`, because a browser does not send a Strict cookie when Cognito redirects back to us, and it sets the token cookies on a 200 page that redirects client-side, so they are present on the next same-site request. A test pins both (`signInCookies.test.ts`), so a library change fails the build. `Lax` was the fallback and was not needed.
+- **Every request is verified on the server** with `aws-jwt-verify` (`iss`, `client_id`/`aud`, `token_use`, `exp`, and that the access and ID tokens belong to the same user). `requireAdmin({ role })` is the one check, used by every admin page, action and route. `proxy.ts` only redirects signed-out visitors, refreshes cookies and sets the CSP; it is not the boundary.
+- **Roles are Cognito groups**, from the `cognito:groups` claim: `owner` (everything) and `editor` (products, content, orders; no settings or staff). A signed-in user in neither group sees "No access". The UI hides what a role cannot use; the server refuses it.
+- **Boundary.** `/admin/**` is dynamic, `no-store`, `noindex, nofollow`, disallowed in `robots.txt` and absent from the sitemap. It has its own root layout, so none of the public chrome or the disclaimer gate loads, and a per-request nonce CSP, which the public site's static pages cannot use (see the note in `next.config.ts`).
+- **Two root layouts.** To give the admin its own `<html>`, the public routes moved into the `(site)` route group. URLs are unchanged. Two side effects were handled: `global-not-found.tsx` renders the public 404 for unmatched URLs, and Next adds a folder hash to metadata images inside a group, so the share images are now `opengraph-image-<hash>`; `next.config.ts` rewrites the old addresses to them.
+- **Audit log.** One DynamoDB item per admin action (`AUDIT#yyyy-mm`), holding staff email, role, action, target, time and request id. Phase 1 logs sign-in, sign-out and access denied; later phases log every change.
+- **On or off without a new variable.** Amplify passes only a fixed list of variable prefixes to the server, so there is no `ADMIN_ENABLED`. The admin is on only when the three Cognito settings are present, the store is DynamoDB and `APP_ENV` is not `production`. The last condition is removed by the Stage 4 PR.
+- **No new environment prefix.** The adapter wants `AMPLIFY_APP_ORIGIN`; the app sets it from `NEXT_PUBLIC_SITE_URL` in code.
+
+**Consequences.**
+
+- Three new server-side dependencies (`aws-amplify`, `@aws-amplify/adapter-nextjs`, `aws-jwt-verify`), pinned exactly. None reaches a client bundle (checked in the build output).
+- Staff are managed by hand in Cognito until a later phase adds a screen.
+- Sign-out is a GET link, so another site can sign someone out. Disabling a user in Cognito ends their session at the next token refresh (within 30 minutes), not instantly.
+- The share-image URLs gain a hash, and the rewrites depend on the folder names `(site)` and `products/[slug]`.

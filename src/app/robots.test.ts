@@ -30,7 +30,7 @@ describe("robots", () => {
   it("is open to crawlers for APP_ENV=production", async () => {
     const result = await robotsFor("production");
 
-    expect(result.rules).toEqual({ userAgent: "*", allow: "/", disallow: ["/api/"] });
+    expect(result.rules).toEqual({ userAgent: "*", allow: "/", disallow: ["/api/", "/admin"] });
     expect(result.sitemap).toBe("https://peptologics.com/sitemap.xml");
   });
 });

@@ -91,6 +91,11 @@ const SECURITY_HEADERS = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 
+const ADMIN_HEADERS = [
+  { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+  { key: "Cache-Control", value: "private, no-store, max-age=0" },
+];
+
 /**
  * The Supabase Storage host, derived from the project URL rather than hardcoded.
  *
@@ -145,6 +150,13 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
   },
 
+  /**
+   * Renders `app/global-not-found.tsx` for URLs that match no route. Needed because the site
+   * and the admin are separate root layouts (ADR-038), so there is no shared layout to hold a
+   * plain `not-found.tsx`.
+   */
+  experimental: { globalNotFound: true },
+
   // Emits no `X-Powered-By: Next.js`. Free, and there is no reason to advertise the
   // framework and its version to anyone scanning.
   poweredByHeader: false,
@@ -156,6 +168,13 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: SECURITY_HEADERS,
       },
+      {
+        // The admin and its sign-in routes: never indexed, never cached by a browser or a CDN
+        // (ADR-038). The nonce-based CSP for `/admin` is set per request in `src/proxy.ts`.
+        source: "/admin/:path*",
+        headers: ADMIN_HEADERS,
+      },
+      { source: "/api/auth/:path*", headers: ADMIN_HEADERS },
     ];
   },
 
@@ -178,6 +197,27 @@ const nextConfig: NextConfig = {
    * case where redirecting is the wrong answer. Otherwise leave them alone: a stale
    * redirect costs nothing, and deleting one breaks links that are already in the wild.
    */
+  /**
+   * Share-image URLs keep their old addresses.
+   *
+   * Moving the public routes into the `(site)` group (ADR-038) makes Next add a hash of the
+   * route's folder to the name of every metadata image inside it, so the site share image is
+   * now served at `/opengraph-image-<hash>` and the product one at
+   * `/products/<slug>/opengraph-image-<hash>`, and each page's `og:image` tag points there.
+   * Links shared or cached before the move still name the unhashed addresses; these keep
+   * them working. The hashes come from the folders `/(site)` and `/(site)/products/[slug]`,
+   * so they change only if those folders move (the build output lists the current ones).
+   */
+  async rewrites() {
+    return [
+      { source: "/opengraph-image", destination: "/opengraph-image-12o0cb" },
+      {
+        source: "/products/:slug/opengraph-image",
+        destination: "/products/:slug/opengraph-image-17ynyi",
+      },
+    ];
+  },
+
   async redirects() {
     return [
       /*

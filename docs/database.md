@@ -34,16 +34,17 @@ script.
 
 ## Entities
 
-| Entity               | PK                               | SK                  | Other keys and notes                                                                                                      |
-| -------------------- | -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Product              | `PRODUCT#<id>`                   | `META`              | `GSI1PK=PRODUCTS`, `GSI1SK=<sort_order, 6 digits>#<name>`, `GSI2PK=SLUG#<slug>`. `cost_per_mg` is computed on write       |
-| Slug guard           | `SLUG#<slug>`                    | `GUARD`             | Written with a product under `attribute_not_exists`, to make a slug unique                                                |
-| Order                | `ORDER#<id>`                     | `META`              | `GSI1PK=ORDERS#<yyyy-mm UTC>`, `GSI1SK=<created_at ISO>`: newest-first per month, for staff and the future admin page     |
-| Order item           | `ORDER#<id>`                     | `ITEM#<product_id>` | The sort key makes one line per product automatic                                                                         |
-| Notification         | `ORDER#<id>`                     | `NOTIF#<channel>`   | `channel` is `email` or `customer_email`. `GSI3PK=NOTIF_OPEN`, `GSI3SK=<created_at>#<order_id>#<channel>` only while open |
-| Idempotency guard    | `IDEMP#<idempotency_key>`        | `GUARD`             | Holds `order_id` and `order_number`, so a replay is answered with one read                                                |
-| Order-number counter | `COUNTER#order_number`           | `META`              | `seq`. Advanced with `SET seq = if_not_exists(seq, 999) + 1`, so a fresh table's first order is `PL-001000`               |
-| Rate-limit bucket    | `RL#<bucket_key>#<window_start>` | `META`              | `hits`, advanced by `ADD`. `expires_at` (epoch seconds) is the TTL attribute                                              |
+| Entity               | PK                               | SK                     | Other keys and notes                                                                                                                 |
+| -------------------- | -------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Product              | `PRODUCT#<id>`                   | `META`                 | `GSI1PK=PRODUCTS`, `GSI1SK=<sort_order, 6 digits>#<name>`, `GSI2PK=SLUG#<slug>`. `cost_per_mg` is computed on write                  |
+| Slug guard           | `SLUG#<slug>`                    | `GUARD`                | Written with a product under `attribute_not_exists`, to make a slug unique                                                           |
+| Order                | `ORDER#<id>`                     | `META`                 | `GSI1PK=ORDERS#<yyyy-mm UTC>`, `GSI1SK=<created_at ISO>`: newest-first per month, for staff and the future admin page                |
+| Order item           | `ORDER#<id>`                     | `ITEM#<product_id>`    | The sort key makes one line per product automatic                                                                                    |
+| Notification         | `ORDER#<id>`                     | `NOTIF#<channel>`      | `channel` is `email` or `customer_email`. `GSI3PK=NOTIF_OPEN`, `GSI3SK=<created_at>#<order_id>#<channel>` only while open            |
+| Idempotency guard    | `IDEMP#<idempotency_key>`        | `GUARD`                | Holds `order_id` and `order_number`, so a replay is answered with one read                                                           |
+| Order-number counter | `COUNTER#order_number`           | `META`                 | `seq`. Advanced with `SET seq = if_not_exists(seq, 999) + 1`, so a fresh table's first order is `PL-001000`                          |
+| Admin audit entry    | `AUDIT#<yyyy-mm>`                | `<ISO timestamp>#<id>` | `actor_email`, `actor_role`, `action`, `target`, `request_id`. Append-only; one month is one Query (ADR-038, [admin.md](./admin.md)) |
+| Rate-limit bucket    | `RL#<bucket_key>#<window_start>` | `META`                 | `hits`, advanced by `ADD`. `expires_at` (epoch seconds) is the TTL attribute                                                         |
 
 ## Access patterns
 

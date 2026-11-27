@@ -68,7 +68,12 @@ export function createProductService({ repository }: ProductServiceDeps): Produc
 
     async listFeatured(): Promise<ServiceResult<Product[]>> {
       try {
-        const featured = await repository.findFeatured(FEATURED_PRODUCT_LIMIT);
+        // Slice as well as ask: the home page lays out exactly this many cards, so a
+        // repository that returns more must not widen the strip.
+        const featured = (await repository.findFeatured(FEATURED_PRODUCT_LIMIT)).slice(
+          0,
+          FEATURED_PRODUCT_LIMIT,
+        );
 
         // A catalog with nothing flagged `featured` should not leave the home page
         // with an empty section, so fall back to the top of the default order.
@@ -77,7 +82,7 @@ export function createProductService({ repository }: ProductServiceDeps): Produc
             sort: "recommended",
             limit: FEATURED_PRODUCT_LIMIT,
           });
-          return ok(fallback);
+          return ok(fallback.slice(0, FEATURED_PRODUCT_LIMIT));
         }
 
         return ok(featured);

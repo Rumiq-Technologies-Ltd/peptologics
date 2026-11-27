@@ -18,7 +18,8 @@
 -- so the two can never drift apart. PL3 and PL2 COAs are links to the labs' own records.
 --
 -- image_url points at a vial photograph in `public/products/`, named for the slug.
--- A null renders the placeholder, which PL3 and PL2 use until new vial artwork arrives.
+-- A null renders the placeholder rather than breaking. PL3 and PL2 have their own vial
+-- artwork again (added 27 Nov 2026).
 --
 -- Where a compound is stocked in two vial sizes, the sizes sit next to each other in
 -- `sort_order` so the catalog reads as one product offered at two strengths rather than
@@ -45,12 +46,12 @@ values
   -- $7.50/mg. Retired 27 Aug 2026 and brought back 21 Sep 2026 at the client's request.
   -- The redirect to the 30 mg vial was removed from next.config.ts.
   -- COA: lab links only, see coaReports.ts.
-  ('pl3-10mg',  'PL3',          'peptide',  10,    7500,  false, false, 5,   null),
+  ('pl3-10mg',  'PL3',          'peptide',  10,    7500,  false, false, 5,   '/products/pl3-10mg.webp'),
   -- $6.00/mg. Renamed from its generic name to PL3 on 27 Aug 2026; the slug followed on
   -- 27 Nov 2026 (the old one redirects). Repriced 28 Aug 2026 against the official price menu
   -- (PeptoLogics_Price_Menu_Original.pdf).
   -- COA: lab links only, see coaReports.ts.
-  ('pl3-30mg',  'PL3',          'peptide',  30,    18000, false, true,  10,  null),
+  ('pl3-30mg',  'PL3',          'peptide',  30,    18000, false, true,  10,  '/products/pl3-30mg.webp'),
   -- $5.00/mg. Certificate refreshed 17 Sep 2026 (Bioviridian lot BPC10-260101-057).
   ('bpc-157-10mg',      'BPC-157',      'peptide',  10,    5000,  false, true,  20,  '/products/bpc-157-10mg.webp'),
   -- $4.25/mg. Added 24 Nov 2026. No certificate yet.
@@ -95,9 +96,9 @@ values
   -- $5.00/mg. Renamed to PL2 on 27 Aug 2026; the slug followed on 27 Nov 2026. Repriced 28 Aug 2026
   -- against the official price menu.
   -- COA: lab links only, see coaReports.ts.
-  ('pl2-30mg',  'PL2',          'peptide',  30,    15000, false, true,  150, null),
+  ('pl2-30mg',  'PL2',          'peptide',  30,    15000, false, true,  150, '/products/pl2-30mg.webp'),
   -- $7.50/mg. Added 24 Nov 2026. No certificate yet.
-  ('pl2-10mg',  'PL2',          'peptide',  10,    7500,  false, false, 155, null),
+  ('pl2-10mg',  'PL2',          'peptide',  10,    7500,  false, false, 155, '/products/pl2-10mg.webp'),
   -- $5.00/mg. Repriced 28 Aug 2026 against the official price menu. Certificate added
   -- 17 Sep 2026 (Bioviridian lot IPA10-260101-060).
   ('ipamorelin-10mg',   'IPA',          'peptide',  10,    5000,  false, false, 160, '/products/ipamorelin-10mg.webp'),

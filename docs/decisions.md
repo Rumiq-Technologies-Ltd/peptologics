@@ -1035,6 +1035,7 @@ acquisition plan.
 - **Audit log.** One DynamoDB item per admin action (`AUDIT#yyyy-mm`), holding staff email, role, action, target, time and request id. Phase 1 logs sign-in, sign-out and access denied; later phases log every change.
 - **On or off without a new variable.** Amplify passes only a fixed list of variable prefixes to the server, so there is no `ADMIN_ENABLED`. The admin is on only when the three Cognito settings are present, the store is DynamoDB and `APP_ENV` is not `production`. The last condition is removed by the Stage 4 PR.
 - **No new environment prefix.** The adapter wants `AMPLIFY_APP_ORIGIN`; the app sets it from `NEXT_PUBLIC_SITE_URL` in code.
+- **Amendment, Phase 3 (Orders, D41, 2026-11-28).** The audit log now also records `order_viewed` (an order's page shows personal data), `order_status_changed`, `order_note_added`, `order_hidden` and `order_restored`. An audit item holds the order number and the changed fields only: **no customer data and no note text.** Orders get `version` (optimistic lock) and `GSI2PK = ORDERNO#<number>` (open an order by its number), staff notes are append-only `NOTE#` items under the order, and "Mark as test / spam" is a soft delete (`deleted_at`). The admin's order reads use only Query, on `GSI1` by month, `GSI2` by number and `GSI3` for the email badge. Phase 3 repeats the Phase 2 transaction-commit pattern; the third use (Phase 4) extracts a shared admin helper.
 
 **Consequences.**
 

@@ -14,6 +14,8 @@ export type ServiceErrorCode =
   | "PRODUCT_UNAVAILABLE"
   | "EMPTY_SELECTION"
   | "PERSISTENCE_FAILED"
+  | "VERSION_CONFLICT"
+  | "SLUG_TAKEN"
   | "UNEXPECTED";
 
 export interface ServiceFailure {

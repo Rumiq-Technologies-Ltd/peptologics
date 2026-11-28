@@ -2,7 +2,8 @@ import { fetchAuthSession } from "aws-amplify/auth/server";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getAdminAuth } from "@/lib/admin/cognito.server";
-import { buildAdminCsp } from "@/lib/admin/csp";
+import { buildAdminCsp, mediaUploadOrigin } from "@/lib/admin/csp";
+import { AWS_REGION } from "@/lib/aws/config";
 import { ADMIN_PATHS } from "@/lib/admin/paths";
 import { adminEnabled, env } from "@/lib/env";
 
@@ -29,7 +30,11 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   if (!adminEnabled) return NextResponse.rewrite(new URL(DISABLED_REWRITE_PATH, request.url));
 
   const nonce = btoa(crypto.randomUUID());
-  const csp = buildAdminCsp(nonce, env.NODE_ENV !== "production");
+  const csp = buildAdminCsp(
+    nonce,
+    env.NODE_ENV !== "production",
+    mediaUploadOrigin(env.NEXT_PUBLIC_MEDIA_BUCKET_NAME, AWS_REGION),
+  );
 
   const refreshed = NextResponse.next();
 

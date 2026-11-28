@@ -123,22 +123,24 @@ Start the build straight after step 2, not after the deploy of any other change.
 Today these live in **Amplify environment variables**. The Amplify build spec writes them into
 `.env.production` at build time. Set them per branch.
 
-| Variable                                                      | Value                                                                                                           |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `APP_ENV`                                                     | `production` on `main`, `staging` on `staging`, unset locally                                                   |
-| `SUPABASE_URL`                                                | `https://<project-ref>.supabase.co` (retired by ADR-035 once merged)                                            |
-| `SUPABASE_ANON_KEY`                                           | Supabase → Settings → API → `anon` key                                                                          |
-| `SUPABASE_SERVICE_ROLE_KEY`                                   | Supabase → Settings → API → `service_role`. Secret                                                              |
-| `NEXT_PUBLIC_SITE_URL`                                        | `https://peptologics.com` on production only, no trailing slash                                                 |
-| `INQUIRY_EMAIL_PROVIDER`                                      | `resend` or `ses`. Unset means `resend`. Flip + rebuild to switch/roll back (ADR-037)                           |
-| `INQUIRY_SES_CONFIGURATION_SET`                               | `peptologics-prod`. Required in production when the provider is `ses`                                           |
-| `RESEND_API_KEY`                                              | Resend → API Keys. Secret. Needed only while the provider is `resend`                                           |
-| `INQUIRY_NOTIFICATION_FROM`                                   | `PeptoLogics <inquiries@peptologics.com>`: note the space before `<`                                            |
-| `INQUIRY_NOTIFICATION_TO`                                     | Where inquiries land. Comma-separated for several recipients                                                    |
-| `NEXT_PUBLIC_CONTACT_EMAIL`                                   | Public address shown in the footer and on the contact page                                                      |
-| `NEXT_PUBLIC_COGNITO_USER_POOL_ID` / `_CLIENT_ID` / `_DOMAIN` | Admin sign-in (ADR-038, [admin.md](./admin.md)). Not secrets. Set all three or none. Staging only until Stage 4 |
-| `REVALIDATE_SECRET`                                           | 24 random bytes hex. Secret                                                                                     |
-| `RATE_LIMIT_SALT`                                             | 24 random bytes hex. Secret. Changing it resets all rate-limit windows                                          |
+| Variable                                                      | Value                                                                                                                          |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `APP_ENV`                                                     | `production` on `main`, `staging` on `staging`, unset locally                                                                  |
+| `SUPABASE_URL`                                                | `https://<project-ref>.supabase.co` (retired by ADR-035 once merged)                                                           |
+| `SUPABASE_ANON_KEY`                                           | Supabase → Settings → API → `anon` key                                                                                         |
+| `SUPABASE_SERVICE_ROLE_KEY`                                   | Supabase → Settings → API → `service_role`. Secret                                                                             |
+| `NEXT_PUBLIC_SITE_URL`                                        | `https://peptologics.com` on production only, no trailing slash                                                                |
+| `INQUIRY_EMAIL_PROVIDER`                                      | `resend` or `ses`. Unset means `resend`. Flip + rebuild to switch/roll back (ADR-037)                                          |
+| `INQUIRY_SES_CONFIGURATION_SET`                               | `peptologics-prod`. Required in production when the provider is `ses`                                                          |
+| `RESEND_API_KEY`                                              | Resend → API Keys. Secret. Needed only while the provider is `resend`                                                          |
+| `INQUIRY_NOTIFICATION_FROM`                                   | `PeptoLogics <inquiries@peptologics.com>`: note the space before `<`                                                           |
+| `INQUIRY_NOTIFICATION_TO`                                     | Where inquiries land. Comma-separated for several recipients                                                                   |
+| `NEXT_PUBLIC_CONTACT_EMAIL`                                   | Public address shown in the footer and on the contact page                                                                     |
+| `NEXT_PUBLIC_COGNITO_USER_POOL_ID` / `_CLIENT_ID` / `_DOMAIN` | Admin sign-in (ADR-038, [admin.md](./admin.md)). Not secrets. Set all three or none. Staging only until Stage 4                |
+| `NEXT_PUBLIC_MEDIA_BUCKET_NAME` / `_BASE_URL`                 | Admin product images (ADR-039). Not secrets. Set both or neither. Base URL is the CloudFront address, no `/` at the end        |
+| `REVALIDATE_SECRET`                                           | 24 random bytes hex. Secret                                                                                                    |
+| `REVALIDATE_REBUILD_HOOK_URL`                                 | The Amplify incoming-webhook URL that starts a build (ADR-039). **Secret** (the path is the token). Server-only. Unset locally |
+| `RATE_LIMIT_SALT`                                             | 24 random bytes hex. Secret. Changing it resets all rate-limit windows                                                         |
 
 Generate the two secrets:
 
@@ -302,15 +304,28 @@ workstream together with `docs/database.md`.
 
 ## Adding a product to the catalog
 
-Inserting a row into `products` is **not** enough to make its page reachable. `/products/[slug]` uses
-`dynamicParams = false`, so any slug not present at build time returns a real 404 (ADR-014). After
-inserting a product:
+**Staging and developer machines (admin, ADR-039).** Staff add a product at `/admin/products/new`. The
+save is instant, but the product's page exists only after a build (`dynamicParams = false`, ADR-014), so
+creating a product, or changing a slug, calls the Amplify incoming webhook in
+`REVALIDATE_REBUILD_HOOK_URL`. The page is live about five minutes later.
+
+- **At most one build per two minutes.** A request inside the window is recorded as owed (a banner on
+  the products list offers **Publish now**), and the next request after the window starts one build that
+  covers everything created since.
+- A failed webhook call never fails the save: the page then goes live after the next deploy.
+- Edits, archive, restore, featured and reorder need **no** build: the save revalidates the product page,
+  `/products`, `/`, `/lab-testing` and the sitemap straight away.
+- Locally the variable is unset: no build is requested and a line is logged.
+- Setting it up (control chat): create an **incoming webhook** on the Amplify branch (`staging`), put its
+  URL in `REVALIDATE_REBUILD_HOOK_URL` on that branch. The URL is a secret.
+
+**Production, until Stage 4 (Supabase).** Inserting a row into `products` is **not** enough to make its
+page reachable:
 
 1. Insert the row (via a seed edit and re-run, or Supabase Studio).
 2. **Trigger a redeploy** so `generateStaticParams` picks up the new slug: in the Amplify console open
    the app, then the branch, then **Redeploy this version**, or ask the control chat to start a
-   `RELEASE` job. A redeploy is needed because product pages are built only during a build
-   (`dynamicParams = false`).
+   `RELEASE` job.
 3. `POST /api/revalidate` refreshes the catalog listing, but does **not** create the new detail page.
 
 Editing an existing product, including its price, needs no redeploy. It propagates within the hour,
@@ -331,6 +346,16 @@ places and a certificate in a fourth, and they must not disagree. Full contract 
 > changed. Seen locally: after publishing eight certificates, a rebuild kept serving the old empty
 > list until `.next` was deleted. If a change is invisible after a deploy, call
 > `POST /api/revalidate`: it is instant and cheaper than a cache-cleared rebuild.
+
+### Product images (admin)
+
+Uploaded from the browser straight to S3 with a presigned PUT, checked and converted on the server,
+and served through CloudFront. Needs per environment: a private bucket (`peptologics-media-dev`,
+`-staging`, `-prod`) with prefixes `uploads/` (expires after one day) and `products/` (served), CORS
+for the site origin (`PUT`), a CloudFront distribution with origin access control that serves only
+`products/*`, and the compute role allowed `s3:PutObject` and `s3:GetObject` on both prefixes and
+`s3:DeleteObject` on `uploads/*`. Then set `NEXT_PUBLIC_MEDIA_BUCKET_NAME` and
+`NEXT_PUBLIC_MEDIA_BASE_URL`. The existing `public/products/*` images keep working.
 
 ## Notification channels
 

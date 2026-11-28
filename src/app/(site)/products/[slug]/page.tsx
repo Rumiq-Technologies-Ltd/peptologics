@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ShieldCheckIcon } from "lucide-react";
 
 import { Section } from "@/components/layout/Section";
@@ -34,10 +34,15 @@ export const revalidate = 3600;
  * `robots: noindex` in `generateMetadata` mitigates the indexing but not the wrong
  * status.
  *
- * The cost of `false` is that a product added to the database after a deploy 404s
- * until the next build, because `generateStaticParams` runs at build time only —
- * ISR revalidates existing paths, it does not discover new ones. Acceptable for a
- * curated catalog of this size, and documented in docs/deployment.md.
+ * The cost of `false` is that a product added to the database after a deploy 404s until the
+ * next build, because `generateStaticParams` runs at build time only. The admin pays that cost
+ * for staff: creating a product, or changing a slug, calls the Amplify build webhook
+ * (`REVALIDATE_REBUILD_HOOK_URL`, about five minutes; ADR-039). Edits, archive and restore
+ * need no build: `revalidatePath` refreshes the page.
+ *
+ * A retired slug (D26) is in `generateStaticParams` too, and its page is a permanent redirect
+ * to the product's current page. Verified on a production build: a 308 with the right
+ * `location`, served from the cache. Anything else not in the list is a real 404.
  *
  * Price changes are unaffected: `revalidate` above still refreshes the data on
  * existing pages, and `POST /api/revalidate` forces it immediately.
@@ -45,8 +50,14 @@ export const revalidate = 3600;
 export const dynamicParams = false;
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
-  const slugs = await getContainer().products.listSlugsForSitemap();
-  return slugs.map(({ slug }) => ({ slug }));
+  const container = getContainer();
+  const [live, retired] = await Promise.all([
+    container.products.listSlugsForSitemap(),
+    container.products.listRetiredSlugs(),
+  ]);
+
+  // A retired slug is prerendered too: its page is a permanent redirect (D26).
+  return [...live.map(({ slug }) => slug), ...retired].map((slug) => ({ slug }));
 }
 
 export async function generateMetadata(props: PageProps<"/products/[slug]">): Promise<Metadata> {
@@ -100,6 +111,9 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
   // not-found.tsx. Any other failure is thrown to the error boundary.
   if (!result.success) {
     if (result.code === "NOT_FOUND") {
+      const currentSlug = await getContainer().products.resolveRetiredSlug(slug);
+      if (currentSlug) permanentRedirect(ROUTES.product(currentSlug));
+
       notFound();
     }
 

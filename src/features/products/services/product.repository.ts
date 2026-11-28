@@ -30,6 +30,13 @@ export interface ProductRepository {
   findBySlug(slug: string): Promise<Product | null>;
   findByIds(ids: readonly string[]): Promise<Product[]>;
   listActiveSlugs(): Promise<{ slug: string; updatedAt: string }[]>;
+  /**
+   * The current slug of the product that once had `slug`, or null. Only the DynamoDB store
+   * records retired slugs (D26); the Supabase store never has any.
+   */
+  findCurrentSlugForRetired(slug: string): Promise<string | null>;
+  /** Every retired slug, so each can be prerendered as a redirect. Empty on Supabase. */
+  listRetiredSlugs(): Promise<string[]>;
 }
 
 /** Escapes PostgREST `ilike` wildcards so a search for "%" is literal. */
@@ -143,6 +150,14 @@ export function createProductRepository(): ProductRepository {
       }
 
       return toProducts((data ?? []) as unknown as ProductRow[]);
+    },
+
+    async findCurrentSlugForRetired(): Promise<string | null> {
+      return null;
+    },
+
+    async listRetiredSlugs(): Promise<string[]> {
+      return [];
     },
 
     async listActiveSlugs(): Promise<{ slug: string; updatedAt: string }[]> {

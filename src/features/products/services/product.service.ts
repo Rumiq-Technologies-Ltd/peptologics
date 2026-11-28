@@ -32,6 +32,10 @@ export interface ProductService {
   listFeatured(): Promise<ServiceResult<Product[]>>;
   getBySlug(slug: string): Promise<ServiceResult<Product>>;
   listSlugsForSitemap(): Promise<{ slug: string; updatedAt: string }[]>;
+  /** Where a retired product URL should now point (D26), or null if it is not a retired slug. */
+  resolveRetiredSlug(slug: string): Promise<string | null>;
+  /** Retired slugs, prerendered as permanent redirects (D26). Never throws. */
+  listRetiredSlugs(): Promise<string[]>;
   /** Narrows an untrusted `?sort=` value to a supported option. */
   resolveSort(value: string | undefined): ProductSort;
 }
@@ -110,6 +114,27 @@ export function createProductService({ repository }: ProductServiceDeps): Produc
       } catch (error) {
         logger.error("product_fetch_failed", { error, slug });
         return fail("UNEXPECTED", MESSAGES.products.loadFailed);
+      }
+    },
+
+    async resolveRetiredSlug(slug): Promise<string | null> {
+      if (!isValidSlug(slug)) return null;
+
+      try {
+        return await repository.findCurrentSlugForRetired(slug);
+      } catch (error) {
+        // A failed lookup degrades to a 404 rather than an error page.
+        logger.error("product_redirect_lookup_failed", { error, slug });
+        return null;
+      }
+    },
+
+    async listRetiredSlugs(): Promise<string[]> {
+      try {
+        return await repository.listRetiredSlugs();
+      } catch (error) {
+        logger.error("product_retired_slugs_failed", { error });
+        return [];
       }
     },
 

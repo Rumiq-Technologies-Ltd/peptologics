@@ -27,6 +27,8 @@ export const INDEX = {
 
 export const CATALOG_PARTITION = "PRODUCTS";
 export const OPEN_NOTIFICATIONS_PARTITION = "NOTIF_OPEN";
+/** Retired product slugs (D26), listed on GSI1 so a build can prerender each as a redirect. */
+export const SLUG_REDIRECT_PARTITION = "SLUG_REDIRECTS";
 
 /** The counter is advanced from this value, so a fresh table issues PL-001000 first. */
 export const ORDER_COUNTER_START = 999;
@@ -58,6 +60,8 @@ export const keys = {
     SK: `${timestamp}#${id}`,
   }),
   orderCounter: { PK: "COUNTER#order_number", SK: "META" } satisfies TableKey,
+  /** Admin: when the site rebuild hook last fired, and whether a build is still owed. */
+  rebuildState: { PK: "BUILD#rebuild-hook", SK: "META" } satisfies TableKey,
   rateLimit: (bucketKey: string, windowStartSeconds: number): TableKey => ({
     PK: `RL#${bucketKey}#${windowStartSeconds}`,
     SK: "META",
@@ -108,6 +112,13 @@ export interface ProductSource {
   deleted_at?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  /**
+   * Optimistic-lock counter, bumped by every admin write. Items copied from Supabase have
+   * none: a missing version counts as 0, and the first write makes it 1.
+   */
+  version?: number;
+  /** Slugs this product used to have (D26). Each has a `slug_redirect` guard. */
+  previous_slugs?: string[];
 }
 
 /** Dollars per milligram at full precision. Computed here, never taken from input. */
@@ -162,17 +173,35 @@ export function buildProductItems(product: ProductSource, now: string): Item[] {
     image_url: product.image_url,
     status: product.status,
     deleted_at: product.deleted_at,
+    version: product.version ?? 1,
+    previous_slugs: product.previous_slugs?.length ? product.previous_slugs : undefined,
     created_at: createdAt,
     updated_at: product.updated_at ?? createdAt,
   });
 
-  const guard = compact({
-    ...keys.slugGuard(product.slug),
-    entity: "slug_guard",
-    product_id: product.id,
-  });
+  return [item, buildLiveSlugGuard(product.slug, product.id)];
+}
 
-  return [item, guard];
+/**
+ * The guard a retired slug keeps forever (D26). It stops any other product taking the slug,
+ * names the product it now belongs to (so a redirect never goes stale across later renames),
+ * and sits on GSI1 so a build can list every retired slug and prerender it as a redirect.
+ */
+export function buildRetiredSlugGuard(slug: string, productId: string, retiredAt: string): Item {
+  return compact({
+    ...keys.slugGuard(slug),
+    GSI1PK: SLUG_REDIRECT_PARTITION,
+    GSI1SK: slug,
+    entity: "slug_redirect",
+    product_id: productId,
+    slug,
+    retired_at: retiredAt,
+  });
+}
+
+/** The guard of a live slug. */
+export function buildLiveSlugGuard(slug: string, productId: string): Item {
+  return compact({ ...keys.slugGuard(slug), entity: "slug_guard", product_id: productId });
 }
 
 // --- Orders ------------------------------------------------------------------
@@ -310,6 +339,8 @@ export interface AuditSource {
   action: AuditAction;
   /** What the action touched (a path or a record id), when there is one. */
   target?: string | null;
+  /** For a change: each field that moved, as before and after. Product data only. */
+  changes?: Record<string, { from: unknown; to: unknown }> | null;
   request_id: string;
 }
 

@@ -46,6 +46,12 @@ import type { NextConfig } from "next";
  */
 const DEV_SCRIPT_SRC = process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
 
+/** ` https://<bucket>.s3.us-east-1.amazonaws.com` when a media bucket is configured, else empty. */
+function mediaBucketOrigin(): string {
+  const bucket = process.env.NEXT_PUBLIC_MEDIA_BUCKET_NAME;
+  return bucket ? ` https://${bucket}.s3.us-east-1.amazonaws.com` : "";
+}
+
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   // Inline: Next's bootstrap and the gate's pre-paint script. See the note above.
@@ -56,8 +62,9 @@ const CONTENT_SECURITY_POLICY = [
   // photography in Supabase Storage works without another deploy.
   "img-src 'self' data: https:",
   "font-src 'self' data:",
-  // The browser talks to our own origin only. Supabase is server-side exclusively.
-  "connect-src 'self'",
+  // The browser talks to our own origin only, plus (admin product images) a direct PUT to the
+  // private media bucket, which accepts nothing without a presigned signature.
+  `connect-src 'self'${mediaBucketOrigin()}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -124,6 +131,28 @@ function supabaseImagePattern() {
   }
 }
 
+/**
+ * The media CDN host for product images uploaded through the admin, derived from the public
+ * base URL like the Supabase pattern above. Only `/products/*` is ever served from it.
+ */
+function mediaImagePattern() {
+  const base = process.env.NEXT_PUBLIC_MEDIA_BASE_URL;
+  if (!base) return [];
+
+  try {
+    return [
+      {
+        protocol: "https" as const,
+        hostname: new URL(base).hostname,
+        pathname: "/products/**",
+      },
+    ];
+  } catch {
+    // The Zod env schema reports a malformed URL properly at runtime.
+    return [];
+  }
+}
+
 const nextConfig: NextConfig = {
   /**
    * Keeps `sharp` out of the server bundle.
@@ -144,7 +173,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
 
   images: {
-    remotePatterns: supabaseImagePattern(),
+    remotePatterns: [...supabaseImagePattern(), ...mediaImagePattern()],
     // AVIF first, WebP as the fallback: both are widely supported and materially
     // smaller than the JPEG or PNG a supplier will send us.
     formats: ["image/avif", "image/webp"],

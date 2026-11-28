@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { ImageResponse } from "next/og";
 
 import { COMPLIANCE_NOTICE, SITE_NAME } from "@/constants/site";
@@ -8,31 +9,21 @@ import { formatStrength } from "@/utils/formatStrength";
 /**
  * Per-product social preview.
  *
- * Generated at build time for all twelve products, because the segment sets
- * `dynamicParams = false`. A shared card would show the brand for every compound; this
- * shows the compound, its vial size and its list price, which is what makes a shared
- * link useful.
+ * A shared card would show the brand for every compound; this shows the compound, its vial
+ * size and its list price, which is what makes a shared link useful.
  *
- * If the product cannot be read — a build-time Supabase blip — the card falls back to
- * the brand rather than throwing, because an image route that throws fails the build.
+ * Rendered on every request, like the product page (ADR-039): a product created in the admin
+ * has a card straight away, with no build, and an edit shows in the next scrape. An unknown or
+ * archived product is a real 404, not a brand card served with status 200. If the catalog
+ * cannot be read the card falls back to the brand: a social scraper then gets an image, not an
+ * error, and nothing caches it.
  */
 
 export const alt = "Research peptide specification";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-/**
- * Restated here rather than inherited from the page.
- *
- * Segment config and `generateStaticParams` are per-file, so without this the image
- * route stayed dynamic — verified in the build output — and every social scrape would
- * have cost a Supabase read and an image render. With it, all twelve are generated at
- * build time and served from the CDN.
- */
-export async function generateStaticParams(): Promise<{ slug: string }[]> {
-  const slugs = await getContainer().products.listSlugsForSitemap();
-  return slugs.map(({ slug }) => ({ slug }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function ProductOpengraphImage({
   // A Promise in Next 16, like `params` everywhere else in the App Router.
@@ -42,6 +33,7 @@ export default async function ProductOpengraphImage({
 }) {
   const { slug } = await params;
   const result = await getContainer().products.getBySlug(slug);
+  if (!result.success && result.code === "NOT_FOUND") notFound();
   const product = result.success ? result.data : null;
 
   return new ImageResponse(

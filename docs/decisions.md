@@ -1045,23 +1045,26 @@ acquisition plan.
 
 ---
 
-## ADR-039 — Admin products: archive not delete, retired slugs, and a build for new pages
+## ADR-039 — Admin products: archive not delete, retired slugs, and a product page rendered on every request
 
-**Status** Accepted (D35, D37, 2026-11-28) · Admin workstream, Phase 2 (Chat 12). On staging and developer machines now; **live only after Stage 4**.
+**Status** Accepted (D35, D37, 2026-11-28), amended 2026-11-28 (Chat 12 follow-up 1: the page is dynamic, the build webhook is gone; supersedes ADR-014's `dynamicParams = false` for the product page) · Admin workstream, Phase 2 (Chat 12). On staging and developer machines now; **live only after Stage 4**.
 
 **Decision.**
 
 - **No hard delete (D37).** "Delete" archives a product (`status = archived`). Restorable, and the slug stays reserved.
 - **One transaction per change.** The product, its slug guards and its audit item are written together, so a change cannot exist without its log line. Writes are guarded by a `version` attribute (optimistic lock); an item copied from Supabase has none and counts as 0.
-- **Retired slugs are data (D26).** A rename keeps the old slug's guard as `slug_redirect`, naming the product. The product page for each retired slug is built as a permanent redirect to the product's current slug. The old PL3, PL2 and Elora redirects stay in `next.config.ts` until after Stage 4.
-- **New product pages need a build; we keep `dynamicParams = false`.** Two attempts to render unknown slugs on demand failed on a production build: `connection()` before `notFound()` with `revalidate` set, and the same with `revalidate` removed, both answered every unknown slug (and every retired slug) with a 500 (`DYNAMIC_SERVER_USAGE`). In Next 16.4.6 the first request for a slug that was not prebuilt is still a prerender, where `connection()` throws. So creating a product, or changing a slug, calls an Amplify incoming webhook (`REVALIDATE_REBUILD_HOOK_URL`): about five minutes, at most one build per two minutes, tracked in DynamoDB; a request inside the window is recorded as owed and the products list offers "Publish now". Verified on a production build: a prebuilt page that calls `permanentRedirect` is served as a 308 from the cache.
+- **Retired slugs are data (D26).** A rename keeps the old slug's guard as `slug_redirect`, naming the product. A request for a retired slug is answered with a permanent redirect (308) to the product's current page. The old PL3, PL2 and Elora redirects stay in `next.config.ts` until after Stage 4.
+- **`/products/[slug]` is rendered on every request (`dynamic = "force-dynamic"`).** First attempt (the original ADR text): keep `dynamicParams = false` and call an Amplify build webhook when a product is created. Two attempts to render unknown slugs on demand had failed on a production build (`connection()` before `notFound()`, with and without `revalidate`: every unknown slug was a 500, `DYNAMIC_SERVER_USAGE`, because the first request for a slug that was not prebuilt is still a prerender in Next 16.4.6). Staging then showed the webhook design was not enough: **on Amplify the page's HTML is held by CloudFront for the `s-maxage` Next sends (3600 s), and `revalidatePath` does not reach it** (Amplify manages the distribution; its docs say on-demand ISR is not supported). Measured: an archived product's page was a 404 at the origin (a request with a cache-busting query string) while the plain URL kept answering 200 with the old price from `x-cache: Hit from cloudfront` for up to an hour. A dynamic page is sent `private, no-cache, no-store`, so nothing keeps a stale copy. It gives an edit on the next request, a real 404 for an unknown or archived product, a 308 for a retired slug, and a page for a new product on its first request, so **no rebuild webhook, no "Publish now", no build state in DynamoDB**.
+- **The product share image is dynamic too** (`opengraph-image`): a new product has a card at once, an unknown or archived product is a real 404.
+- **The other catalog pages stay static but with a one-minute window** (`/`, `/products`, `/lab-testing`, the sitemap: `revalidate = 60`, was 3600). CloudFront holds them for that long and nothing purges them, so an admin edit takes up to a minute to show there. The save still calls `revalidatePath` for them, which refreshes the origin.
 - **Images.** Browser PUT to S3 with a presigned URL signed for the exact type and size; the server checks the object by content and re-encodes it as a WebP (at most 1200 px) before it reaches `products/`, the only prefix CloudFront serves. The bucket name and CloudFront address are `NEXT_PUBLIC_` variables (neither is secret).
-- **No new variable prefix.** The webhook URL uses `REVALIDATE_`.
 
 **Consequences.**
 
 - Three new dependencies: `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner` and `sharp` (already installed by Next, now a direct dependency).
-- A new product page appears about five minutes after it is created, not instantly. Edits are instant.
+- The product page costs a few DynamoDB (or Supabase) reads and one render per view, and its first byte is slower than a CDN-served page. Traffic is small. After promotion to `main`, production product pages are dynamic too.
+- `/`, `/products`, `/lab-testing` and the sitemap can show an old price for up to a minute after an edit.
+- `POST /api/revalidate` still clears the origin cache for those pages; it does not reach CloudFront either.
 - The public and admin CSP gain the media bucket's origin in `connect-src` when a bucket is configured.
 - Out of stock still hides a product from the shop (no "sold out" label).
 - A `next.config.ts` redirect outranks a product page, and the admin cannot see those sources. The form warns staff; moving them into data is a follow-up after Stage 4.

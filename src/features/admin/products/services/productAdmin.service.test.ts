@@ -144,7 +144,6 @@ describe("create", () => {
       actor_email: "editor@example.com",
       request_id: "req-1",
     });
-    if (result.success) expect(result.data.needsBuild).toBe(true);
   });
 
   it("never trusts a computed field from the caller", async () => {
@@ -258,7 +257,6 @@ describe("update", () => {
 
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect(result.data).toMatchObject({ needsBuild: true, staleSlugs: ["product-1-10mg"] });
 
     expect(repo.items.get("SLUG#product-1-20mg|GUARD")).toMatchObject({
       entity: "slug_guard",
@@ -267,7 +265,6 @@ describe("update", () => {
     expect(repo.items.get("SLUG#product-1-10mg|GUARD")).toMatchObject({
       entity: "slug_redirect",
       product_id: "1",
-      GSI1PK: "SLUG_REDIRECTS",
     });
     expect(repo.items.get("PRODUCT#1|META")).toMatchObject({
       slug: "product-1-20mg",
@@ -294,11 +291,6 @@ describe("update", () => {
     expect(result.success).toBe(true);
     expect(repo.items.get("SLUG#product-1-10mg|GUARD")).toMatchObject({ entity: "slug_guard" });
     expect(repo.items.get("PRODUCT#1|META")?.previous_slugs).toEqual(["product-1-20mg"]);
-  });
-
-  it("does not ask for a build when only data changes", async () => {
-    const result = await service.update("1", { price: 99 }, 1, ACTOR);
-    expect(result).toMatchObject({ success: true, data: { needsBuild: false, staleSlugs: [] } });
   });
 });
 

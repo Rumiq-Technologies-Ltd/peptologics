@@ -11,7 +11,6 @@ const mocks = vi.hoisted(() => ({
     restore: vi.fn(),
     reorder: vi.fn(),
   },
-  rebuild: { request: vi.fn() },
   images: { createUploadTicket: vi.fn(), finalizeUpload: vi.fn() } as {
     createUploadTicket: ReturnType<typeof vi.fn>;
     finalizeUpload: ReturnType<typeof vi.fn>;
@@ -30,7 +29,6 @@ vi.mock("@/lib/logger", () => ({ logger: { info: vi.fn(), error: vi.fn(), warn: 
 vi.mock("@/features/admin/products/services/container.server", () => ({
   getProductAdmin: () => ({
     products: mocks.products,
-    rebuild: mocks.rebuild,
     images: mocks.images,
   }),
 }));
@@ -38,7 +36,6 @@ vi.mock("@/features/admin/products/services/container.server", () => ({
 import {
   createProductAction,
   finalizeImageUploadAction,
-  publishPendingPagesAction,
   reorderProductAction,
   requestImageUploadAction,
   setProductFeaturedAction,
@@ -56,8 +53,6 @@ function outcome(over: Partial<ProductChangeOutcome> = {}) {
     data: {
       product: PRODUCT,
       changedFields: ["name"],
-      staleSlugs: [],
-      needsBuild: false,
       ...over,
     },
   };
@@ -66,7 +61,6 @@ function outcome(over: Partial<ProductChangeOutcome> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.requireAdmin.mockResolvedValue({ email: "editor@example.com", role: "editor" });
-  mocks.rebuild.request.mockResolvedValue("triggered");
 });
 
 describe("access", () => {
@@ -81,13 +75,13 @@ describe("access", () => {
     expect(mocks.products.reorder).not.toHaveBeenCalled();
 
     mocks.requireAdmin.mockResolvedValue({ email: "e@example.com", role: "editor" });
-    mocks.products.create.mockResolvedValue(outcome({ needsBuild: true }));
+    mocks.products.create.mockResolvedValue(outcome());
     await createProductAction({});
     expect(mocks.requireAdmin).toHaveBeenLastCalledWith({ role: "editor", mutating: true });
   });
 
   it("hands the signed-in person and request to the service for the audit log", async () => {
-    mocks.products.create.mockResolvedValue(outcome({ needsBuild: true }));
+    mocks.products.create.mockResolvedValue(outcome());
 
     await createProductAction({ name: "x" });
 
@@ -99,38 +93,13 @@ describe("access", () => {
 });
 
 describe("create", () => {
-  it("refreshes the site and asks for a build, then says when the page goes live", async () => {
-    mocks.products.create.mockResolvedValue(outcome({ needsBuild: true }));
+  it("refreshes the cached catalog pages and says the product was added", async () => {
+    mocks.products.create.mockResolvedValue(outcome());
 
     const result = await createProductAction({});
 
-    expect(mocks.revalidateCatalog).toHaveBeenCalledWith(["new-5mg"]);
-    expect(mocks.rebuild.request).toHaveBeenCalledOnce();
-    expect(result).toMatchObject({
-      success: true,
-      message: "Saved. The product page goes live in about 5 minutes.",
-    });
-  });
-
-  it("still succeeds when the build request fails, and says the page waits for the next deploy", async () => {
-    mocks.products.create.mockResolvedValue(outcome({ needsBuild: true }));
-    mocks.rebuild.request.mockResolvedValue("failed");
-
-    const result = await createProductAction({});
-
-    expect(result).toMatchObject({
-      success: true,
-      message: "Saved. The page will go live after the next deploy.",
-    });
-  });
-
-  it("says the same when the build was deferred by the two-minute window", async () => {
-    mocks.products.create.mockResolvedValue(outcome({ needsBuild: true }));
-    mocks.rebuild.request.mockResolvedValue("deferred");
-
-    expect(await createProductAction({})).toMatchObject({
-      message: "Saved. The page will go live after the next deploy.",
-    });
+    expect(mocks.revalidateCatalog).toHaveBeenCalledOnce();
+    expect(result).toMatchObject({ success: true, message: "Product added." });
   });
 
   it("passes the service's field errors straight back and refreshes nothing", async () => {
@@ -149,28 +118,17 @@ describe("create", () => {
       fieldErrors: { slug: ["taken"] },
     });
     expect(mocks.revalidateCatalog).not.toHaveBeenCalled();
-    expect(mocks.rebuild.request).not.toHaveBeenCalled();
   });
 });
 
 describe("update", () => {
-  it("refreshes only: no build for an ordinary edit", async () => {
+  it("refreshes the catalog pages after an edit", async () => {
     mocks.products.update.mockResolvedValue(outcome());
 
     const result = await updateProductAction(ID, 1, { price: 5 });
 
-    expect(mocks.revalidateCatalog).toHaveBeenCalledWith(["new-5mg"]);
-    expect(mocks.rebuild.request).not.toHaveBeenCalled();
+    expect(mocks.revalidateCatalog).toHaveBeenCalledOnce();
     expect(result).toMatchObject({ success: true, message: "Saved." });
-  });
-
-  it("refreshes the old address too, and asks for a build, when the slug changes", async () => {
-    mocks.products.update.mockResolvedValue(outcome({ staleSlugs: ["old-5mg"], needsBuild: true }));
-
-    await updateProductAction(ID, 1, { slug: "new-5mg" });
-
-    expect(mocks.revalidateCatalog).toHaveBeenCalledWith(["new-5mg", "old-5mg"]);
-    expect(mocks.rebuild.request).toHaveBeenCalledOnce();
   });
 
   it("says when there was nothing to save", async () => {
@@ -213,7 +171,6 @@ describe("archive, restore, featured and reorder", () => {
 
     expect(mocks.products.archive).toHaveBeenCalledWith(ID, 2, expect.any(Object));
     expect(mocks.revalidateCatalog).toHaveBeenCalled();
-    expect(mocks.rebuild.request).not.toHaveBeenCalled();
     expect(result).toMatchObject({ message: expect.stringContaining("can be restored") });
   });
 
@@ -239,14 +196,14 @@ describe("archive, restore, featured and reorder", () => {
     );
   });
 
-  it("reorders, refreshing the pages of every product that moved", async () => {
+  it("reorders and refreshes the catalog pages", async () => {
     mocks.products.reorder.mockResolvedValue({
       success: true,
-      data: { moved: true, slugs: ["a", "b"] },
+      data: { moved: true },
     });
 
     expect(await reorderProductAction(ID, "down")).toMatchObject({ success: true });
-    expect(mocks.revalidateCatalog).toHaveBeenCalledWith(["a", "b"]);
+    expect(mocks.revalidateCatalog).toHaveBeenCalledOnce();
   });
 
   it("refuses a direction that is not up or down", async () => {
@@ -319,21 +276,6 @@ describe("images", () => {
     expect(await requestImageUploadAction({ contentType: "image/png", size: 1 })).toMatchObject({
       success: false,
       message: "Image upload is not set up in this environment.",
-    });
-  });
-});
-
-describe("publish now", () => {
-  it("starts a build when the window allows it", async () => {
-    expect(await publishPendingPagesAction()).toMatchObject({ success: true });
-    expect(mocks.rebuild.request).toHaveBeenCalledWith("manual");
-  });
-
-  it("asks staff to wait when a build just started", async () => {
-    mocks.rebuild.request.mockResolvedValue("deferred");
-    expect(await publishPendingPagesAction()).toMatchObject({
-      success: false,
-      message: "A build was started a moment ago. Try again in two minutes.",
     });
   });
 });

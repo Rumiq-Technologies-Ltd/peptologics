@@ -36,6 +36,8 @@ interface ProductFormProps {
   /** The display order a new product starts with: after the last one. */
   defaultSortOrder: number;
   uploadEnabled: boolean;
+  /** A message to show on arrival, e.g. after adding a product moved the browser here. */
+  initialNotice?: string;
 }
 
 /** Focused after a failed save so a keyboard or screen-reader user lands on the message. */
@@ -114,10 +116,17 @@ function Field({
  * saved version it was opened with, and shows the "changed since you opened it" message when
  * someone else saved first.
  */
-export function ProductForm({ product, defaultSortOrder, uploadEnabled }: ProductFormProps) {
+export function ProductForm({
+  product,
+  defaultSortOrder,
+  uploadEnabled,
+  initialNotice,
+}: ProductFormProps) {
   const router = useRouter();
   const [current, setCurrent] = useState<AdminProduct | undefined>(product);
-  const [result, setResult] = useState<ProductActionResult | null>(null);
+  const [result, setResult] = useState<ProductActionResult | null>(
+    initialNotice ? { success: true, message: initialNotice } : null,
+  );
   const [slugEdited, setSlugEdited] = useState(Boolean(product));
 
   const {
@@ -177,6 +186,12 @@ export function ProductForm({ product, defaultSortOrder, uploadEnabled }: Produc
     setResult(outcome);
 
     if (outcome.success) {
+      if (!current && outcome.product) {
+        // Go to the product's own page, so a reload shows the product and not an empty form.
+        router.push(`/admin/products/${outcome.product.id}?saved=1`);
+        return;
+      }
+
       if (outcome.product) {
         setCurrent(outcome.product);
         reset(toValues(outcome.product, defaultSortOrder));

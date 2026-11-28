@@ -112,13 +112,6 @@ const serverEnvSchema = z.object({
   // --- Operations -----------------------------------------------------------
   /** Bearer secret for POST /api/revalidate. */
   REVALIDATE_SECRET: z.string().min(16).optional(),
-  /**
-   * The Amplify incoming-webhook URL that starts a build (admin Phase 2). A new product page
-   * exists only after a build, so creating a product or changing a slug calls this. Its path
-   * carries the secret: server-only, never logged, never sent to the browser. Unset (local
-   * development) means no build is requested.
-   */
-  REVALIDATE_REBUILD_HOOK_URL: z.url().optional(),
 
   // --- Product images (admin Phase 2) ---------------------------------------
   /**

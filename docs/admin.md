@@ -145,27 +145,24 @@ and are served first. **Do not reuse the address of a product that was renamed e
 `next.config.ts` redirect beats the page, so a live product on that address would be unreachable. Moving
 those redirects into this store is a follow-up after Stage 4 (the production data is still on Supabase).
 
-**Going live.** An edit, archive, restore, featured toggle or reorder refreshes the product page,
-`/products`, `/`, `/lab-testing` and the sitemap straight away. A **new product page needs a site build**
-(`dynamicParams = false`), so creating a product or changing a slug calls the Amplify webhook: "Saved.
-The product page goes live in about 5 minutes." At most one build per two minutes; the products list
-shows a **Publish now** banner while pages are waiting. If the webhook fails the save still succeeds and
-the page goes live after the next deploy. See [deployment.md](./deployment.md).
+**Going live.** The product page is rendered on every request, so an edit, archive, restore, new product
+or slug change shows on the next request, with no build (ADR-039). An archived or unknown product is a real
+404 and a retired address is a 308. `/products`, `/`, `/lab-testing` and the sitemap are cached for up to one
+minute at the edge, so they can show an old price for up to a minute; the save refreshes them at the origin.
 
 **Images.** Staff pick a JPEG, PNG or WebP of up to 5 MB, square or nearly square (width over height
 between 0.9 and 1.1), 600 to 4000 pixels a side. The browser sends it straight to S3 with a presigned
 PUT that is signed for exactly that type and size. The server then reads it, checks it by content, and
 re-encodes it as a WebP of at most 1200 pixels, which strips metadata and fixes the format, and stores
 it under `products/`. Only `products/*` is served, through CloudFront. Existing `public/products/*` paths
-keep working: `image_url` is either a site path or a CloudFront address. Without the two media variables,
+keep working: `image_url` is either `/products/<file>` or `<NEXT_PUBLIC_MEDIA_BASE_URL>/products/<file>`, and nothing else (no other host, no `//host/...`); the form and the server action check this with one rule. Without the two media variables,
 upload is off and the form says so.
 
 **Audit actions.** `product_created`, `product_updated` (each changed field as before and after; price in
 cents), `product_archived`, `product_restored`, `product_reordered` and `product_image_uploaded`. There
 is no customer data in any of them.
 
-**Settings.** `REVALIDATE_REBUILD_HOOK_URL` (server-only secret),
-`NEXT_PUBLIC_MEDIA_BUCKET_NAME` and `NEXT_PUBLIC_MEDIA_BASE_URL`. No new variable prefix.
+**Settings.** `NEXT_PUBLIC_MEDIA_BUCKET_NAME` and `NEXT_PUBLIC_MEDIA_BASE_URL`. No new variable prefix.
 
 ## Limits worth knowing
 

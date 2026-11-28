@@ -79,7 +79,7 @@ export interface ProductAdminService {
     productId: string,
     direction: ReorderDirection,
     actor: AdminActor,
-  ): Promise<ServiceResult<{ moved: boolean; slugs: string[] }>>;
+  ): Promise<ServiceResult<{ moved: boolean }>>;
 }
 
 const FIELD_LABELS = [
@@ -281,8 +281,6 @@ export function createProductAdminService({
       return ok({
         product: toAdminProduct(item),
         changedFields: ["created"],
-        staleSlugs: [],
-        needsBuild: true,
       });
     },
 
@@ -312,7 +310,7 @@ export function createProductAdminService({
       const changes = diffProduct(before, after);
       const changedFields = Object.keys(changes);
       if (changedFields.length === 0) {
-        return ok({ product: existing, changedFields: [], staleSlugs: [], needsBuild: false });
+        return ok({ product: existing, changedFields: [] });
       }
 
       const at = now();
@@ -367,8 +365,6 @@ export function createProductAdminService({
       return ok({
         product: toAdminProduct(item),
         changedFields,
-        staleSlugs: slugChanged ? [existing.slug] : [],
-        needsBuild: slugChanged,
       });
     },
 
@@ -384,18 +380,14 @@ export function createProductAdminService({
       });
     },
 
-    async reorder(
-      productId,
-      direction,
-      actor,
-    ): Promise<ServiceResult<{ moved: boolean; slugs: string[] }>> {
+    async reorder(productId, direction, actor): Promise<ServiceResult<{ moved: boolean }>> {
       const products = await service.list();
       const index = products.findIndex((product) => product.id === productId);
       if (index < 0) return fail("NOT_FOUND", "That product no longer exists.");
 
       const neighbourIndex = direction === "up" ? index - 1 : index + 1;
       if (neighbourIndex < 0 || neighbourIndex >= products.length) {
-        return ok({ moved: false, slugs: [] });
+        return ok({ moved: false });
       }
 
       const reordered = [...products];
@@ -453,7 +445,7 @@ export function createProductAdminService({
       const written = await commit(steps);
       if (!written.success) return written;
 
-      return ok({ moved: true, slugs: changed.map(({ product }) => product.slug) });
+      return ok({ moved: true });
     },
   };
 

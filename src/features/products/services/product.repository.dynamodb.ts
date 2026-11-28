@@ -11,7 +11,7 @@ import {
 import type { ProductRepository } from "@/features/products/services/product.repository";
 import type { Product } from "@/features/products/types/product";
 import { getDocumentClient, getTableName } from "@/lib/dynamodb/client.server";
-import { CATALOG_PARTITION, INDEX, SLUG_REDIRECT_PARTITION, keys } from "@/lib/dynamodb/entities";
+import { CATALOG_PARTITION, INDEX, keys } from "@/lib/dynamodb/entities";
 import { toDatabaseError } from "@/lib/dynamodb/errors";
 
 /**
@@ -166,34 +166,6 @@ export function createDynamoProductRepository(): ProductRepository {
         return isPublic && typeof record.slug === "string" ? record.slug : null;
       } catch (error) {
         throw toDatabaseError("products.findCurrentSlugForRetired", error);
-      }
-    },
-
-    async listRetiredSlugs(): Promise<string[]> {
-      try {
-        const slugs: string[] = [];
-        let startKey: Record<string, unknown> | undefined;
-
-        do {
-          const page = await getDocumentClient().send(
-            new QueryCommand({
-              TableName: getTableName(),
-              IndexName: INDEX.primary,
-              KeyConditionExpression: "GSI1PK = :pk",
-              ExpressionAttributeValues: { ":pk": SLUG_REDIRECT_PARTITION },
-              ExclusiveStartKey: startKey,
-            }),
-          );
-
-          for (const item of page.Items ?? []) {
-            if (typeof item.slug === "string") slugs.push(item.slug);
-          }
-          startKey = page.LastEvaluatedKey;
-        } while (startKey);
-
-        return slugs;
-      } catch (error) {
-        throw toDatabaseError("products.listRetiredSlugs", error);
       }
     },
 

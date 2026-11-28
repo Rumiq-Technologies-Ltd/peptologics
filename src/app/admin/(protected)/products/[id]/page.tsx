@@ -11,6 +11,7 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
   await requireAdmin({ role: "editor" });
 
   const { id } = await props.params;
+  const { saved } = await props.searchParams;
   const { products, images } = getProductAdmin();
   const product = await products.get(id);
 
@@ -22,6 +23,7 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
         product={product}
         defaultSortOrder={product.sortOrder}
         uploadEnabled={images !== null}
+        initialNotice={saved === "1" ? "Product added." : undefined}
       />
     </div>
   );

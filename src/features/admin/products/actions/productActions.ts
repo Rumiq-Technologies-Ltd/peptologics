@@ -3,17 +3,13 @@
 import { z } from "zod";
 
 import { revalidateCatalog } from "@/features/admin/products/actions/revalidateCatalog";
-import {
-  messageForRebuild,
-  type ProductActionResult,
-} from "@/features/admin/products/actions/actionResult";
+import type { ProductActionResult } from "@/features/admin/products/actions/actionResult";
 import { getProductAdmin } from "@/features/admin/products/services/container.server";
 import type { ProductChangeOutcome } from "@/features/admin/products/types";
 import type { ReorderDirection } from "@/features/admin/products/services/productAdmin.service";
 import { isAllowedImageType, MAX_IMAGE_BYTES } from "@/features/admin/products/utils/imageRules";
 import { recordAudit } from "@/features/admin/services/audit.service";
 import { requestId, requireAdmin } from "@/lib/admin/authorize.server";
-import { logger } from "@/lib/logger";
 import type { ServiceFailure, ServiceResult } from "@/types/result";
 
 /**
@@ -40,37 +36,24 @@ function invalid(message = "That request was not valid."): ProductActionResult {
   return { success: false, message, code: "VALIDATION_FAILED" };
 }
 
-/** Refreshes the site after a save, and asks for a build when a new page is needed. */
-async function afterSave(
-  outcome: ProductChangeOutcome,
-  reason: string,
-): Promise<{
-  rebuild?: Awaited<ReturnType<ReturnType<typeof getProductAdmin>["rebuild"]["request"]>>;
-}> {
-  revalidateCatalog([outcome.product.slug, ...outcome.staleSlugs]);
-  if (!outcome.needsBuild) return {};
-  return { rebuild: await getProductAdmin().rebuild.request(reason) };
-}
-
+/**
+ * Refreshes the pages built from the catalog after a save. The product page needs nothing: it is
+ * rendered on every request (ADR-039). The other pages are cached for at most a minute, and this
+ * refreshes them in the origin straight away; the edge may still hold one for up to that minute.
+ */
 async function finish(
   result: ServiceResult<ProductChangeOutcome>,
   okMessage: string,
-  reason: string,
 ): Promise<ProductActionResult> {
   if (!result.success) return failure(result);
 
-  const { rebuild } = await afterSave(result.data, reason);
-  return {
-    success: true,
-    product: result.data.product,
-    rebuild,
-    message: rebuild ? messageForRebuild(rebuild) : okMessage,
-  };
+  revalidateCatalog();
+  return { success: true, product: result.data.product, message: okMessage };
 }
 
 export async function createProductAction(input: unknown): Promise<ProductActionResult> {
   const who = await actor();
-  return finish(await getProductAdmin().products.create(input, who), "Saved.", "product_created");
+  return finish(await getProductAdmin().products.create(input, who), "Product added.");
 }
 
 export async function updateProductAction(
@@ -87,7 +70,7 @@ export async function updateProductAction(
   if (result.success && result.data.changedFields.length === 0) {
     return { success: true, product: result.data.product, message: "Nothing to save: no changes." };
   }
-  return finish(result, "Saved.", "product_slug_changed");
+  return finish(result, "Saved.");
 }
 
 export async function setProductStatusAction(
@@ -111,7 +94,6 @@ export async function setProductStatusAction(
     target === "archived"
       ? "Archived. The product is hidden from the shop and can be restored."
       : "Restored. The product is back in the shop.",
-    "product_status",
   );
 }
 
@@ -131,11 +113,7 @@ export async function setProductFeaturedAction(
     expectedVersion,
     who,
   );
-  return finish(
-    result,
-    featured ? "Marked as featured." : "No longer featured.",
-    "product_featured",
-  );
+  return finish(result, featured ? "Marked as featured." : "No longer featured.");
 }
 
 export async function reorderProductAction(
@@ -150,7 +128,7 @@ export async function reorderProductAction(
   const result = await getProductAdmin().products.reorder(productId, direction, who);
   if (!result.success) return failure(result);
 
-  if (result.data.moved) revalidateCatalog(result.data.slugs);
+  if (result.data.moved) revalidateCatalog();
   return { success: true, message: result.data.moved ? "Order updated." : "Already at the end." };
 }
 
@@ -199,23 +177,4 @@ export async function finalizeImageUploadAction(
   });
 
   return { success: true, imageUrl: result.data.imageUrl };
-}
-
-/** "Publish now": starts the build that pages owed from earlier saves are waiting for. */
-export async function publishPendingPagesAction(): Promise<ProductActionResult> {
-  await actor();
-
-  const outcome = await getProductAdmin().rebuild.request("manual");
-  logger.info("product_pages_publish_requested", { outcome });
-
-  return outcome === "triggered"
-    ? { success: true, message: "A build has started. New pages go live in about 5 minutes." }
-    : {
-        success: false,
-        code: "ERROR",
-        message:
-          outcome === "deferred"
-            ? "A build was started a moment ago. Try again in two minutes."
-            : "Unable to start a build. The pages will go live after the next deploy.",
-      };
 }

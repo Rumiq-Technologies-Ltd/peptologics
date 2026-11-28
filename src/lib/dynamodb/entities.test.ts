@@ -170,12 +170,10 @@ describe("admin product items (D26, D35)", () => {
     expect(buildProductItems({ ...product, version: 7 }, NOW)[0]).toMatchObject({ version: 7 });
   });
 
-  it("files a retired slug on GSI1 so a build can list it, and names its product", () => {
+  it("keeps a retired slug on its guard key and names the product it now belongs to", () => {
     expect(buildRetiredSlugGuard("old-bpc-10mg", "p-1", NOW)).toEqual({
       PK: "SLUG#old-bpc-10mg",
       SK: "GUARD",
-      GSI1PK: "SLUG_REDIRECTS",
-      GSI1SK: "old-bpc-10mg",
       entity: "slug_redirect",
       product_id: "p-1",
       slug: "old-bpc-10mg",

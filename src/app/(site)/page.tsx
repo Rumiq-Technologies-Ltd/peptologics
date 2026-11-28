@@ -16,8 +16,12 @@ import { SITE_NAME, SITE_TAGLINE } from "@/constants/site";
 import { buildFaqSchema } from "@/lib/seo/structuredData";
 import { getContainer } from "@/services/container";
 
-/** One hour. Must be a literal — see the note in products/page.tsx. */
-export const revalidate = 3600;
+/**
+ * One minute, as a literal (see products/page.tsx). On Amplify CloudFront keeps this page for this
+ * long and nothing purges it after an admin save, so this is also the longest an edit can take to
+ * show here (ADR-039).
+ */
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   // `absolute` so home reads as the brand rather than being run through the

@@ -37,13 +37,9 @@ export interface AdminActor {
   requestId: string;
 }
 
-/** What a successful save tells the action layer to refresh. */
+/** What a successful save returns to the action layer. */
 export interface ProductChangeOutcome {
   product: AdminProduct;
   /** Names of the fields that changed. Empty when the save changed nothing. */
   changedFields: string[];
-  /** Product-page slugs whose cached page is now out of date (the old slug after a rename). */
-  staleSlugs: string[];
-  /** True when a new page must be built: a new product, or a new slug. */
-  needsBuild: boolean;
 }

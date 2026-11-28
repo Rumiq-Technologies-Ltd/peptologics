@@ -9,7 +9,11 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-import { MAX_IMAGE_BYTES, isAllowedImageType } from "@/features/admin/products/utils/imageRules";
+import {
+  MAX_IMAGE_BYTES,
+  isAllowedImageType,
+  isProductImageReference,
+} from "@/features/admin/products/utils/imageRules";
 import { processProductImage } from "@/features/admin/products/utils/productImage";
 import { logger } from "@/lib/logger";
 import { fail, ok, type ServiceResult } from "@/types/result";
@@ -160,7 +164,7 @@ export function createProductImageService({
 
     isAllowedImageUrl(url): boolean {
       return (
-        /^\/products\/[A-Za-z0-9._-]+$/.test(url) ||
+        isProductImageReference(url, undefined) ||
         new RegExp(`^${escapeRegExp(baseUrl)}/${PRODUCT_IMAGE_PREFIX}[0-9a-f-]{36}\\.webp$`).test(
           url,
         )

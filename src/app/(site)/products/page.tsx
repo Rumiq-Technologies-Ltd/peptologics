@@ -13,9 +13,8 @@ import { getContainer } from "@/services/container";
  * The catalog.
  *
  * A Server Component reading through the service layer — no client-side fetch and
- * no HTTP hop to our own API. Statically rendered and revalidated hourly, so a
- * visitor gets CDN-served HTML and a price change propagates within the hour (or
- * immediately via POST /api/revalidate).
+ * no HTTP hop to our own API. Statically rendered and revalidated every minute, so a
+ * visitor gets CDN-served HTML and a price change shows within about a minute (ADR-039).
  *
  * Quantity controls and the inquiry-list panel are client leaves inside an otherwise
  * server-rendered page. Search and filtering arrive later; when they do they will
@@ -24,14 +23,17 @@ import { getContainer } from "@/services/container";
  */
 
 /**
- * One hour, inlined as a literal.
+ * One minute, inlined as a literal.
  *
- * Segment config exports must be statically analyzable — Next cannot read an
- * imported constant or an expression like `60 * 60`, and a non-literal value fails
- * the build with "Invalid segment configuration export detected". Keep this in step
- * with the other catalog routes if it changes.
+ * Segment config exports must be statically analyzable: Next cannot read an imported constant
+ * or an expression like `60 * 1`, and a non-literal value fails the build with "Invalid segment
+ * configuration export detected". Keep this in step with the other catalog routes.
+ *
+ * On Amplify, CloudFront keeps this page for as long as `s-maxage` says and nothing the app can
+ * call purges it, so this is also the longest an admin edit takes to show here (ADR-039). It is
+ * short rather than zero because the catalog is the page most visitors land on.
  */
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Research Peptides",

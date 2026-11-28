@@ -18,3 +18,19 @@ export const MAX_ASPECT_RATIO = 1.1;
 export function isAllowedImageType(value: string): value is AllowedImageType {
   return (ALLOWED_IMAGE_TYPES as readonly string[]).includes(value);
 }
+
+/** A file name inside `/products/`: starts with a letter or digit, so never `.` or `..`. */
+const PRODUCT_FILE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+/**
+ * Whether a product's `imageUrl` may be stored: a site path `/products/<file>` (the images
+ * shipped in `public/products`), or an address under the media CDN, `<base>/products/<file>`.
+ * Nothing else: not another host, not a protocol-relative `//host/...`, not a nested path.
+ */
+export function isProductImageReference(value: string, mediaBaseUrl: string | undefined): boolean {
+  if (value.startsWith("/products/")) return PRODUCT_FILE.test(value.slice("/products/".length));
+
+  if (!mediaBaseUrl) return false;
+  const prefix = `${mediaBaseUrl}/products/`;
+  return value.startsWith(prefix) && PRODUCT_FILE.test(value.slice(prefix.length));
+}

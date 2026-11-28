@@ -2,7 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }));
+const push = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push }) }));
 vi.mock("next/image", () => ({
   default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} />,
 }));
@@ -88,7 +89,7 @@ describe("ProductForm (add)", () => {
     const user = userEvent.setup();
     actions.createProductAction.mockResolvedValue({
       success: true,
-      message: "Saved. The product page goes live in about 5 minutes.",
+      message: "Product added.",
       product: { ...EXISTING, version: 1 },
     });
     render(<ProductForm defaultSortOrder={100} uploadEnabled={false} />);
@@ -109,9 +110,10 @@ describe("ProductForm (add)", () => {
       sortOrder: 100,
       status: "active",
     });
-    expect(
-      await screen.findByText("Saved. The product page goes live in about 5 minutes."),
-    ).toBeInTheDocument();
+    // The browser moves to the product's own page, so a reload does not show an empty form.
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith(`/admin/products/${EXISTING.id}?saved=1`),
+    );
   });
 
   it("puts a server field error next to its field", async () => {
@@ -137,6 +139,34 @@ describe("ProductForm (add)", () => {
 });
 
 describe("ProductForm (edit)", () => {
+  it("shows the notice it was opened with, e.g. after adding a product", () => {
+    render(
+      <ProductForm
+        product={EXISTING}
+        defaultSortOrder={20}
+        uploadEnabled={false}
+        initialNotice="Product added."
+      />,
+    );
+    expect(screen.getByText("Product added.")).toBeInTheDocument();
+  });
+
+  it("stays on the page after saving an existing product", async () => {
+    const user = userEvent.setup();
+    actions.updateProductAction.mockResolvedValue({
+      success: true,
+      message: "Saved.",
+      product: { ...EXISTING, name: "BPC-157 x", version: 5 },
+    });
+    render(<ProductForm product={EXISTING} defaultSortOrder={20} uploadEnabled={false} />);
+
+    await user.type(screen.getByLabelText("Name"), "x");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(await screen.findByText("Saved.")).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("saves with the version it was opened with", async () => {
     const user = userEvent.setup();
     actions.updateProductAction.mockResolvedValue({

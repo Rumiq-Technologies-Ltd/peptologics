@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { SiteDocument } from "@/components/layout/SiteDocument";
 import { SITE_NAME, SITE_TAGLINE } from "@/constants/site";
+import { env } from "@/lib/env";
 import { siteMetadata } from "@/lib/seo/siteMetadata";
 
 import NotFound from "./(site)/not-found";
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
 
 export default function GlobalNotFound() {
   return (
-    <SiteDocument>
+    <SiteDocument appEnv={env.APP_ENV}>
       <NotFound />
     </SiteDocument>
   );

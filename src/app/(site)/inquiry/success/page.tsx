@@ -4,8 +4,9 @@ import { MailIcon } from "lucide-react";
 
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
-import { MESSAGES } from "@/constants/messages";
+import { MESSAGES, NO_EMAIL_SENT_NOTE } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
+import { isEmailConfigured } from "@/lib/env";
 import { contactEmail } from "@/lib/env.client";
 
 /**
@@ -100,6 +101,13 @@ export default async function InquirySuccessPage(props: PageProps<"/inquiry/succ
         <h1 className="text-display text-ink-950 mt-6 font-bold">{MESSAGES.inquiry.success}</h1>
 
         <p className="text-lead text-ink-600 mt-4">{MESSAGES.inquiry.successDetail}</p>
+
+        {/* Decided on the server from the same check the email service uses (D40). */}
+        {!isEmailConfigured ? (
+          <p role="status" className="text-warning mt-4 text-sm font-semibold">
+            {NO_EMAIL_SENT_NOTE}
+          </p>
+        ) : null}
 
         {reference ? (
           <div className="border-ink-200 bg-ink-50 mt-8 rounded-xl border p-5">

@@ -5,6 +5,7 @@ import {
   buildNotificationItem,
   buildRetiredSlugGuard,
   buildOrderItems,
+  buildOrderNoteItem,
   buildOrderLineItem,
   buildProductItems,
   formatOrderNumber,
@@ -108,6 +109,8 @@ describe("buildOrderItems", () => {
       SK: "META",
       GSI1PK: "ORDERS#2026-11",
       GSI1SK: "2026-11-24T23:30:00.123Z",
+      // Lets the admin open an order by its number.
+      GSI2PK: "ORDERNO#PL-001000",
       // The original timestamp is kept verbatim.
       created_at: order.created_at,
     });
@@ -188,5 +191,30 @@ describe("admin product items (D26, D35)", () => {
       entity: "slug_guard",
       product_id: "p-1",
     });
+  });
+});
+
+describe("staff notes (D41)", () => {
+  it("files a note under its order, oldest first by sort key", () => {
+    const item = buildOrderNoteItem({
+      id: "note-1",
+      order_id: order.id,
+      body: "Called, no answer.",
+      author_email: "editor@example.com",
+      author_role: "editor",
+      created_at: "2026-11-28T10:00:00.000Z",
+    });
+
+    expect(item).toMatchObject({
+      PK: `ORDER#${order.id}`,
+      SK: "NOTE#2026-11-28T10:00:00.000Z#note-1",
+      entity: "order_note",
+      body: "Called, no answer.",
+    });
+  });
+
+  it("keeps the order's version optional so copied orders need none", () => {
+    const [item] = buildOrderItems(order);
+    expect(item).not.toHaveProperty("version");
   });
 });

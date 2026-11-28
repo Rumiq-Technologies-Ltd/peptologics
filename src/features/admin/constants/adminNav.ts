@@ -39,7 +39,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     label: "Orders",
     href: "/admin/orders",
     icon: ShoppingBagIcon,
-    available: false,
+    available: true,
     minRole: "editor",
   },
   {

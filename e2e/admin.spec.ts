@@ -20,6 +20,8 @@ test.describe("admin disabled (the default server)", () => {
     "/admin/no-access",
     "/admin/products",
     "/admin/products/new",
+    "/admin/orders",
+    "/admin/orders/PL-001032",
     "/api/auth/sign-in",
     "/api/auth/sign-up",
   ]) {
@@ -40,7 +42,12 @@ test.describe("admin enabled", () => {
     expect(new URL(response.headers().location).pathname).toBe("/api/auth/sign-in");
   });
 
-  for (const path of ["/admin/products", "/admin/products/new"]) {
+  for (const path of [
+    "/admin/products",
+    "/admin/products/new",
+    "/admin/orders",
+    "/admin/orders/PL-001032",
+  ]) {
     test(`signed out, ${path} redirects to sign-in`, async ({ request }) => {
       const response = await request.get(path, { maxRedirects: 0 });
 

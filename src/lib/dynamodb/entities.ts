@@ -48,6 +48,11 @@ export const keys = {
     PK: `ORDER#${orderId}`,
     SK: `NOTIF#${channel}`,
   }),
+  /** Staff notes sort oldest first within the order's partition (D41). */
+  orderNote: (orderId: string, createdAt: string, noteId: string): TableKey => ({
+    PK: `ORDER#${orderId}`,
+    SK: `NOTE#${createdAt}#${noteId}`,
+  }),
   idempotency: (idempotencyKey: string): TableKey => ({
     PK: `IDEMP#${idempotencyKey}`,
     SK: "GUARD",
@@ -63,6 +68,14 @@ export const keys = {
     SK: "META",
   }),
 };
+
+/** Sort-key prefixes inside an order's partition, for reading one kind of child item. */
+export const ORDER_SK = { item: "ITEM#", notification: "NOTIF#", note: "NOTE#" } as const;
+
+/** GSI2 partition holding one order, so the admin can open an order by its number. */
+export function orderNumberPartition(orderNumber: string): string {
+  return `ORDERNO#${orderNumber}`;
+}
 
 export type Item = Record<string, unknown>;
 
@@ -224,6 +237,11 @@ export interface OrderSource {
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
+  /**
+   * Optimistic-lock counter, bumped by every admin write (D41). Orders created by the site
+   * or copied from Supabase have none: a missing version counts as 0.
+   */
+  version?: number;
 }
 
 /** UTC `yyyy-mm` of a timestamp, for the per-month order listing. */
@@ -243,6 +261,7 @@ export function buildOrderItems(order: OrderSource): Item[] {
     ...keys.order(order.id),
     GSI1PK: `ORDERS#${monthOf(order.created_at)}`,
     GSI1SK: sortable,
+    GSI2PK: orderNumberPartition(order.order_number),
     entity: "order",
   });
 
@@ -313,6 +332,27 @@ export function buildNotificationItem(notification: NotificationSource): Item {
       : undefined,
     updated_at: notification.updated_at ?? notification.created_at,
     entity: "notification",
+  });
+}
+
+// --- Staff notes (D41) -------------------------------------------------------
+
+export interface OrderNoteSource {
+  id: string;
+  order_id: string;
+  body: string;
+  author_email: string;
+  author_role: "owner" | "editor";
+  /** ISO 8601, UTC. */
+  created_at: string;
+}
+
+/** An internal note on an order. Written once; the application never updates or deletes it. */
+export function buildOrderNoteItem(note: OrderNoteSource): Item {
+  return compact({
+    ...note,
+    ...keys.orderNote(note.order_id, note.created_at, note.id),
+    entity: "order_note",
   });
 }
 

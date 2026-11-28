@@ -1,8 +1,8 @@
 # Admin (`/admin`)
 
 The admin is a Shopify-style back office for staff (D35, ADR-038). **Phase 1 is the foundation:**
-sign-in, the layout, roles and the audit log. **Phase 2 is Products** (below, ADR-039). Orders, lab
-reports and content arrive in later phases (3 to 6), each as its own change.
+sign-in, the layout, roles and the audit log. **Phase 2 is Products** (below, ADR-039). **Phase 3 is Orders**
+(below, D41). Lab reports and content arrive in later phases (4 to 6), each as its own change.
 
 It exists on **staging and on developer machines only**. It stays off production until Stage 4.
 
@@ -163,6 +163,69 @@ cents), `product_archived`, `product_restored`, `product_reordered` and `product
 is no customer data in any of them.
 
 **Settings.** `NEXT_PUBLIC_MEDIA_BUCKET_NAME` and `NEXT_PUBLIC_MEDIA_BASE_URL`. No new variable prefix.
+
+## Orders (Phase 3)
+
+`/admin/orders` and `/admin/orders/[orderNumber]` (Owner and Editor, D35, D41). Every page calls
+`requireAdmin({ role: "editor" })` and every change `requireAdmin({ role: "editor", mutating: true })`.
+Customer data is shown only inside `/admin`. **What the customer asked for is read-only:** lines,
+quantities, prices, coupon and contact details cannot be edited, and the admin sends no email to
+customers. Orders are completed outside the website.
+
+**List.**
+
+- Columns: order number, date, customer, items, total, status, and an **Email problem** badge.
+- Newest first. It reads whole months from the `ORDERS#<yyyy-mm>` partition of `GSI1`: this month first,
+  and **Load older orders** reads one more month each time (up to 60). It never scans the table.
+- Status, search and **Show hidden** filter the months on screen, so they are instant. Searching by
+  name or email covers only the months loaded; the page says so. Typing a whole order number
+  (`PL-001032`) also offers a link that opens it whatever its month, because that lookup uses an index.
+- The email badge means a notification is still `pending` or `failed`: one Query on the open-notifications
+  index, matched to the orders shown. A `skipped` email (email is off, as on staging) is not a problem and
+  shows on the order's page only.
+- The admin home shows the number of `new`, visible orders over the last 12 monthly partitions, linking to
+  `/admin/orders?status=new`.
+
+**Order page.** Customer (email and phone are `mailto:` and `tel:` links), address, the customer's notes,
+when they acknowledged research-use-only; the lines with subtotal, coupon, discount and total; the email
+status of each notification (sent, failed, pending or skipped, with time and attempts, never the message or
+the provider's error); the status changer; staff notes; and Mark as test / spam.
+
+**Status.** `new`, `contacted`, `confirmed`, `cancelled`, `completed`. Staff can move an order to any of them,
+in any order. Each change is audited as from and to.
+
+**Staff notes.** Internal, plain text, up to 2000 characters, cleaned with `sanitizeMultilineText`. Each note
+records who wrote it and when. Notes cannot be edited or deleted. They are never shown to the customer or
+included in any email.
+
+**Mark as test / spam.** Sets `deleted_at` (a soft delete, D37 spirit): the order leaves the default list.
+**Show hidden** brings it back with a Hidden label, and **Restore** removes `deleted_at`. There is no hard delete.
+Both ask for confirmation.
+
+**Two people editing.** Orders carry a `version` (absent = 0). A status, hide or restore carries the version it
+was opened with; if someone else saved first it is refused with "This order changed since you opened it.
+Reload." Adding a note needs no version, because notes only add.
+
+**Times.** The business's time zone is not recorded, so every time is shown in **the viewer's own zone**, with
+the zone's short name (the browser's: for example `GMT+5`), and the exact UTC time in the tooltip. The server
+renders UTC inside `<time dateTime>` and the browser switches to local time, so there is no hydration
+mismatch. Times are stored and sorted in UTC.
+
+**Audit actions.** `order_viewed` (who opened which order number, because the page shows personal data),
+`order_status_changed` (from and to), `order_note_added` (the note's id, never its text), `order_hidden` and
+`order_restored`. `target` is the order number. **No customer data is in any audit item.** Each change and its
+audit item are one `TransactWriteItems`.
+
+**Opening an order by its number.** Orders carry `GSI2PK = ORDERNO#<number>`, set when the order is created
+(`buildOrderItems`). Orders that already exist in a table need a one-off backfill:
+
+```bash
+node scripts/backfill-order-number-index.ts --table peptologics-staging            # dry run (default)
+node scripts/backfill-order-number-index.ts --table peptologics-staging --apply
+```
+
+It touches only order items without the key, sets only that attribute, and is safe to repeat. It uses one
+Scan, once, which is fine for a one-off. It never prints customer values. The Stage 4 copy needs no backfill.
 
 ## Limits worth knowing
 

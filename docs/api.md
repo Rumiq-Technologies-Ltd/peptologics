@@ -113,6 +113,11 @@ comparable to a single-peptide product.
 `dynamicParams = false`. With `true`, Next renders and caches the not-found page and returns `200` — a
 soft 404. See ADR-014.
 
+A **retired** slug (one a product had before staff changed it in the admin, D26) is built as a page too,
+and that page is a permanent redirect: `308` with `Location` set to the product's current page. A
+retired slug whose product is archived is a `404`. The old redirects in `next.config.ts` are served
+before any of this. See ADR-039.
+
 ## `POST /api/inquiries`
 
 Creates an inquiry: one `orders` row, one `order_items` row per product, and one `notification_log` row
@@ -346,8 +351,9 @@ how a site ends up quoting two different prices for the same product.
 | `405`  | `METHOD_NOT_ALLOWED` | `GET`, so a browser visit gets a clear answer |
 | `422`  | `VALIDATION_FAILED`  | `slug` present but not a valid slug           |
 
-Adding a **new** product needs a redeploy, not a purge: `/products/[slug]` sets `dynamicParams = false`,
-so a slug absent at build time 404s until `generateStaticParams` runs again (ADR-014).
+Adding a **new** product needs a build, not a purge: `/products/[slug]` sets `dynamicParams = false`,
+so a slug absent at build time 404s until `generateStaticParams` runs again (ADR-014). The admin starts
+that build itself (ADR-039). The admin's own saves do not call this endpoint: they revalidate in-process.
 
 ---
 

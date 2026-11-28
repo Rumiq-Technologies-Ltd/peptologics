@@ -38,7 +38,8 @@ export type AdminAccessResult =
       reason: "disabled" | "unauthenticated" | "no_access" | "forbidden" | "bad_origin";
     };
 
-async function requestId(): Promise<string> {
+/** The request's id for the audit log: CloudFront's when present, otherwise a fresh one. */
+export async function requestId(): Promise<string> {
   const incoming = (await headers()).get("x-amz-cf-id");
   return incoming ?? randomUUID();
 }

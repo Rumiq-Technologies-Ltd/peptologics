@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildLiveSlugGuard,
   buildNotificationItem,
+  buildRetiredSlugGuard,
   buildOrderItems,
   buildOrderLineItem,
   buildProductItems,
@@ -152,5 +154,41 @@ describe("notification and line items", () => {
     });
 
     expect(line).toMatchObject({ ...keys.orderItem(order.id, product.id), strength_mg: 10 });
+  });
+});
+
+describe("admin product items (D26, D35)", () => {
+  it("starts a product at version 1 and carries retired slugs", () => {
+    const [item] = buildProductItems({ ...product, previous_slugs: ["old-bpc-10mg"] }, NOW);
+    expect(item).toMatchObject({ version: 1, previous_slugs: ["old-bpc-10mg"] });
+
+    const [plain] = buildProductItems(product, NOW);
+    expect(plain).not.toHaveProperty("previous_slugs");
+  });
+
+  it("keeps a version the caller supplies", () => {
+    expect(buildProductItems({ ...product, version: 7 }, NOW)[0]).toMatchObject({ version: 7 });
+  });
+
+  it("files a retired slug on GSI1 so a build can list it, and names its product", () => {
+    expect(buildRetiredSlugGuard("old-bpc-10mg", "p-1", NOW)).toEqual({
+      PK: "SLUG#old-bpc-10mg",
+      SK: "GUARD",
+      GSI1PK: "SLUG_REDIRECTS",
+      GSI1SK: "old-bpc-10mg",
+      entity: "slug_redirect",
+      product_id: "p-1",
+      slug: "old-bpc-10mg",
+      retired_at: NOW,
+    });
+  });
+
+  it("builds a live guard on the same key a retired one uses", () => {
+    expect(buildLiveSlugGuard("bpc-157-10mg", "p-1")).toEqual({
+      PK: "SLUG#bpc-157-10mg",
+      SK: "GUARD",
+      entity: "slug_guard",
+      product_id: "p-1",
+    });
   });
 });

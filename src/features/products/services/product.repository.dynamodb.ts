@@ -1,6 +1,6 @@
 import "server-only";
 
-import { QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 
 import { toProduct, toProducts } from "@/features/products/mappers/product.mappers";
 import {
@@ -11,7 +11,7 @@ import {
 import type { ProductRepository } from "@/features/products/services/product.repository";
 import type { Product } from "@/features/products/types/product";
 import { getDocumentClient, getTableName } from "@/lib/dynamodb/client.server";
-import { CATALOG_PARTITION, INDEX } from "@/lib/dynamodb/entities";
+import { CATALOG_PARTITION, INDEX, SLUG_REDIRECT_PARTITION, keys } from "@/lib/dynamodb/entities";
 import { toDatabaseError } from "@/lib/dynamodb/errors";
 
 /**
@@ -138,6 +138,63 @@ export function createDynamoProductRepository(): ProductRepository {
       const wanted = new Set(ids);
       const catalog = await loadCatalog("products.findByIds");
       return toProducts(selectPublicProducts(catalog).filter((record) => wanted.has(record.id)));
+    },
+
+    async findCurrentSlugForRetired(slug): Promise<string | null> {
+      try {
+        const client = getDocumentClient();
+        const guard = await client.send(
+          new GetCommand({ TableName: getTableName(), Key: keys.slugGuard(slug) }),
+        );
+
+        // A live product's own guard is not a redirect: only a retired slug is.
+        if (guard.Item?.entity !== "slug_redirect") return null;
+
+        const product = await client.send(
+          new GetCommand({
+            TableName: getTableName(),
+            Key: keys.product(String(guard.Item.product_id)),
+            ProjectionExpression: "slug, #status, deleted_at",
+            ExpressionAttributeNames: { "#status": "status" },
+          }),
+        );
+
+        const record = product.Item;
+        const isPublic = record?.status === "active" && !record.deleted_at;
+
+        // An archived product has no page to send visitors to: an honest 404.
+        return isPublic && typeof record.slug === "string" ? record.slug : null;
+      } catch (error) {
+        throw toDatabaseError("products.findCurrentSlugForRetired", error);
+      }
+    },
+
+    async listRetiredSlugs(): Promise<string[]> {
+      try {
+        const slugs: string[] = [];
+        let startKey: Record<string, unknown> | undefined;
+
+        do {
+          const page = await getDocumentClient().send(
+            new QueryCommand({
+              TableName: getTableName(),
+              IndexName: INDEX.primary,
+              KeyConditionExpression: "GSI1PK = :pk",
+              ExpressionAttributeValues: { ":pk": SLUG_REDIRECT_PARTITION },
+              ExclusiveStartKey: startKey,
+            }),
+          );
+
+          for (const item of page.Items ?? []) {
+            if (typeof item.slug === "string") slugs.push(item.slug);
+          }
+          startKey = page.LastEvaluatedKey;
+        } while (startKey);
+
+        return slugs;
+      } catch (error) {
+        throw toDatabaseError("products.listRetiredSlugs", error);
+      }
     },
 
     async listActiveSlugs(): Promise<{ slug: string; updatedAt: string }[]> {

@@ -1,4 +1,4 @@
-import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { mockClient } from "aws-sdk-client-mock";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -131,5 +131,73 @@ describe("createDynamoProductRepository", () => {
     await expect(createDynamoProductRepository().findActive()).rejects.toBeInstanceOf(
       DatabaseError,
     );
+  });
+});
+
+describe("retired slugs (D26)", () => {
+  it("resolves a retired slug to the product's current slug", async () => {
+    dynamo
+      .on(GetCommand)
+      .resolvesOnce({ Item: { entity: "slug_redirect", product_id: "p-9" } })
+      .resolvesOnce({ Item: { slug: "pl3-30mg", status: "active" } });
+
+    await expect(
+      createDynamoProductRepository().findCurrentSlugForRetired("old-name-30mg"),
+    ).resolves.toBe("pl3-30mg");
+
+    const first = dynamo.commandCalls(GetCommand)[0]?.args[0].input;
+    expect(first?.Key).toEqual({ PK: "SLUG#old-name-30mg", SK: "GUARD" });
+    expect(dynamo.commandCalls(GetCommand)[1]?.args[0].input.Key).toEqual({
+      PK: "PRODUCT#p-9",
+      SK: "META",
+    });
+  });
+
+  it("does not treat a live product's own guard as a redirect", async () => {
+    dynamo.on(GetCommand).resolves({ Item: { entity: "slug_guard", product_id: "p-1" } });
+
+    await expect(
+      createDynamoProductRepository().findCurrentSlugForRetired("bpc-157-10mg"),
+    ).resolves.toBeNull();
+    expect(dynamo.commandCalls(GetCommand)).toHaveLength(1);
+  });
+
+  it("answers null for an unknown slug", async () => {
+    dynamo.on(GetCommand).resolves({});
+    await expect(
+      createDynamoProductRepository().findCurrentSlugForRetired("nope"),
+    ).resolves.toBeNull();
+  });
+
+  it("answers null when the product was archived: there is no page to send people to", async () => {
+    dynamo
+      .on(GetCommand)
+      .resolvesOnce({ Item: { entity: "slug_redirect", product_id: "p-9" } })
+      .resolvesOnce({ Item: { slug: "pl3-30mg", status: "archived" } });
+
+    await expect(
+      createDynamoProductRepository().findCurrentSlugForRetired("old"),
+    ).resolves.toBeNull();
+  });
+
+  it("lists every retired slug from GSI1, following pagination", async () => {
+    dynamo
+      .on(QueryCommand)
+      .resolvesOnce({ Items: [{ slug: "a-1mg" }], LastEvaluatedKey: { PK: "x", SK: "y" } })
+      .resolves({ Items: [{ slug: "b-2mg" }] });
+
+    await expect(createDynamoProductRepository().listRetiredSlugs()).resolves.toEqual([
+      "a-1mg",
+      "b-2mg",
+    ]);
+    const input = dynamo.commandCalls(QueryCommand)[0]?.args[0].input;
+    expect(input?.ExpressionAttributeValues).toEqual({ ":pk": "SLUG_REDIRECTS" });
+  });
+
+  it("wraps a storage failure", async () => {
+    dynamo.on(GetCommand).rejects(new Error("boom"));
+    await expect(
+      createDynamoProductRepository().findCurrentSlugForRetired("x"),
+    ).rejects.toBeInstanceOf(DatabaseError);
   });
 });

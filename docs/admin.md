@@ -1,8 +1,8 @@
 # Admin (`/admin`)
 
-The admin is a Shopify-style back office for staff (D35, ADR-038). **Phase 1 (this) is the
-foundation:** sign-in, the layout, roles and the audit log. Products, orders, lab reports and
-content arrive in later phases (2 to 6), each as its own change.
+The admin is a Shopify-style back office for staff (D35, ADR-038). **Phase 1 is the foundation:**
+sign-in, the layout, roles and the audit log. **Phase 2 is Products** (below, ADR-039). Orders, lab
+reports and content arrive in later phases (3 to 6), each as its own change.
 
 It exists on **staging and on developer machines only**. It stays off production until Stage 4.
 
@@ -107,11 +107,65 @@ One DynamoDB item per admin action, in the same table as everything else:
 
 Attributes: `actor_email`, `actor_role` (absent if the person has no role), `action`, `target`,
 `request_id`, `timestamp`. **The staff email is the only personal data.** One month is one Query,
-oldest first. Phase 1 records `sign_in`, `sign_out` and `access_denied`; later phases record every
-change. The app only ever adds items, never edits or deletes them. A failed audit write is logged
-and does not block the action in Phase 1; later phases that change data should surface it.
+oldest first. Phase 1 records `sign_in`, `sign_out` and `access_denied`; Phase 2 adds the product
+actions above, with a `changes` attribute (field to before and after) on each change. The app only ever adds items, never edits or deletes them. A failed audit write is logged
+and does not block a sign-in. For a product change the audit item is part of the transaction, so a change
+cannot happen without its record.
 
 To read the log, query `PK = AUDIT#2026-11` in the DynamoDB console.
+
+## Products (Phase 2)
+
+`/admin/products` (Owner and Editor). Every change is checked on the server with
+`requireAdmin({ role: "editor", mutating: true })` and written to the audit log in the same
+transaction as the change.
+
+**List.** Image, name, strength, price, status (Active, Out of stock, Archived), featured and display
+order. Search by name, filter by status and category, sort. All of it runs over the whole list in the
+browser (about thirty products). The list says which products the home page shows: the first three
+featured active ones in display order (D32).
+
+**Add and edit** (`/admin/products/new`, `/admin/products/[id]`). One Zod schema is used by the form and
+by the server action. The web address is suggested from the name and vial size (`bpc-157-10mg`) and can
+be edited. Cost per mg is worked out on save and never typed. The price is typed in dollars and stored as
+cents.
+
+**Archive and restore (D37).** There is no hard delete. Archive sets the status to `archived`: the
+product leaves the shop, the sitemap and search, and Restore brings it back. **Out of stock also hides a
+product from the shop**, as it always has; there is no "sold out" label.
+
+**Two people editing.** Every product has a `version`. A save carries the version it was opened with; if
+someone else saved first it is refused with "This product changed since you opened it. Reload."
+
+**Web address changes (D26).** The old address keeps a permanent redirect, stored in DynamoDB as a
+_retired slug_ (see [database.md](./database.md)). It points at the product, not at a slug, so a product
+renamed twice still lands on its current page in one hop. A retired slug can never be taken by another
+product; the product itself may take it back. The older redirects in `next.config.ts` stay there for now
+and are served first. **Do not reuse the address of a product that was renamed earlier:** a
+`next.config.ts` redirect beats the page, so a live product on that address would be unreachable. Moving
+those redirects into this store is a follow-up after Stage 4 (the production data is still on Supabase).
+
+**Going live.** An edit, archive, restore, featured toggle or reorder refreshes the product page,
+`/products`, `/`, `/lab-testing` and the sitemap straight away. A **new product page needs a site build**
+(`dynamicParams = false`), so creating a product or changing a slug calls the Amplify webhook: "Saved.
+The product page goes live in about 5 minutes." At most one build per two minutes; the products list
+shows a **Publish now** banner while pages are waiting. If the webhook fails the save still succeeds and
+the page goes live after the next deploy. See [deployment.md](./deployment.md).
+
+**Images.** Staff pick a JPEG, PNG or WebP of up to 5 MB, square or nearly square (width over height
+between 0.9 and 1.1), 600 to 4000 pixels a side. The browser sends it straight to S3 with a presigned
+PUT that is signed for exactly that type and size. The server then reads it, checks it by content, and
+re-encodes it as a WebP of at most 1200 pixels, which strips metadata and fixes the format, and stores
+it under `products/`. Only `products/*` is served, through CloudFront. Existing `public/products/*` paths
+keep working: `image_url` is either a site path or a CloudFront address. Without the two media variables,
+upload is off and the form says so.
+
+**Audit actions.** `product_created`, `product_updated` (each changed field as before and after; price in
+cents), `product_archived`, `product_restored`, `product_reordered` and `product_image_uploaded`. There
+is no customer data in any of them.
+
+**Settings.** `REVALIDATE_REBUILD_HOOK_URL` (server-only secret),
+`NEXT_PUBLIC_MEDIA_BUCKET_NAME` and `NEXT_PUBLIC_MEDIA_BASE_URL`. No new variable prefix.
 
 ## Limits worth knowing
 

@@ -34,10 +34,14 @@ describe("AdminNav", () => {
     render(<AdminNav role="owner" />);
 
     expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
-    // Only Home is a link until a phase builds the rest.
-    expect(screen.getAllByRole("link")).toHaveLength(1);
-    expect(screen.getByText("Products").closest("[aria-disabled='true']")).not.toBeNull();
-    expect(screen.getAllByText("Coming soon")).toHaveLength(7);
+    // Home and Products (Phase 2) are links; the rest wait for their phase.
+    expect(screen.getAllByRole("link")).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "Products" })).toHaveAttribute(
+      "href",
+      "/admin/products",
+    );
+    expect(screen.getByText("Orders").closest("[aria-disabled='true']")).not.toBeNull();
+    expect(screen.getAllByText("Coming soon")).toHaveLength(6);
   });
 
   it("closes the drawer through onNavigate and is reachable by keyboard", async () => {

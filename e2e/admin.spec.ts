@@ -15,7 +15,14 @@ import { expect, test } from "@playwright/test";
 test.describe("admin disabled (the default server)", () => {
   test.skip(process.env.E2E_ADMIN_ENABLED === "1", "server has the admin enabled");
 
-  for (const path of ["/admin", "/admin/no-access", "/api/auth/sign-in", "/api/auth/sign-up"]) {
+  for (const path of [
+    "/admin",
+    "/admin/no-access",
+    "/admin/products",
+    "/admin/products/new",
+    "/api/auth/sign-in",
+    "/api/auth/sign-up",
+  ]) {
     test(`${path} is a 404`, async ({ request }) => {
       const response = await request.get(path, { maxRedirects: 0 });
       expect(response.status()).toBe(404);
@@ -32,6 +39,15 @@ test.describe("admin enabled", () => {
     expect(response.status()).toBe(307);
     expect(new URL(response.headers().location).pathname).toBe("/api/auth/sign-in");
   });
+
+  for (const path of ["/admin/products", "/admin/products/new"]) {
+    test(`signed out, ${path} redirects to sign-in`, async ({ request }) => {
+      const response = await request.get(path, { maxRedirects: 0 });
+
+      expect(response.status()).toBe(307);
+      expect(new URL(response.headers().location).pathname).toBe("/api/auth/sign-in");
+    });
+  }
 
   test("sign-in sends the browser to Cognito, with PKCE", async ({ request }) => {
     const response = await request.get("/api/auth/sign-in", { maxRedirects: 0 });

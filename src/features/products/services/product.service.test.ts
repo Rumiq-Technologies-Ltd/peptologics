@@ -31,7 +31,14 @@ function makeHarness() {
     { slug: "pl3-10mg", updatedAt: "2026-08-01" },
   ]);
 
+  const findCurrentSlugForRetired = vi.fn<ProductRepository["findCurrentSlugForRetired"]>(
+    async () => null,
+  );
+  const listRetiredSlugs = vi.fn<ProductRepository["listRetiredSlugs"]>(async () => []);
+
   const repository: ProductRepository = {
+    findCurrentSlugForRetired,
+    listRetiredSlugs,
     findActive,
     findFeatured,
     findBySlug,
@@ -45,6 +52,8 @@ function makeHarness() {
     findFeatured,
     findBySlug,
     listActiveSlugs,
+    findCurrentSlugForRetired,
+    listRetiredSlugs,
   };
 }
 
@@ -181,5 +190,37 @@ describe("listSlugsForSitemap", () => {
     listActiveSlugs.mockRejectedValueOnce(new Error("connection reset"));
 
     await expect(service.listSlugsForSitemap()).resolves.toEqual([]);
+  });
+});
+
+describe("retired slugs (D26)", () => {
+  it("returns where a retired slug now lives", async () => {
+    const { service, findCurrentSlugForRetired } = makeHarness();
+    findCurrentSlugForRetired.mockResolvedValueOnce("pl3-30mg");
+
+    await expect(service.resolveRetiredSlug("old-30mg")).resolves.toBe("pl3-30mg");
+  });
+
+  it("does not look up a malformed slug", async () => {
+    const { service, findCurrentSlugForRetired } = makeHarness();
+
+    await expect(service.resolveRetiredSlug("../etc/passwd")).resolves.toBeNull();
+    expect(findCurrentSlugForRetired).not.toHaveBeenCalled();
+  });
+
+  it("degrades to no redirect when the lookup fails, rather than erroring the page", async () => {
+    const { service, findCurrentSlugForRetired } = makeHarness();
+    findCurrentSlugForRetired.mockRejectedValueOnce(new Error("down"));
+
+    await expect(service.resolveRetiredSlug("old-30mg")).resolves.toBeNull();
+  });
+
+  it("lists retired slugs for the build, and an empty list if that fails", async () => {
+    const { service, listRetiredSlugs } = makeHarness();
+    listRetiredSlugs.mockResolvedValueOnce(["a-1mg"]);
+    await expect(service.listRetiredSlugs()).resolves.toEqual(["a-1mg"]);
+
+    listRetiredSlugs.mockRejectedValueOnce(new Error("down"));
+    await expect(service.listRetiredSlugs()).resolves.toEqual([]);
   });
 });

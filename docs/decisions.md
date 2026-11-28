@@ -1042,3 +1042,26 @@ acquisition plan.
 - Staff are managed by hand in Cognito until a later phase adds a screen.
 - Sign-out is a GET link, so another site can sign someone out. Disabling a user in Cognito ends their session at the next token refresh (within 30 minutes), not instantly.
 - The share-image URLs gain a hash, and the rewrites depend on the folder names `(site)` and `products/[slug]`.
+
+---
+
+## ADR-039 — Admin products: archive not delete, retired slugs, and a build for new pages
+
+**Status** Accepted (D35, D37, 2026-11-28) · Admin workstream, Phase 2 (Chat 12). On staging and developer machines now; **live only after Stage 4**.
+
+**Decision.**
+
+- **No hard delete (D37).** "Delete" archives a product (`status = archived`). Restorable, and the slug stays reserved.
+- **One transaction per change.** The product, its slug guards and its audit item are written together, so a change cannot exist without its log line. Writes are guarded by a `version` attribute (optimistic lock); an item copied from Supabase has none and counts as 0.
+- **Retired slugs are data (D26).** A rename keeps the old slug's guard as `slug_redirect`, naming the product. The product page for each retired slug is built as a permanent redirect to the product's current slug. The old PL3, PL2 and Elora redirects stay in `next.config.ts` until after Stage 4.
+- **New product pages need a build; we keep `dynamicParams = false`.** Two attempts to render unknown slugs on demand failed on a production build: `connection()` before `notFound()` with `revalidate` set, and the same with `revalidate` removed, both answered every unknown slug (and every retired slug) with a 500 (`DYNAMIC_SERVER_USAGE`). In Next 16.4.6 the first request for a slug that was not prebuilt is still a prerender, where `connection()` throws. So creating a product, or changing a slug, calls an Amplify incoming webhook (`REVALIDATE_REBUILD_HOOK_URL`): about five minutes, at most one build per two minutes, tracked in DynamoDB; a request inside the window is recorded as owed and the products list offers "Publish now". Verified on a production build: a prebuilt page that calls `permanentRedirect` is served as a 308 from the cache.
+- **Images.** Browser PUT to S3 with a presigned URL signed for the exact type and size; the server checks the object by content and re-encodes it as a WebP (at most 1200 px) before it reaches `products/`, the only prefix CloudFront serves. The bucket name and CloudFront address are `NEXT_PUBLIC_` variables (neither is secret).
+- **No new variable prefix.** The webhook URL uses `REVALIDATE_`.
+
+**Consequences.**
+
+- Three new dependencies: `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner` and `sharp` (already installed by Next, now a direct dependency).
+- A new product page appears about five minutes after it is created, not instantly. Edits are instant.
+- The public and admin CSP gain the media bucket's origin in `connect-src` when a bucket is configured.
+- Out of stock still hides a product from the shop (no "sold out" label).
+- A `next.config.ts` redirect outranks a product page, and the admin cannot see those sources. The form warns staff; moving them into data is a follow-up after Stage 4.

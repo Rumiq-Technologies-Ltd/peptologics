@@ -20,6 +20,7 @@ export interface AuditInput {
   actorRole: AdminRole | null;
   action: AuditAction;
   target?: string;
+  changes?: AuditSource["changes"];
   requestId: string;
 }
 
@@ -48,6 +49,7 @@ export function createAuditEntry(
     actor_role: input.actorRole,
     action: input.action,
     target: input.target ?? null,
+    changes: input.changes ?? null,
     request_id: input.requestId,
   };
 }

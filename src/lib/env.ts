@@ -112,6 +112,29 @@ const serverEnvSchema = z.object({
   // --- Operations -----------------------------------------------------------
   /** Bearer secret for POST /api/revalidate. */
   REVALIDATE_SECRET: z.string().min(16).optional(),
+  /**
+   * The Amplify incoming-webhook URL that starts a build (admin Phase 2). A new product page
+   * exists only after a build, so creating a product or changing a slug calls this. Its path
+   * carries the secret: server-only, never logged, never sent to the browser. Unset (local
+   * development) means no build is requested.
+   */
+  REVALIDATE_REBUILD_HOOK_URL: z.url().optional(),
+
+  // --- Product images (admin Phase 2) ---------------------------------------
+  /**
+   * Neither is a secret: the bucket name is in every presigned URL, and the base URL is the public
+   * CloudFront address images are served from. Both or neither; unset turns image upload off.
+   */
+  NEXT_PUBLIC_MEDIA_BUCKET_NAME: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/, "Expected an S3 bucket name.")
+    .optional(),
+  NEXT_PUBLIC_MEDIA_BASE_URL: z
+    .url()
+    .refine((value) => value.startsWith("https://") && !value.endsWith("/"), {
+      message: "Expected an https:// address with no trailing slash.",
+    })
+    .optional(),
   /** Salt for hashing IP addresses before they touch the rate-limit table. */
   RATE_LIMIT_SALT: z.string().min(16).default("peptologics-dev-salt-change-me"),
 });
@@ -225,6 +248,15 @@ export const serverEnvSchemaWithProductionRules = serverEnvSchema
         "NEXT_PUBLIC_COGNITO_USER_POOL_ID, NEXT_PUBLIC_COGNITO_CLIENT_ID and " +
         "NEXT_PUBLIC_COGNITO_DOMAIN must be set together, or not at all.",
       path: ["NEXT_PUBLIC_COGNITO_USER_POOL_ID"],
+    },
+  )
+  .refine(
+    (value) =>
+      Boolean(value.NEXT_PUBLIC_MEDIA_BUCKET_NAME) === Boolean(value.NEXT_PUBLIC_MEDIA_BASE_URL),
+    {
+      error:
+        "NEXT_PUBLIC_MEDIA_BUCKET_NAME and NEXT_PUBLIC_MEDIA_BASE_URL must be set together, or not at all.",
+      path: ["NEXT_PUBLIC_MEDIA_BUCKET_NAME"],
     },
   );
 

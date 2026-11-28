@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  publishPendingPagesAction,
   reorderProductAction,
   setProductFeaturedAction,
   setProductStatusAction,
@@ -35,8 +34,6 @@ import { ProductThumb } from "./ProductThumb";
 
 interface ProductsTableProps {
   products: AdminProduct[];
-  /** True while pages from earlier saves are still waiting for a build. */
-  pagesWaiting: boolean;
 }
 
 const SELECT_CLASS =
@@ -53,7 +50,7 @@ const STATUS_BADGE: Record<AdminProduct["status"], string> = {
  * (about thirty products), so they are instant. Every change goes through a server action;
  * the page is then refreshed so the list always shows what is saved.
  */
-export function ProductsTable({ products, pagesWaiting }: ProductsTableProps) {
+export function ProductsTable({ products }: ProductsTableProps) {
   const router = useRouter();
   const [filters, setFilters] = useState<ProductListFilters>(DEFAULT_FILTERS);
   const [pending, startTransition] = useTransition();
@@ -86,20 +83,6 @@ export function ProductsTable({ products, pagesWaiting }: ProductsTableProps) {
           <PlusIcon aria-hidden="true" /> Add product
         </Link>
       </div>
-
-      {pagesWaiting ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-          <p>Some new product pages are waiting for a site build before they go live.</p>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={pending}
-            onClick={() => run(publishPendingPagesAction)}
-          >
-            Publish now
-          </Button>
-        </div>
-      ) : null}
 
       <div className="mt-6 flex flex-wrap items-end gap-3">
         <label className="flex min-w-48 flex-1 flex-col gap-1 text-sm font-medium">

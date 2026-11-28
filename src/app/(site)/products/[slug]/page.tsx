@@ -19,46 +19,28 @@ import { getContainer } from "@/services/container";
 import { formatCostPerMg, formatCurrency } from "@/utils/formatCurrency";
 import { formatStrength } from "@/utils/formatStrength";
 
-/** One hour. Must be a literal — see the note in ../page.tsx. */
-export const revalidate = 3600;
-
 /**
- * Any slug not returned by `generateStaticParams` gets a real HTTP 404.
+ * Rendered on every request (ADR-039, amended).
  *
- * This is deliberate and was chosen after measuring the alternative. With
- * `dynamicParams = true`, an unknown slug is rendered on demand — and because this
- * segment sets `revalidate`, that render is treated as prerenderable and cached, so
- * `notFound()` produces `not-found.tsx` with a **200** status. Verified against a
- * production build with a never-before-requested slug (`x-nextjs-cache: MISS`,
- * still `200 OK`). That is a soft 404: search engines index it as a real page, and
- * `robots: noindex` in `generateMetadata` mitigates the indexing but not the wrong
- * status.
+ * On Amplify the page's HTML sits in CloudFront for as long as `Cache-Control: s-maxage` says,
+ * and neither `revalidatePath` nor anything else the app can call purges that copy (Amplify
+ * manages the distribution, and its docs say on-demand ISR is not supported). Measured on
+ * staging: an archived product's page was a 404 at the origin but kept answering 200 with the
+ * old price from the edge for up to an hour. A dynamic page is sent `private, no-cache,
+ * no-store`, so nothing between the origin and the visitor can keep a stale copy.
  *
- * The cost of `false` is that a product added to the database after a deploy 404s until the
- * next build, because `generateStaticParams` runs at build time only. The admin pays that cost
- * for staff: creating a product, or changing a slug, calls the Amplify build webhook
- * (`REVALIDATE_REBUILD_HOOK_URL`, about five minutes; ADR-039). Edits, archive and restore
- * need no build: `revalidatePath` refreshes the page.
+ * What that buys, all measured on a production build:
  *
- * A retired slug (D26) is in `generateStaticParams` too, and its page is a permanent redirect
- * to the product's current page. Verified on a production build: a 308 with the right
- * `location`, served from the cache. Anything else not in the list is a real 404.
+ * - An admin edit shows on the next request. Archive and restore too.
+ * - A real 404 for an unknown or archived product. (With ISR, `notFound()` was cached and
+ *   served with status 200, a soft 404; see ADR-014.)
+ * - A permanent redirect (308) from a retired slug to the product's current page (D26).
+ * - A product created in the admin has a page on its first request, with no build.
  *
- * Price changes are unaffected: `revalidate` above still refreshes the data on
- * existing pages, and `POST /api/revalidate` forces it immediately.
+ * The cost is a few DynamoDB reads and one render per view. At this site's traffic that is
+ * negligible, and it is the price of an edit being visible immediately.
  */
-export const dynamicParams = false;
-
-export async function generateStaticParams(): Promise<{ slug: string }[]> {
-  const container = getContainer();
-  const [live, retired] = await Promise.all([
-    container.products.listSlugsForSitemap(),
-    container.products.listRetiredSlugs(),
-  ]);
-
-  // A retired slug is prerendered too: its page is a permanent redirect (D26).
-  return [...live.map(({ slug }) => slug), ...retired].map((slug) => ({ slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(props: PageProps<"/products/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;

@@ -1,6 +1,8 @@
 import { z } from "zod";
 
+import { isProductImageReference } from "@/features/admin/products/utils/imageRules";
 import { SLUG_PATTERN } from "@/lib/dynamodb/entities";
+import { mediaBaseUrl } from "@/lib/env.client";
 
 /**
  * The one product schema, used by the form in the browser and by the server action that
@@ -23,11 +25,6 @@ const MAX_STRENGTH = 100_000;
 /** True when a dollar amount has at most two decimals, so it converts to whole cents. */
 function isWholeCents(dollars: number): boolean {
   return Math.abs(dollars * 100 - Math.round(dollars * 100)) < 1e-6;
-}
-
-/** A site-relative path (existing `public/products` images) or an https URL (the media CDN). */
-function isImageReference(value: string): boolean {
-  return /^\/[A-Za-z0-9._\-/]+$/.test(value) || /^https:\/\/[^\s]+$/.test(value);
 }
 
 export const productInputSchema = z.object({
@@ -72,7 +69,10 @@ export const productInputSchema = z.object({
     .string()
     .trim()
     .max(500)
-    .refine(isImageReference, "That image address is not valid.")
+    .refine(
+      (value) => isProductImageReference(value, mediaBaseUrl),
+      "That image address is not valid.",
+    )
     .optional(),
 });
 

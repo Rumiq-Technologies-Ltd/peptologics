@@ -17,8 +17,12 @@ import { getContainer } from "@/services/container";
  * crawlers to ignore the field.
  */
 
-/** One hour, matching the catalog's ISR window. Must be a literal (ADR-015). */
-export const revalidate = 3600;
+/**
+ * One minute, as a literal (see products/page.tsx). On Amplify CloudFront keeps this page for this
+ * long and nothing purges it after an admin save, so this is also the longest an edit can take to
+ * show here (ADR-039).
+ */
+export const revalidate = 60;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Never throws: the service catches its own failures and returns an empty list, so

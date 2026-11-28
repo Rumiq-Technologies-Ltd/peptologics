@@ -167,5 +167,7 @@ describe("isAllowedImageUrl", () => {
       false,
     );
     expect(images.isAllowedImageUrl("/other/x.webp")).toBe(false);
+    expect(images.isAllowedImageUrl("/products/..")).toBe(false);
+    expect(images.isAllowedImageUrl("//evil.example.com/products/x.webp")).toBe(false);
   });
 });

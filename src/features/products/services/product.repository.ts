@@ -35,8 +35,6 @@ export interface ProductRepository {
    * records retired slugs (D26); the Supabase store never has any.
    */
   findCurrentSlugForRetired(slug: string): Promise<string | null>;
-  /** Every retired slug, so each can be prerendered as a redirect. Empty on Supabase. */
-  listRetiredSlugs(): Promise<string[]>;
 }
 
 /** Escapes PostgREST `ilike` wildcards so a search for "%" is literal. */
@@ -154,10 +152,6 @@ export function createProductRepository(): ProductRepository {
 
     async findCurrentSlugForRetired(): Promise<string | null> {
       return null;
-    },
-
-    async listRetiredSlugs(): Promise<string[]> {
-      return [];
     },
 
     async listActiveSlugs(): Promise<{ slug: string; updatedAt: string }[]> {

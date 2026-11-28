@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/env.client", () => ({ mediaBaseUrl: "https://media.example.com" }));
 
 import { suggestProductSlug } from "@/features/admin/products/utils/productSlug";
 import {
@@ -51,11 +53,27 @@ describe("productInputSchema", () => {
     expect(messages({ sortOrder: 10000 }).sortOrder).toBeDefined();
   });
 
-  it("accepts a site path or an https address for the image, nothing else", () => {
+  it("accepts a site image or one from the media CDN, and nothing else (the form and the server share this)", () => {
     expect(messages({ imageUrl: "/products/bpc-157-10mg.webp" })).toEqual({});
-    expect(messages({ imageUrl: "https://media.example.com/products/a.webp" })).toEqual({});
-    expect(messages({ imageUrl: "javascript:alert(1)" }).imageUrl).toBeDefined();
-    expect(messages({ imageUrl: "http://example.com/a.webp" }).imageUrl).toBeDefined();
+    expect(messages({ imageUrl: "https://media.example.com/products/abc.webp" })).toEqual({});
+
+    for (const bad of [
+      "https://evil.example.com/products/abc.webp",
+      "https://media.example.com.evil.com/products/abc.webp",
+      "https://media.example.com/uploads/abc",
+      "https://media.example.com/products/a/b.webp",
+      "//evil.example.com/products/abc.webp",
+      "//media.example.com/products/abc.webp",
+      "/products//evil.com/x.webp",
+      "/products/../secret",
+      "/other/x.webp",
+      "http://media.example.com/products/abc.webp",
+      "javascript:alert(1)",
+    ]) {
+      expect(messages({ imageUrl: bad }).imageUrl?.[0], bad).toBe(
+        "That image address is not valid.",
+      );
+    }
   });
 
   it("has no field for cost per milligram or the lock version", () => {

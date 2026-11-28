@@ -22,8 +22,12 @@ import { getContainer } from "@/services/container";
  * Products without one are absent from the list rather than offering a button that goes
  * nowhere. A COA's lot and purity are shown beside it as the lab states them.
  */
-/** One hour, matching the catalog. Must be a literal — see ../products/page.tsx (ADR-015). */
-export const revalidate = 3600;
+/**
+ * One minute, as a literal (see products/page.tsx). On Amplify CloudFront keeps this page for this
+ * long and nothing purges it after an admin save, so this is also the longest an edit can take to
+ * show here (ADR-039).
+ */
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Lab Testing & COAs",

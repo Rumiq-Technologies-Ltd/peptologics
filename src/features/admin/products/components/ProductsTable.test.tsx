@@ -9,7 +9,6 @@ vi.mock("next/image", () => ({
 }));
 
 const actions = vi.hoisted(() => ({
-  publishPendingPagesAction: vi.fn(),
   reorderProductAction: vi.fn(),
   setProductFeaturedAction: vi.fn(),
   setProductStatusAction: vi.fn(),
@@ -56,8 +55,8 @@ beforeEach(() => {
   }
 });
 
-function renderTable(pagesWaiting = false) {
-  return render(<ProductsTable products={PRODUCTS} pagesWaiting={pagesWaiting} />);
+function renderTable() {
+  return render(<ProductsTable products={PRODUCTS} />);
 }
 
 const rowNames = () =>
@@ -107,7 +106,6 @@ describe("ProductsTable", () => {
     const user = userEvent.setup();
     render(
       <ProductsTable
-        pagesWaiting={false}
         products={[
           product("1", { name: "Cheap", priceCents: 100 }),
           product("2", { name: "Dear", priceCents: 900 }),
@@ -191,16 +189,5 @@ describe("ProductsTable", () => {
       await screen.findByText("This product changed since you opened it. Reload."),
     ).toBeInTheDocument();
     expect(refresh).toHaveBeenCalled();
-  });
-
-  it("offers Publish now only while pages are waiting for a build", async () => {
-    const user = userEvent.setup();
-    const { unmount } = renderTable(false);
-    expect(screen.queryByRole("button", { name: "Publish now" })).not.toBeInTheDocument();
-    unmount();
-
-    renderTable(true);
-    await user.click(screen.getByRole("button", { name: "Publish now" }));
-    expect(actions.publishPendingPagesAction).toHaveBeenCalled();
   });
 });

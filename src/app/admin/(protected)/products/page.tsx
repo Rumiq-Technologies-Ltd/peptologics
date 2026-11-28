@@ -9,12 +9,11 @@ export const metadata: Metadata = { title: "Products" };
 export default async function AdminProductsPage() {
   await requireAdmin({ role: "editor" });
 
-  const { products, rebuild } = getProductAdmin();
-  const [list, rebuildState] = await Promise.all([products.list(), rebuild.getState()]);
+  const list = await getProductAdmin().products.list();
 
   return (
     <div className="mx-auto max-w-6xl">
-      <ProductsTable products={list} pagesWaiting={rebuildState.pending} />
+      <ProductsTable products={list} />
     </div>
   );
 }

@@ -15,3 +15,11 @@ export const siteUrl: string = (
 
 /** Public contact email, shown in the footer and on the contact page. */
 export const contactEmail: string | undefined = process.env.NEXT_PUBLIC_CONTACT_EMAIL || undefined;
+
+/**
+ * The public address product images are served from (the CloudFront domain), no trailing slash.
+ * Read by the product schema so the browser and the server accept the same image addresses.
+ * Unset where image upload is not configured.
+ */
+export const mediaBaseUrl: string | undefined =
+  process.env.NEXT_PUBLIC_MEDIA_BASE_URL?.replace(/\/+$/, "") || undefined;

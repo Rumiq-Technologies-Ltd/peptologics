@@ -109,14 +109,14 @@ comparable to a single-peptide product.
 
 ## Product pages and HTTP status
 
-`/products/[slug]` returns a real `404` for an unknown slug, because the segment sets
-`dynamicParams = false`. With `true`, Next renders and caches the not-found page and returns `200` — a
-soft 404. See ADR-014.
-
-A **retired** slug (one a product had before staff changed it in the admin, D26) is built as a page too,
-and that page is a permanent redirect: `308` with `Location` set to the product's current page. A
-retired slug whose product is archived is a `404`. The old redirects in `next.config.ts` are served
-before any of this. See ADR-039.
+`/products/[slug]` is rendered on every request (`force-dynamic`, ADR-039). An unknown slug, and an
+archived product, are a real `404`. (The earlier answer, `dynamicParams = false` with ISR, existed because
+a cached `notFound()` was served with status `200`, a soft 404; see ADR-014. A dynamic page has no such
+cache.) A **retired** slug (one a product had before staff changed it in the admin, D26) is a `308` with
+`Location` set to the product's current page; if that product is archived it is a `404`. The old
+redirects in `next.config.ts` are served before any of this. The share image
+(`/products/[slug]/opengraph-image-<hash>`) follows the same rules. Its response is
+`private, no-cache, no-store`, so CloudFront does not keep it.
 
 ## `POST /api/inquiries`
 
@@ -325,7 +325,7 @@ message never uses up an inquiry's allowance. Fails open if the counter is unrea
 
 ## `POST /api/revalidate`
 
-Purges the catalog cache. The catalog is statically rendered with a one-hour ISR window, which is the
+Purges the catalog cache at the origin. The catalog pages are statically rendered with a one-minute ISR window, which is the
 right default and the wrong latency for a price correction — this makes the refresh immediate.
 
 **Auth:** `Authorization: Bearer $REVALIDATE_SECRET`, compared in constant time. With no secret
@@ -351,9 +351,10 @@ how a site ends up quoting two different prices for the same product.
 | `405`  | `METHOD_NOT_ALLOWED` | `GET`, so a browser visit gets a clear answer |
 | `422`  | `VALIDATION_FAILED`  | `slug` present but not a valid slug           |
 
-Adding a **new** product needs a build, not a purge: `/products/[slug]` sets `dynamicParams = false`,
-so a slug absent at build time 404s until `generateStaticParams` runs again (ADR-014). The admin starts
-that build itself (ADR-039). The admin's own saves do not call this endpoint: they revalidate in-process.
+A new product needs neither a build nor a purge: its page is rendered on request (ADR-039). On Amplify
+this endpoint, like `revalidatePath`, clears the origin's cache only; CloudFront keeps a cached page for
+its `s-maxage`, so the catalog pages can still show an old price for up to a minute. The admin's own
+saves do not call this endpoint: they revalidate in-process.
 
 ---
 

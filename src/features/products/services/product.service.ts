@@ -34,8 +34,6 @@ export interface ProductService {
   listSlugsForSitemap(): Promise<{ slug: string; updatedAt: string }[]>;
   /** Where a retired product URL should now point (D26), or null if it is not a retired slug. */
   resolveRetiredSlug(slug: string): Promise<string | null>;
-  /** Retired slugs, prerendered as permanent redirects (D26). Never throws. */
-  listRetiredSlugs(): Promise<string[]>;
   /** Narrows an untrusted `?sort=` value to a supported option. */
   resolveSort(value: string | undefined): ProductSort;
 }
@@ -126,15 +124,6 @@ export function createProductService({ repository }: ProductServiceDeps): Produc
         // A failed lookup degrades to a 404 rather than an error page.
         logger.error("product_redirect_lookup_failed", { error, slug });
         return null;
-      }
-    },
-
-    async listRetiredSlugs(): Promise<string[]> {
-      try {
-        return await repository.listRetiredSlugs();
-      } catch (error) {
-        logger.error("product_retired_slugs_failed", { error });
-        return [];
       }
     },
 

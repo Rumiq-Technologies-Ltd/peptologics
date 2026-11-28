@@ -34,11 +34,9 @@ function makeHarness() {
   const findCurrentSlugForRetired = vi.fn<ProductRepository["findCurrentSlugForRetired"]>(
     async () => null,
   );
-  const listRetiredSlugs = vi.fn<ProductRepository["listRetiredSlugs"]>(async () => []);
 
   const repository: ProductRepository = {
     findCurrentSlugForRetired,
-    listRetiredSlugs,
     findActive,
     findFeatured,
     findBySlug,
@@ -53,7 +51,6 @@ function makeHarness() {
     findBySlug,
     listActiveSlugs,
     findCurrentSlugForRetired,
-    listRetiredSlugs,
   };
 }
 
@@ -213,14 +210,5 @@ describe("retired slugs (D26)", () => {
     findCurrentSlugForRetired.mockRejectedValueOnce(new Error("down"));
 
     await expect(service.resolveRetiredSlug("old-30mg")).resolves.toBeNull();
-  });
-
-  it("lists retired slugs for the build, and an empty list if that fails", async () => {
-    const { service, listRetiredSlugs } = makeHarness();
-    listRetiredSlugs.mockResolvedValueOnce(["a-1mg"]);
-    await expect(service.listRetiredSlugs()).resolves.toEqual(["a-1mg"]);
-
-    listRetiredSlugs.mockRejectedValueOnce(new Error("down"));
-    await expect(service.listRetiredSlugs()).resolves.toEqual([]);
   });
 });

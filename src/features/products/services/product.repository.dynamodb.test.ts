@@ -180,20 +180,6 @@ describe("retired slugs (D26)", () => {
     ).resolves.toBeNull();
   });
 
-  it("lists every retired slug from GSI1, following pagination", async () => {
-    dynamo
-      .on(QueryCommand)
-      .resolvesOnce({ Items: [{ slug: "a-1mg" }], LastEvaluatedKey: { PK: "x", SK: "y" } })
-      .resolves({ Items: [{ slug: "b-2mg" }] });
-
-    await expect(createDynamoProductRepository().listRetiredSlugs()).resolves.toEqual([
-      "a-1mg",
-      "b-2mg",
-    ]);
-    const input = dynamo.commandCalls(QueryCommand)[0]?.args[0].input;
-    expect(input?.ExpressionAttributeValues).toEqual({ ":pk": "SLUG_REDIRECTS" });
-  });
-
   it("wraps a storage failure", async () => {
     dynamo.on(GetCommand).rejects(new Error("boom"));
     await expect(

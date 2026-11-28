@@ -27,8 +27,6 @@ export const INDEX = {
 
 export const CATALOG_PARTITION = "PRODUCTS";
 export const OPEN_NOTIFICATIONS_PARTITION = "NOTIF_OPEN";
-/** Retired product slugs (D26), listed on GSI1 so a build can prerender each as a redirect. */
-export const SLUG_REDIRECT_PARTITION = "SLUG_REDIRECTS";
 
 /** The counter is advanced from this value, so a fresh table issues PL-001000 first. */
 export const ORDER_COUNTER_START = 999;
@@ -60,8 +58,6 @@ export const keys = {
     SK: `${timestamp}#${id}`,
   }),
   orderCounter: { PK: "COUNTER#order_number", SK: "META" } satisfies TableKey,
-  /** Admin: when the site rebuild hook last fired, and whether a build is still owed. */
-  rebuildState: { PK: "BUILD#rebuild-hook", SK: "META" } satisfies TableKey,
   rateLimit: (bucketKey: string, windowStartSeconds: number): TableKey => ({
     PK: `RL#${bucketKey}#${windowStartSeconds}`,
     SK: "META",
@@ -184,14 +180,11 @@ export function buildProductItems(product: ProductSource, now: string): Item[] {
 
 /**
  * The guard a retired slug keeps forever (D26). It stops any other product taking the slug,
- * names the product it now belongs to (so a redirect never goes stale across later renames),
- * and sits on GSI1 so a build can list every retired slug and prerender it as a redirect.
+ * and names the product it now belongs to, so a redirect never goes stale across later renames.
  */
 export function buildRetiredSlugGuard(slug: string, productId: string, retiredAt: string): Item {
   return compact({
     ...keys.slugGuard(slug),
-    GSI1PK: SLUG_REDIRECT_PARTITION,
-    GSI1SK: slug,
     entity: "slug_redirect",
     product_id: productId,
     slug,

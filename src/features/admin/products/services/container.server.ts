@@ -3,8 +3,7 @@ import "server-only";
 import { createProductImageService, type ProductImageService } from "./productImage.service";
 import { createProductAdminService, type ProductAdminService } from "./productAdmin.service";
 import { createDynamoProductAdminRepository } from "./productAdmin.repository.dynamodb";
-import { createRebuildService, type RebuildService } from "./rebuild.service";
-import { createDynamoRebuildStore } from "./rebuild.store.dynamodb";
+import { isProductImageReference } from "@/features/admin/products/utils/imageRules";
 import { getS3Client } from "@/lib/aws/s3.server";
 import { env } from "@/lib/env";
 
@@ -14,7 +13,6 @@ import { env } from "@/lib/env";
  */
 interface ProductAdminContainer {
   products: ProductAdminService;
-  rebuild: RebuildService;
   /** Null when no media bucket is configured: image upload is then off. */
   images: ProductImageService | null;
 }
@@ -37,11 +35,7 @@ export function getProductAdmin(): ProductAdminContainer {
     products: createProductAdminService({
       repository: createDynamoProductAdminRepository(),
       isAllowedImageUrl: (url) =>
-        images ? images.isAllowedImageUrl(url) : /^\/products\//.test(url),
-    }),
-    rebuild: createRebuildService({
-      store: createDynamoRebuildStore(),
-      hookUrl: env.REVALIDATE_REBUILD_HOOK_URL,
+        images ? images.isAllowedImageUrl(url) : isProductImageReference(url, undefined),
     }),
     images,
   };

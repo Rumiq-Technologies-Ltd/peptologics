@@ -107,8 +107,10 @@ branch.** `dev` is retired (tag `archive/dev`). The reasoning is in [ADR-034](./
 
 ## Production release order (pending migrations)
 
-Product pages are built only at build time (`dynamicParams = false`), so the renamed product slugs exist
-only after a build that sees the renamed data. Release in this order:
+Until the change in ADR-039 (amended) reaches `main`, product pages are built only at build time
+(`dynamicParams = false`), so the renamed product slugs exist only after a build that sees the renamed
+data. Once it is released, product pages are rendered on every request and this ordering no longer
+matters for them. Release in this order:
 
 1. Apply migration `20261127120000` to the production database.
 2. Apply migration `20261127130000`.
@@ -123,24 +125,23 @@ Start the build straight after step 2, not after the deploy of any other change.
 Today these live in **Amplify environment variables**. The Amplify build spec writes them into
 `.env.production` at build time. Set them per branch.
 
-| Variable                                                      | Value                                                                                                                          |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `APP_ENV`                                                     | `production` on `main`, `staging` on `staging`, unset locally                                                                  |
-| `SUPABASE_URL`                                                | `https://<project-ref>.supabase.co` (retired by ADR-035 once merged)                                                           |
-| `SUPABASE_ANON_KEY`                                           | Supabase → Settings → API → `anon` key                                                                                         |
-| `SUPABASE_SERVICE_ROLE_KEY`                                   | Supabase → Settings → API → `service_role`. Secret                                                                             |
-| `NEXT_PUBLIC_SITE_URL`                                        | `https://peptologics.com` on production only, no trailing slash                                                                |
-| `INQUIRY_EMAIL_PROVIDER`                                      | `resend` or `ses`. Unset means `resend`. Flip + rebuild to switch/roll back (ADR-037)                                          |
-| `INQUIRY_SES_CONFIGURATION_SET`                               | `peptologics-prod`. Required in production when the provider is `ses`                                                          |
-| `RESEND_API_KEY`                                              | Resend → API Keys. Secret. Needed only while the provider is `resend`                                                          |
-| `INQUIRY_NOTIFICATION_FROM`                                   | `PeptoLogics <inquiries@peptologics.com>`: note the space before `<`                                                           |
-| `INQUIRY_NOTIFICATION_TO`                                     | Where inquiries land. Comma-separated for several recipients                                                                   |
-| `NEXT_PUBLIC_CONTACT_EMAIL`                                   | Public address shown in the footer and on the contact page                                                                     |
-| `NEXT_PUBLIC_COGNITO_USER_POOL_ID` / `_CLIENT_ID` / `_DOMAIN` | Admin sign-in (ADR-038, [admin.md](./admin.md)). Not secrets. Set all three or none. Staging only until Stage 4                |
-| `NEXT_PUBLIC_MEDIA_BUCKET_NAME` / `_BASE_URL`                 | Admin product images (ADR-039). Not secrets. Set both or neither. Base URL is the CloudFront address, no `/` at the end        |
-| `REVALIDATE_SECRET`                                           | 24 random bytes hex. Secret                                                                                                    |
-| `REVALIDATE_REBUILD_HOOK_URL`                                 | The Amplify incoming-webhook URL that starts a build (ADR-039). **Secret** (the path is the token). Server-only. Unset locally |
-| `RATE_LIMIT_SALT`                                             | 24 random bytes hex. Secret. Changing it resets all rate-limit windows                                                         |
+| Variable                                                      | Value                                                                                                                   |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `APP_ENV`                                                     | `production` on `main`, `staging` on `staging`, unset locally                                                           |
+| `SUPABASE_URL`                                                | `https://<project-ref>.supabase.co` (retired by ADR-035 once merged)                                                    |
+| `SUPABASE_ANON_KEY`                                           | Supabase → Settings → API → `anon` key                                                                                  |
+| `SUPABASE_SERVICE_ROLE_KEY`                                   | Supabase → Settings → API → `service_role`. Secret                                                                      |
+| `NEXT_PUBLIC_SITE_URL`                                        | `https://peptologics.com` on production only, no trailing slash                                                         |
+| `INQUIRY_EMAIL_PROVIDER`                                      | `resend` or `ses`. Unset means `resend`. Flip + rebuild to switch/roll back (ADR-037)                                   |
+| `INQUIRY_SES_CONFIGURATION_SET`                               | `peptologics-prod`. Required in production when the provider is `ses`                                                   |
+| `RESEND_API_KEY`                                              | Resend → API Keys. Secret. Needed only while the provider is `resend`                                                   |
+| `INQUIRY_NOTIFICATION_FROM`                                   | `PeptoLogics <inquiries@peptologics.com>`: note the space before `<`                                                    |
+| `INQUIRY_NOTIFICATION_TO`                                     | Where inquiries land. Comma-separated for several recipients                                                            |
+| `NEXT_PUBLIC_CONTACT_EMAIL`                                   | Public address shown in the footer and on the contact page                                                              |
+| `NEXT_PUBLIC_COGNITO_USER_POOL_ID` / `_CLIENT_ID` / `_DOMAIN` | Admin sign-in (ADR-038, [admin.md](./admin.md)). Not secrets. Set all three or none. Staging only until Stage 4         |
+| `NEXT_PUBLIC_MEDIA_BUCKET_NAME` / `_BASE_URL`                 | Admin product images (ADR-039). Not secrets. Set both or neither. Base URL is the CloudFront address, no `/` at the end |
+| `REVALIDATE_SECRET`                                           | 24 random bytes hex. Secret                                                                                             |
+| `RATE_LIMIT_SALT`                                             | 24 random bytes hex. Secret. Changing it resets all rate-limit windows                                                  |
 
 Generate the two secrets:
 
@@ -304,20 +305,17 @@ workstream together with `docs/database.md`.
 
 ## Adding a product to the catalog
 
-**Staging and developer machines (admin, ADR-039).** Staff add a product at `/admin/products/new`. The
-save is instant, but the product's page exists only after a build (`dynamicParams = false`, ADR-014), so
-creating a product, or changing a slug, calls the Amplify incoming webhook in
-`REVALIDATE_REBUILD_HOOK_URL`. The page is live about five minutes later.
+**Staging and developer machines (admin, ADR-039).** Staff add a product at `/admin/products/new`. Nothing
+else is needed: `/products/[slug]` is rendered on every request (`force-dynamic`), so the new page works
+on its first request and an edit, archive or restore shows on the next one. There is no build webhook.
 
-- **At most one build per two minutes.** A request inside the window is recorded as owed (a banner on
-  the products list offers **Publish now**), and the next request after the window starts one build that
-  covers everything created since.
-- A failed webhook call never fails the save: the page then goes live after the next deploy.
-- Edits, archive, restore, featured and reorder need **no** build: the save revalidates the product page,
-  `/products`, `/`, `/lab-testing` and the sitemap straight away.
-- Locally the variable is unset: no build is requested and a line is logged.
-- Setting it up (control chat): create an **incoming webhook** on the Amplify branch (`staging`), put its
-  URL in `REVALIDATE_REBUILD_HOOK_URL` on that branch. The URL is a secret.
+- **Why dynamic:** on Amplify, CloudFront holds a page for the `s-maxage` Next sends and nothing the app
+  can call purges it, so a cached product page kept the old price, and an archived product's page kept
+  answering 200, for up to an hour. A dynamic page is sent `private, no-cache, no-store`.
+- `/`, `/products`, `/lab-testing` and the sitemap are static with `revalidate = 60`, so an edit can take
+  up to a minute to show there. The save also calls `revalidatePath` for them (origin only).
+- To check a product page on Amplify, look at the response headers: `cache-control: private, no-cache,
+no-store` and no `x-cache: Hit from cloudfront`.
 
 **Production, until Stage 4 (Supabase).** Inserting a row into `products` is **not** enough to make its
 page reachable:

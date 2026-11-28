@@ -4,6 +4,7 @@ import { displaySans, plexMono } from "@/components/layout/fonts";
 import { ComplianceStrip } from "@/components/layout/ComplianceStrip";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { StagingBanner } from "@/components/layout/StagingBanner";
 import { JsonLd } from "@/components/shared/JsonLd";
 import { SkipLink } from "@/components/shared/SkipLink";
 import { WebVitalsReporter } from "@/components/shared/WebVitalsReporter";
@@ -23,7 +24,14 @@ import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/seo/structure
  * Next renders an unmatched URL through `global-not-found`, and the visitor must still see
  * the site's own 404 inside the site's own chrome.
  */
-export function SiteDocument({ children }: { children: ReactNode }) {
+export function SiteDocument({
+  children,
+  appEnv,
+}: {
+  children: ReactNode;
+  /** `APP_ENV`, passed in because components may not import server env. Drives the staging banner. */
+  appEnv: string | undefined;
+}) {
   return (
     <html
       lang="en"
@@ -83,6 +91,7 @@ export function SiteDocument({ children }: { children: ReactNode }) {
         */}
         <div id="site-root" className="flex min-h-full flex-col">
           <SkipLink />
+          <StagingBanner appEnv={appEnv} />
           <ComplianceStrip />
           <SiteHeader />
 

@@ -55,7 +55,7 @@ export const MESSAGES = {
 
 /** Shown site-wide on staging only (D40). */
 export const STAGING_BANNER_TEXT =
-  "Test site: inquiries and messages are saved but no emails are sent. Use peptologics.com for real orders.";
+  "Test site: emails are switched off. Quote requests are saved but nobody is notified, and the contact form won't send. Use peptologics.com for real orders.";
 
 /** Added to the inquiry success page when email is not configured (D40). */
 export const NO_EMAIL_SENT_NOTE = "Test site: no email was sent.";
